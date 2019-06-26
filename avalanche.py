@@ -63,6 +63,7 @@ class cell():
         out_row = self.rowindex - 1 + out_row_local
         out_col = self.colindex - 1 + out_col_local
         mass_list = self.mass_dist[out_row_local, out_col_local]
+        
         return out_row, out_col, mass_list
     
     
@@ -93,6 +94,7 @@ def read_raster(input_file):
 
 
 file = 'Fonnbu_dhm.asc'
+file_out = 'Mass.asc'
 dem, header = read_raster(file)   
 #dem = np.ones((100, 100), dtype=np.int)
 mass_dist = np.zeros_like(dem)
@@ -101,7 +103,6 @@ mass_dist = np.zeros_like(dem)
 #    dem[:,i] = dem[:,i] * (10-i)
 
 cell_list = []  
-calc_list = []
 startcell = cell(500, 1, dem[500, 1], 1)
 mass_dist[startcell.rowindex, startcell.colindex] = 1
 
@@ -110,11 +111,10 @@ cell_list.append(startcell)
 for cells in cell_list:    
     row, col, mass = cells.calc_distribution(dem[cells.rowindex-1:cells.rowindex+2,cells.colindex-1:cells.colindex+2])
     
-    for i in range(len(cell_list)): #Taking out multiple cells, ToDo: add mass to cell
+    for i in range(len(cell_list)): #Taking out multiple cells, ToDo: add velocity
         j = 0
         while j < len(row):
             if row[j] == cell_list[i].rowindex and col[j] == cell_list[i].colindex:
-                #print('same cell')
                 cell_list[i].add_mass(mass[j])
                 row = np.delete(row, j)
                 col = np.delete(col, j)
@@ -128,7 +128,7 @@ for cells in cell_list:
     mass_dist[cells.rowindex, cells.colindex] = cells.mass    
             
 
-            
+#ToDO: Implement if NoData Value is hit, or boarder of DEM            
 # =============================================================================
 #     k = 0    
 #     while k < len(i): # Controll if cell is on boarder of DEM, when delete it from the list
@@ -139,5 +139,8 @@ for cells in cell_list:
 # =============================================================================
 
     
-    
+raster_trans = rasterio.open(file)
+new_dataset = rasterio.open(file_out, 'w', driver='GTiff', height = mass_dist.shape[0], width = mass_dist.shape[1], count=1,  dtype = mass_dist.dtype, crs='+proj=latlong', transform=raster_trans.transform)
+new_dataset.write(mass_dist, 1)
+new_dataset.close()    
 
