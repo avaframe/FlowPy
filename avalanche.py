@@ -12,6 +12,7 @@ import numpy as np
 import math
 import rasterio
 import sys
+import time
 
 class cell():
     
@@ -20,16 +21,22 @@ class cell():
         self.colindex = colindex
         self.altitude = altitude
         self.mass = mass
-        self.dx = None
-        self.dy = None
-        self.dz = None
+        self.velocity = 0
         self.cellsize = 10
-        self.exp = 8
+        self.exp = 1
+        self.alpha = 50
                        
-    def calc_vector(self, startcell):
-        self.dx = np.abs(startcell.colindex - self.colindex)
-        self.dy = np.abs(startcell.rowindex - self.rowindex)
-        self.dz = np.abs(startcell.altitude - self.altitude)
+    def calc_velocity(self, startcell):
+        dx = np.abs(startcell.colindex - self.colindex) * self.cellsize
+        dy = np.abs(startcell.rowindex - self.rowindex) * self.cellsize
+        dh = np.sqrt(dx**2 + dy**2)
+        temp = startcell.altitude - self.altitude - dh * np.tan(np.deg2rad(self.alpha))
+        if temp > 0:
+            self.velocity = np.sqrt(2*9.81*temp)
+        else:
+            self.velocity = 0
+            
+        return self.velocity
         
     def add_mass(self, mass):
         self.mass += mass
@@ -47,8 +54,7 @@ class cell():
                 else:
                     distance = cellsize * math.sqrt(2)
                 self.tan_beta[i+1, j+1] = (dem_ng[i+1, j+1] - self.altitude)/distance
-        
-        
+                
     def calc_distribution(self, dem_ng):      
         self.calc_tanbeta(dem_ng)
         self.mass_dist = np.zeros((3,3))
@@ -94,40 +100,55 @@ def read_raster(input_file):
 
 
 file = 'Fonnbu_dhm.asc'
-file_out = 'Mass.asc'
+mass_out = 'Mass_exp8.asc'
+vel_out = 'Velocity.asc'
 dem, header = read_raster(file)   
 #dem = np.ones((100, 100), dtype=np.int)
 mass_dist = np.zeros_like(dem)
+vel = np.zeros_like(dem)
 
 #for i in range(10):
 #    dem[:,i] = dem[:,i] * (10-i)
 
+start = time.time()
+
 cell_list = []  
 startcell = cell(500, 1, dem[500, 1], 1)
-mass_dist[startcell.rowindex, startcell.colindex] = 1
+#mass_dist[startcell.rowindex, startcell.colindex] = 1
 
 cell_list.append(startcell)
+row, col, mass = startcell.calc_distribution(dem[startcell.rowindex-1:startcell.rowindex+2,startcell.colindex-1:startcell.colindex+2])
+for k in range(len(row)): 
+    cell_list.append(cell(row[k], col[k], dem[row[k], col[k]], mass[k]))
 
-for cells in cell_list:    
-    row, col, mass = cells.calc_distribution(dem[cells.rowindex-1:cells.rowindex+2,cells.colindex-1:cells.colindex+2])
-    
-    for i in range(len(cell_list)): #Taking out multiple cells, ToDo: add velocity
-        j = 0
-        while j < len(row):
-            if row[j] == cell_list[i].rowindex and col[j] == cell_list[i].colindex:
-                cell_list[i].add_mass(mass[j])
-                row = np.delete(row, j)
-                col = np.delete(col, j)
-                mass = np.delete(mass, j)
-            else:
-                j += 1
+for cells in cell_list:
+    if not cells == startcell:
+        vel[cells.rowindex, cells.colindex] = cells.calc_velocity(startcell)
+        if cells.velocity > 0:
+            print(cells.velocity)
+            row, col, mass = cells.calc_distribution(dem[cells.rowindex-1:cells.rowindex+2,cells.colindex-1:cells.colindex+2])
+            
+            for i in range(len(cell_list)): #Taking out multiple cells, ToDo: add velocity
+                j = 0
+                while j < len(row):
+                    if row[j] == cell_list[i].rowindex and col[j] == cell_list[i].colindex:
+                        cell_list[i].add_mass(mass[j])
+                        row = np.delete(row, j)
+                        col = np.delete(col, j)
+                        mass = np.delete(mass, j)
+                    else:
+                        j += 1
+                        
+            for k in range(len(row)):             
+                    cell_list.append(cell(row[k], col[k], dem[row[k], col[k]], mass[k]))
                 
-    for k in range(len(row)):             
-            cell_list.append(cell(row[k], col[k], dem[row[k], col[k]], mass[k]))
-            
-    mass_dist[cells.rowindex, cells.colindex] = cells.mass    
-            
+            mass_dist[cells.rowindex, cells.colindex] = cells.mass
+        else:
+            break
+    #vel[cells.rowindex, cells.colindex] = cells.calc_velocity(startcell)
 
+end = time.time()            
+print(end - start)
 #ToDO: Implement if NoData Value is hit, or boarder of DEM            
 # =============================================================================
 #     k = 0    
@@ -140,7 +161,11 @@ for cells in cell_list:
 
     
 raster_trans = rasterio.open(file)
-new_dataset = rasterio.open(file_out, 'w', driver='GTiff', height = mass_dist.shape[0], width = mass_dist.shape[1], count=1,  dtype = mass_dist.dtype, crs='+proj=latlong', transform=raster_trans.transform)
+new_dataset = rasterio.open(mass_out, 'w', driver='GTiff', height = mass_dist.shape[0], width = mass_dist.shape[1], count=1,  dtype = mass_dist.dtype, crs='+proj=latlong', transform=raster_trans.transform)
 new_dataset.write(mass_dist, 1)
+new_dataset.close()    
+
+new_dataset = rasterio.open(vel_out, 'w', driver='GTiff', height = mass_dist.shape[0], width = mass_dist.shape[1], count=1,  dtype = mass_dist.dtype, crs='+proj=latlong', transform=raster_trans.transform)
+new_dataset.write(vel, 1)
 new_dataset.close()    
 
