@@ -15,24 +15,35 @@ class Cell():
         self.cellsize = cellsize
         self.tan_beta = np.zeros_like(self.dem_ng)
         self.dist = np.zeros_like(self.dem_ng)
-        self.alpha = 25
+        self.alpha = 35
+        self.velocity_sqr = 0
         if startcell == True: #check, if start cell exist (start cell is release point)
             self.is_start = True # set is_satrt to True
         else:            
             self.startcell = startcell # set is_satrt to True
             self.is_start = False # set is_satrt to False        
-        self.calc_tanbeta()
+        #self.calc_tanbeta()
         self.calc_energy()
         
     def calc_energy(self):
         if self.is_start:
             self.elh = 0
         else:
-            dx = np.abs(self.startcell.colindex - self.colindex) * self.cellsize
+            dx = np.abs(self.startcell.colindex - self.colindex) * self.cellsize #g
             dy = np.abs(self.startcell.rowindex - self.rowindex) * self.cellsize
             ds = np.sqrt(dx**2 + dy**2)
             dz = self.startcell.altitude - self.altitude            
             self.elh = dz - ds * np.tan(np.deg2rad(self.alpha))
+            
+    def calc_velocity(self):# g
+        if self.is_start:
+            self.elh = 0
+        else:
+            dx = (self.startcell.colindex - self.colindex) * self.cellsize #g
+            dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
+            ds = np.sqrt(dx**2 + dy**2)
+            dz = self.startcell.altitude - self.altitude            
+            self.velocity_sqr = 2 * 9.81 * (dz - ds * np.tan(np.deg2rad(self.alpha)))
         
     def steepest_descend(self):
         min_alt = np.amin(self.dem_ng)
@@ -61,7 +72,34 @@ class Cell():
                 self.dist[i, j] = self.tan_beta[i, j] ** exp / np.sum(self.tan_beta ** exp)
         row_local, col_local = np.where(self.dist > threshold)
         return self.rowindex - 1 + row_local, self.colindex - 1 + col_local
-
+    
+    def calc_distr_projection(self):  # global
+        
+        if self.is_start:
+            slopes = self.dem_ng - self.altitude
+            row_local, col_local = np.where(slopes < 0)
+            return self.rowindex - 1 + row_local, self.colindex - 1 + col_local
+            
+        else: 
+            dx = (self.colindex - self.startcell.colindex) * self.cellsize # x component of avalanche flow direction, global
+            dy = (self.rowindex - self.startcell.rowindex) * self.cellsize # y component of avalanche flow direction, global
+            avi_direction = np.arctan2(dy, dx) * 180 / np.pi  # avalanche direction in degrees, global
+            #neighbour_direction = np.linspace(0.0, 315, 8)  # direction in deg to all cells
+            
+            # Setting the direction for the Center Cell in the opositre direction for the avalanche, so it´s not calculated
+            neighbour_direction = np.array([[135, 90, 45], [180, avi_direction+180, 0], [225, 270 , 315]])  # direction in deg to all cells, local
+            delta_deg = neighbour_direction - avi_direction  # difference between ava direction and the neighbor cells
+            direction_projection = np.cos(np.deg2rad(delta_deg)) # direction_projection[1] = NE, direction_projection[2] = N ..., global influence
+            
+            #neighbour_cells = -self.elh * direction_projection + terrain_slopes[:, cC[0], cC[1]]
+            slopes = self.dem_ng - self.altitude
+            neighbour_cells = -self.elh * direction_projection + slopes  # slopes is local influence, add negative scaled projection
+            
+            # print(three_flow)
+            #Fdir = mapping(three_flow)
+            
+            row_local, col_local = np.where(neighbour_cells < 0)
+            return self.rowindex - 1 + row_local, self.colindex - 1 + col_local
     
 def get_start_idx(release):
     row_list, col_list = np.where(release > 0)  # Gives back the indices of the release areas
@@ -72,10 +110,10 @@ def get_start_idx(release):
     return row_list, col_list    
         
 #Reading in the arrays
-path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR6_ValsGries_AUT/'
-file = path + 'dhm_cropped.asc'
-release_file = path + 'init/init_ava_c1.asc'
-elh_out = path + 'energy_gries_v4.asc'
+path = '/home/neuhauser/git_rep/graviclass/'
+file = path + 'dhm.asc'
+release_file = path + 'class_1.asc'
+elh_out = path + 'energy_newtry.asc'
 
 dem, header = io.read_raster(file)
 cellsize = header["cellsize"]   
@@ -108,7 +146,8 @@ while startcell_idx < len(row_list):
             checked += 1
             continue
         #start_dist =  time.time()
-        row, col = cells.calc_distribution()
+        #row, col = cells.calc_distribution()
+        row, col = cells.calc_distr_projection()
         #end_dist = time.time()
         #print("Distribution took: " + str(end_dist - start_dist) + "seconds" )
         start_check = time.time()
