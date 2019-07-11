@@ -7,16 +7,17 @@ import raster_io as io
 
 class Cell():
     
-    def __init__(self, rowindex, colindex, altitude, dem_ng, cellsize, startcell):
+    def __init__(self, rowindex, colindex, altitude, dem_ng, cellsize, mass, startcell):
         self.rowindex = rowindex
         self.colindex = colindex
         self.altitude = altitude
         self.dem_ng = dem_ng
         self.cellsize = cellsize
-        self.tan_beta = np.zeros_like(self.dem_ng)
-        self.dist = np.zeros_like(self.dem_ng)
-        self.alpha = 35
+        #self.tan_beta = np.zeros_like(self.dem_ng)
+        #self.dist = np.zeros_like(self.dem_ng)
+        self.alpha = 32
         self.velocity_sqr = 0
+        self.mass = mass
         if startcell == True: #check, if start cell exist (start cell is release point)
             self.is_start = True # set is_satrt to True
         else:            
@@ -44,6 +45,9 @@ class Cell():
             ds = np.sqrt(dx**2 + dy**2)
             dz = self.startcell.altitude - self.altitude            
             self.velocity_sqr = 2 * 9.81 * (dz - ds * np.tan(np.deg2rad(self.alpha)))
+            
+    def add_mass(self, mass):
+        self.mass += mass
         
     def steepest_descend(self):
         min_alt = np.amin(self.dem_ng)
@@ -76,11 +80,16 @@ class Cell():
     def calc_distr_projection(self):  # global
         
         if self.is_start:
-            slopes = self.dem_ng - self.altitude
-            row_local, col_local = np.where(slopes < 0)
-            return self.rowindex - 1 + row_local, self.colindex - 1 + col_local
+            #slopes = self.dem_ng - self.altitude
+            # mass stuff
+            neighbour_cells = self.dem_ng - self.altitude  # because elh=0 neighbour_cells = slopes
+            negative_sum = np.sum(neighbour_cells[neighbour_cells < 0])
+            neighbour_cells = neighbour_cells/negative_sum
+            row_local, col_local = np.where(neighbour_cells > 0)
+            return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, neighbour_cells[row_local, col_local]
             
         else: 
+            #global stuff
             dx = (self.colindex - self.startcell.colindex) * self.cellsize # x component of avalanche flow direction, global
             dy = (self.rowindex - self.startcell.rowindex) * self.cellsize # y component of avalanche flow direction, global
             avi_direction = np.arctan2(dy, dx) * 180 / np.pi  # avalanche direction in degrees, global
@@ -91,15 +100,19 @@ class Cell():
             delta_deg = neighbour_direction - avi_direction  # difference between ava direction and the neighbor cells
             direction_projection = np.cos(np.deg2rad(delta_deg)) # direction_projection[1] = NE, direction_projection[2] = N ..., global influence
             
+            #global and local
             #neighbour_cells = -self.elh * direction_projection + terrain_slopes[:, cC[0], cC[1]]
             slopes = self.dem_ng - self.altitude
             neighbour_cells = -self.elh * direction_projection + slopes  # slopes is local influence, add negative scaled projection
             
+            # mass stuff
+            negative_sum = np.sum(neighbour_cells[neighbour_cells < 0])
+            neighbour_cells = neighbour_cells/negative_sum # Normilzing the negative values and mutlipling it with the mass of the cell, so they are positive
             # print(three_flow)
             #Fdir = mapping(three_flow)
             
-            row_local, col_local = np.where(neighbour_cells < 0)
-            return self.rowindex - 1 + row_local, self.colindex - 1 + col_local
+            row_local, col_local = np.where(neighbour_cells > 0) 
+            return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, neighbour_cells[row_local, col_local] * self.mass
     
 def get_start_idx(release):
     row_list, col_list = np.where(release > 0)  # Gives back the indices of the release areas
@@ -114,11 +127,13 @@ path = '/home/neuhauser/git_rep/graviclass/'
 file = path + 'dhm.asc'
 release_file = path + 'class_1.asc'
 elh_out = path + 'energy_newtry.asc'
+mass_out = path + 'mass_newtry.asc'
 
 dem, header = io.read_raster(file)
 cellsize = header["cellsize"]   
 release, header = io.read_raster(release_file) 
 elh = np.zeros_like(dem)
+mass_array = np.zeros_like(dem)
 
 start = time.time()
 
@@ -136,41 +151,46 @@ while startcell_idx < len(row_list):
         startcell_idx += 1
         continue
     
-    startcell = Cell(row_idx, col_idx, dem[row_idx, col_idx], dem_ng, cellsize, startcell=True)
+    startcell = Cell(row_idx, col_idx, dem[row_idx, col_idx], dem_ng, cellsize, 1, startcell=True)
     # If this is a startcell just give a Bool to startcell otherwise the object startcell
     
     cell_list.append(startcell)
     checked = 0
     for cells in cell_list:
-        if cells.elh < 0:
-            checked += 1
+        if cells.elh < 0 or cells.mass < 0.00000000001: # Stopping Criteria
+            #checked += 1
             continue
         #start_dist =  time.time()
         #row, col = cells.calc_distribution()
-        row, col = cells.calc_distr_projection()
+        row, col, mass = cells.calc_distr_projection()
         #end_dist = time.time()
         #print("Distribution took: " + str(end_dist - start_dist) + "seconds" )
-        start_check = time.time()
+        #start_check = time.time()
         for i in range(checked, len(cell_list)):  # Check if Cell already exists
             k = 0
             while k < len(row):
                 if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
                     row = np.delete(row, k)
                     col = np.delete(col, k)
+                    cell_list[i].add_mass(mass[k])
+                    mass = np.delete(mass, k)
                 else:                                 
                     k += 1
-        end_check = time.time()
+        #end_check = time.time()
         #print("Check took: " + str(end_check - start_check) + "seconds" )           
         for k in range(len(row)):
             dem_ng = dem[row[k]-1:row[k]+2, col[k]-1:col[k]+2]  # neighbourhood DEM
             if np.size(dem_ng) < 9:
-                checked += 1# Dirty way to don´t care about the edge of the DEM
+                #checked += 1# Dirty way to don´t care about the edge of the DEM
                 continue
-            cell_list.append(Cell(row[k], col[k], dem[row[k], col[k]], dem_ng, cellsize, startcell))            
-        checked += 1         
+            cell_list.append(Cell(row[k], col[k], dem[row[k], col[k]], dem_ng, cellsize, mass[k], startcell))            
+        #checked += 1         
         elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.elh)
+        #mass_array[cells.rowindex, cells.colindex] = cells.mass
         #cell_list.pop(0)
     release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
+    for cell in cell_list:
+        mass_array[cell.rowindex, cell.colindex] = cell.mass
     row_list, col_list = get_start_idx(release)
     startcell_idx += 1
         
@@ -178,3 +198,4 @@ end = time.time()
 print('Time needed: ' + str(end - start) + ' seconds')
 
 io.output_raster(file, elh_out, elh, 4326)
+io.output_raster(file, mass_out, mass_array, 4326)
