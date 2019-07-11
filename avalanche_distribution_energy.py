@@ -13,13 +13,15 @@ class Cell():
         self.altitude = altitude
         self.dem_ng = dem_ng
         self.cellsize = cellsize
-        self.calc_tanbeta()
+        self.tan_beta = np.zeros_like(self.dem_ng)
+        self.dist = np.zeros_like(self.dem_ng)
         self.alpha = 25
         if startcell == True: #check, if start cell exist (start cell is release point)
             self.is_start = True # set is_satrt to True
         else:            
             self.startcell = startcell # set is_satrt to True
-            self.is_start = False # set is_satrt to False
+            self.is_start = False # set is_satrt to False        
+        self.calc_tanbeta()
         self.calc_energy()
         
     def calc_energy(self):
@@ -41,8 +43,7 @@ class Cell():
         out_col = self.colindex - 1 + col_idx
         return out_row, out_col
     
-    def calc_tanbeta(self):
-        self.tan_beta = np.zeros_like(self.dem_ng)
+    def calc_tanbeta(self):        
         for i in range(3):
             for j in range(3):
                 if i == 1 or j == 1:
@@ -53,9 +54,8 @@ class Cell():
             self.tan_beta[self.tan_beta > 0] = 0
             
     def calc_distribution(self):
-        self.dist = np.zeros_like(self.dem_ng)
         exp = 8
-        threshold = 0.01
+        threshold = 0.05
         for i in range(3):
             for j in range(3):
                 self.dist[i, j] = self.tan_beta[i, j] ** exp / np.sum(self.tan_beta ** exp)
@@ -64,7 +64,7 @@ class Cell():
 
     
 def get_start_idx(release):
-    row_list, col_list = np.where(release == 1)  # Gives back the indices of the release areas
+    row_list, col_list = np.where(release > 0)  # Gives back the indices of the release areas
     altitude_list = []
     for i in range(len(row_list)):
         altitude_list.append(dem[row_list[i], col_list[i]])    
@@ -75,8 +75,7 @@ def get_start_idx(release):
 path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR6_ValsGries_AUT/'
 file = path + 'dhm_cropped.asc'
 release_file = path + 'init/init_ava_c1.asc'
-ava_out = path + 'distribution_gries_v2.asc'
-elh_out = path + 'energy_gries_v2.asc'
+elh_out = path + 'energy_gries_v4.asc'
 
 dem, header = io.read_raster(file)
 cellsize = header["cellsize"]   
@@ -96,6 +95,7 @@ while startcell_idx < len(row_list):
     col_idx = col_list[startcell_idx]    
     dem_ng = dem[row_idx - 1:row_idx + 2, col_idx - 1:col_idx + 2] # neighbourhood DEM
     if np.size(dem_ng) < 9:
+        startcell_idx += 1
         continue
     
     startcell = Cell(row_idx, col_idx, dem[row_idx, col_idx], dem_ng, cellsize, startcell=True)
@@ -105,9 +105,13 @@ while startcell_idx < len(row_list):
     checked = 0
     for cells in cell_list:
         if cells.elh < 0:
+            checked += 1
             continue
-        
+        #start_dist =  time.time()
         row, col = cells.calc_distribution()
+        #end_dist = time.time()
+        #print("Distribution took: " + str(end_dist - start_dist) + "seconds" )
+        start_check = time.time()
         for i in range(checked, len(cell_list)):  # Check if Cell already exists
             k = 0
             while k < len(row):
@@ -116,14 +120,17 @@ while startcell_idx < len(row_list):
                     col = np.delete(col, k)
                 else:                                 
                     k += 1
-                    
+        end_check = time.time()
+        #print("Check took: " + str(end_check - start_check) + "seconds" )           
         for k in range(len(row)):
             dem_ng = dem[row[k]-1:row[k]+2, col[k]-1:col[k]+2]  # neighbourhood DEM
-            if np.size(dem_ng) < 9:  # Dirty way to don´t care about the edge of the DEM
+            if np.size(dem_ng) < 9:
+                checked += 1# Dirty way to don´t care about the edge of the DEM
                 continue
-            cell_list.append(Cell(row[k], col[k], dem[row[k], col[k]], dem_ng, cellsize, cell_list[0]))            
+            cell_list.append(Cell(row[k], col[k], dem[row[k], col[k]], dem_ng, cellsize, startcell))            
         checked += 1         
         elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.elh)
+        #cell_list.pop(0)
     release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
     row_list, col_list = get_start_idx(release)
     startcell_idx += 1
@@ -131,4 +138,4 @@ while startcell_idx < len(row_list):
 end = time.time()            
 print('Time needed: ' + str(end - start) + ' seconds')
 
-io.output_raster(file, elh_out, elh)
+io.output_raster(file, elh_out, elh, 4326)

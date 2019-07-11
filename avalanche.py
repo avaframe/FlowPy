@@ -74,13 +74,13 @@ class Cell():
         
         for i in range(-1, 2):
             for j in range(-1, 2):
-                if not (i == 0 and  j == 0):
+                if not (i == 0 and j == 0):
                     dx = np.abs(startcell.colindex - self.colindex + j) * self.cellsize
                     dy = np.abs(startcell.rowindex - self.rowindex + i) * self.cellsize
                     ds_global = np.sqrt(dx**2 + dy**2)
                     #print(dx, dy, ds_global,i,j)
-                    dx = np.abs(j) * self.cellsize
-                    dy = np.abs(i) * self.cellsize
+                    dx = j * self.cellsize
+                    dy = i * self.cellsize
                     ds_local = np.sqrt(dx**2 + dy**2)
                     #print(dx, dy, ds_local)
                     
