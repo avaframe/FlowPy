@@ -15,7 +15,7 @@ class Cell():
         self.cellsize = cellsize
         #self.tan_beta = np.zeros_like(self.dem_ng)
         #self.dist = np.zeros_like(self.dem_ng)
-        self.alpha = 36
+        self.alpha = 25
         #self.velocity_sqr = 0
         self.mass = mass
         self.elh_ng = np.ones_like(dem_ng)
@@ -45,7 +45,7 @@ class Cell():
         if self.is_start:
             for i in range(-1, 2):
                 for j in range(-1, 2):
-                    dz = self.altitude - dem_ng[i+1, j+1]
+                    dz = self.altitude - self.dem_ng[i+1, j+1]
                     dx = np.abs(j) * self.cellsize
                     dy = np.abs(i) * self.cellsize
                     ds = np.sqrt(dx**2 + dy**2)
@@ -55,10 +55,11 @@ class Cell():
         else:
             for i in range(-1, 2):
                 for j in range(-1, 2):
-                    dz = self.startcell.altitude - dem_ng[i+1, j+1]
-                    dx = np.abs(self.startcell.colindex - self.colindex + j) * self.cellsize
-                    dy = np.abs(self.startcell.rowindex - self.rowindex + i) * self.cellsize
+                    dz = self.startcell.altitude - self.dem_ng[i+1, j+1]
+                    dx = (self.startcell.colindex - (self.colindex + j)) * self.cellsize
+                    dy = (self.startcell.rowindex - (self.rowindex + i)) * self.cellsize
                     ds = np.sqrt(dx**2 + dy**2)
+                    #elh_ng[i+1, j+1] = dz - ds * np.tan(np.deg2rad(self.alpha))
                     self.elh_ng[i+1, j+1] = dz - ds * np.tan(np.deg2rad(self.alpha))
             self.elh_ng[self.elh_ng < 0 ] = 0
             self.elh_ng[self.elh_ng > 0 ] = 1
@@ -139,11 +140,9 @@ class Cell():
         
     def calc_mass(self):
         # mass stuff
-        dummy = self.neighbour_cells
         self.neighbour_cells *= self.elh_ng
         normalization = np.sum(self.neighbour_cells[self.neighbour_cells < 0])
         self.neighbour_cells = self.neighbour_cells/normalization# Normilzing the negative values and mutlipling it with the mass of the cell, so they are positive
-        dummy2 = self.neighbour_cells
         # print(three_flow)
         #Fdir = mapping(three_flow)
         row_local, col_local = np.where(self.neighbour_cells > 0) 
@@ -172,6 +171,8 @@ mass_array = np.zeros_like(dem)
 
 start = time.time()
 
+
+#Core
 cell_list = []  
 row_list, col_list = get_start_idx(release)
 
@@ -192,7 +193,7 @@ while startcell_idx < len(row_list):
     cell_list.append(startcell)
     checked = 0
     for cells in cell_list:
-        if cells.elh < 0: # Stopping Criteria, or cells.mass < 1e-5
+        if cells.elh < 0 or cells.mass < 1e-5:
             #checked += 1
             continue
         #start_dist =  time.time()
@@ -234,5 +235,6 @@ while startcell_idx < len(row_list):
 end = time.time()            
 print('Time needed: ' + str(end - start) + ' seconds')
 
+# Output
 io.output_raster(file, elh_out, elh, 4326)
 io.output_raster(file, mass_out, mass_array, 4326)
