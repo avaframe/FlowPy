@@ -18,7 +18,7 @@ class Cell():
         self.direction = np.zeros_like(self.dem_ng)
         self.p_fd = np.zeros_like(self.dem_ng)
         self.alpha = 25
-        self.exp = 4 # Exp should be a odd number, otherwise in tan_beta negative values will get positive
+        self.exp = 8 
         self.mass_threshold = 3*10**-4
         #self.velocity_sqr = 0
         self.mass = mass
@@ -34,11 +34,10 @@ class Cell():
             self.is_start = False # set is_satrt to False        
         
         self.calc_kinetic_energy()
-        
         self.calc_direction()
         self.calc_tanbeta()
-
         
+       
     def calc_kinetic_energy(self):
         delta_e_kin_pot = (self.dem_ng - dem_ng[1,1]) * (-1)
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
@@ -51,25 +50,30 @@ class Cell():
         
     def add_parent(self, parent):
         self.parent.append(parent)
+        self.calc_direction()
            
     def calc_tanbeta(self):  
         exp = self.exp
-        dh = self.kin_e/(9.81*self.mass*self.cellsize**2 * 2 * 100)
-        print(dh)
+        snowdepth = 2
+        density = 100
+        dh = self.kin_e/(9.81*self.mass*self.cellsize**2 * snowdepth * density) # Calculate the remaining Energyheight with a kind of mass.... 
+        if self.is_start:
+            dh = 0
+        else:
+            #dx = (self.startcell.colindex - self.colindex) * self.cellsize
+            #dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
+            #ds = np.sqrt(dx**2 + dy**2)
+            #dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
+            pass
+
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
         distance = ds * self.cellsize
-        #self.tan_beta = ((self.dem_ng - self.altitude) * (-1)) / distance
-        for i in range(3):
-            for j in range(3):
-                #if ((self.dem_ng[i, j] - (self.altitude + dh)) * (-1)) > 0:
-                self.tan_beta[i, j] = (self.dem_ng[i, j] - (self.altitude + dh)) * (-1)/distance[i, j]  # Downslope = postive value
-                #else:
-                #    self.tan_beta[i, j] = 0.0637 * np.arctan(distance/((self.dem_ng[i, j] - (self.altitude + dh)) * (-1))) + 0.1
-            self.tan_beta[self.tan_beta < 0] = 0
+        self.tan_beta = ((self.dem_ng - (self.altitude + dh)) * (-1)) / distance
+
+        self.tan_beta[self.tan_beta < 0] = 0
         self.tan_beta[self.kin_energy_neighbour <= 0] = 0
         self.tan_beta[self.direction <= 0] = 0
         self.tan_beta[1,1] = 0
-        #self.tan_beta = np.abs(self.tan_beta)
         if np.sum(self.tan_beta > 0):
             self.p_fd = self.tan_beta ** exp/ np.sum(self.tan_beta ** exp)
         
@@ -79,7 +83,6 @@ class Cell():
         elif self.parent[0].is_start:
             self.direction += 1
         else:
-            #kin_e_sum = 0
             for parent in self.parent:
                 dx = (parent.colindex - self.colindex) * -1 +1
                 dy = (parent.rowindex - self.rowindex) * -1 +1
@@ -117,24 +120,38 @@ class Cell():
                     self.direction[2, 1] += 0.707
                     self.direction[1, 2] += 0.707
 
-                #kin_e_sum += parent.kin_e
             np.rot90(self.direction,2)
-            #self.direction /= kin_e_sum
+
+            
+    def calc_global_direction(self):
+        
+        if self.is_start:
+            self.global_dir = np.ones((3,3))
+        else:
+            dx = (self.colindex - self.startcell.colindex) * self.cellsize # x component of avalanche flow direction, global
+            dy = (self.rowindex - self.startcell.rowindex) * self.cellsize # y component of avalanche flow direction, global
+            avi_direction = np.rad2deg(np.arctan2(dy, dx)) * -1 # avalanche direction in degrees, global
+            #neighbour_direction = np.linspace(0.0, 315, 8)  # direction in deg to all cells
+            
+            # Setting the direction for the Center Cell in the opositre direction for the avalanche, so it´s not calculated
+            neighbour_direction = np.array([[135, 90, 45], [180, np.nan, 0], [225, 270 , 315]])  # direction in deg to all cells, local
+            delta_deg = neighbour_direction - avi_direction  # difference between ava direction and the neighbor cells
+            self.global_dir = np.cos(np.deg2rad(delta_deg))
+            self.global_dir *= 0.3# direction_projection[1] = NE, direction_projection[2] = N ..., global influence
+            self.global_dir[self.global_dir < 0.1] = 0
+            self.global_dir[1, 1] = 0
             
                     
     def calc_distribution(self):
-        #exp = self.exp
         threshold = self.mass_threshold
         if np.sum(self.p_fd > 0):
-            for i in range(3):
-                for j in range(3):
-                    self.dist[i, j] = self.direction[i, j] * self.p_fd[i, j] / np.sum(self.direction * self.p_fd) * self.mass
-                #self.dist = (self.direction * self.kin_energy_neighbour)/np.sum(self.direction * self.kin_energy_neighbour) * self.mass
-                #print(self.direction[i, j] * self.tan_beta[i, j] ** exp)
-                #print(np.sum(self.direction * self.tan_beta ** exp) * self.mass)
-                #print(self.direction[i, j] * self.tan_beta[i, j] ** exp/np.sum(self.direction * self.tan_beta ** exp) * self.mass)
-                
-        #count = len(self.dist[0 < self.dist < threshold])
+# =============================================================================
+#             for i in range(3):
+#                 for j in range(3):
+#                     self.dist[i, j] = self.direction[i, j] * self.p_fd[i, j] / np.sum(self.direction * self.p_fd) * self.mass
+# =============================================================================
+            self.dist = self.direction * self.p_fd / np.sum(self.direction * self.p_fd) * self.mass
+
         count = ((0 < self.dist) & (self.dist < threshold)).sum()
         mass_to_distribute = np.sum(self.dist[self.dist < threshold])
         if mass_to_distribute > 0 and count > 0:
@@ -157,19 +174,22 @@ def get_start_idx(release):
         altitude_list, row_list, col_list = list(zip(*sorted(zip(altitude_list, row_list, col_list), reverse=True)))  #Sort this lists by altitude
     return row_list, col_list   
 
-# =============================================================================
-# def back_calculation(cell):
-#     back_list = []
-#     parent = cell.parent[0]
-#     while parent:
-#         for parent in cell.parent:
-#             back_list.append(parent)
-# =============================================================================
+def back_calculation(cell):
+    back_list = []
+    for parent in cell.parent:
+        back_list.append(parent)
+    for cell in back_list:
+        for parent in cell.parent:
+            back_list.append(parent)
+    return back_list
+        
+
         
 #Reading in the arrays
 path = '/home/neuhauser/git_rep/graviclass/'
 file = path + 'dhm.asc'
 release_file = path + 'class_1.asc'
+infra_path = path + 'infra.tif'
 # =============================================================================
 # path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
 # file = path + 'DEM_10_3.tif'
@@ -179,18 +199,14 @@ elh_out = path + 'energy_flowr.asc'
 mass_out = path + 'mass_flowr.asc'
 index_out = path + 'index_flowr.asc'
 
-#dem = np.array([[920,915,920], [910,900,910], [880, 890, 885]])
-#cellsize = 10
-#release = np.array([[0,0,0], [0,1,0], [0,0,0]])
-
 dem, header = io.read_raster(file)
 cellsize = header["cellsize"]  
 release, header = io.read_raster(release_file) 
+infra, header = io.read_raster(infra_path) 
 
 elh = np.zeros_like(dem)
 mass_array = np.zeros_like(dem)
-index_array = np.zeros_like(dem)
-
+#index_array = np.zeros_like(dem)
 
 start = time.time()
 #Core
@@ -201,7 +217,6 @@ startcell_idx = 0
 while startcell_idx < len(row_list):
     sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx+1) + " of " + str(len(row_list)) + " = " + str(round(startcell_idx+1/len(row_list)*100,2)) + "%" '\r')
     sys.stdout.flush()
-    #print("Calculating Startcell: " + str(startcell_idx+1) + " of " + str(len(row_list)) + " = " + str(round(startcell_idx/len(row_list)*100,2)) + "%")
     cell_list = []
     row_idx = row_list[startcell_idx]
     col_idx = col_list[startcell_idx]    
@@ -225,7 +240,6 @@ while startcell_idx < len(row_list):
                 if (row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex):
                     cell_list[i].add_mass(mass[k])
                     cell_list[i].add_parent(cells)
-                    cell_list[i].calc_direction()
                     row = np.delete(row, k)
                     col = np.delete(col, k)
                     mass = np.delete(mass, k)
@@ -242,10 +256,11 @@ while startcell_idx < len(row_list):
         #checked += 1         
         elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
         mass_array[cells.rowindex, cells.colindex] = cells.mass
-        index_array[cells.rowindex, cells.colindex] = index
-        index += 1
+        #index_array[cells.rowindex, cells.colindex] = index
+        #index += 1
     release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
-
+    #ToDo: if i hit a startcell add this "mass"
+    #ToDo: Backcalulation
     row_list, col_list = get_start_idx(release)
     startcell_idx += 1
         
@@ -255,4 +270,4 @@ print('Time needed: ' + str(end - start) + ' seconds')
 # Output
 io.output_raster(file, elh_out, elh, 4326)
 io.output_raster(file, mass_out, mass_array, 4326)
-io.output_raster(file, index_out, index_array, 4326)
+#io.output_raster(file, index_out, index_array, 4326)
