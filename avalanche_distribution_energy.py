@@ -219,7 +219,7 @@ row_list, col_list = get_start_idx(release)
 
 startcell_idx = 0
 while startcell_idx < len(row_list):
-    sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx+1) + " of " + str(len(row_list)) + " = " + str(round(startcell_idx+1/len(row_list)*100,2)) + "%" '\r')
+    sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx+1) + " of " + str(len(row_list)) + " = " + str(round((startcell_idx+1)/len(row_list)*100,2)) + "%" '\r')
     sys.stdout.flush()
     cell_list = []
     row_idx = row_list[startcell_idx]
