@@ -34,6 +34,7 @@ class Cell():
             self.is_start = False # set is_satrt to False        
         
         self.calc_kinetic_energy()
+        #self.calc_global_direction()
         self.calc_direction()
         self.calc_tanbeta()
         
@@ -56,15 +57,16 @@ class Cell():
         exp = self.exp
         snowdepth = 2
         density = 100
-        dh = self.kin_e/(9.81*self.mass*self.cellsize**2 * snowdepth * density) # Calculate the remaining Energyheight with a kind of mass.... 
+        #dh = self.kin_e/(9.81*self.mass*self.cellsize**2 * snowdepth * density) # Calculate the remaining Energyheight with a kind of mass.... 
         if self.is_start:
             dh = 0
         else:
-            #dx = (self.startcell.colindex - self.colindex) * self.cellsize
-            #dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
-            #ds = np.sqrt(dx**2 + dy**2)
-            #dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
-            pass
+            dx = (self.startcell.colindex - self.colindex) * self.cellsize
+            dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
+            ds = np.sqrt(dx**2 + dy**2)
+            dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
+            #dh = self.kin_e / 9.81
+            #dh = 1
 
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
         distance = ds * self.cellsize
@@ -137,7 +139,7 @@ class Cell():
             neighbour_direction = np.array([[135, 90, 45], [180, np.nan, 0], [225, 270 , 315]])  # direction in deg to all cells, local
             delta_deg = neighbour_direction - avi_direction  # difference between ava direction and the neighbor cells
             self.global_dir = np.cos(np.deg2rad(delta_deg))
-            self.global_dir *= 0.3# direction_projection[1] = NE, direction_projection[2] = N ..., global influence
+            #self.global_dir *= 0.3# direction_projection[1] = NE, direction_projection[2] = N ..., global influence
             self.global_dir[self.global_dir < 0.1] = 0
             self.global_dir[1, 1] = 0
             
@@ -150,6 +152,7 @@ class Cell():
 #                 for j in range(3):
 #                     self.dist[i, j] = self.direction[i, j] * self.p_fd[i, j] / np.sum(self.direction * self.p_fd) * self.mass
 # =============================================================================
+            #self.dist = self.direction * self.p_fd * self.global_dir / np.sum(self.direction * self.p_fd * self.global_dir) * self.mass
             self.dist = self.direction * self.p_fd / np.sum(self.direction * self.p_fd) * self.mass
 
         count = ((0 < self.dist) & (self.dist < threshold)).sum()
@@ -186,23 +189,24 @@ def back_calculation(cell):
 
         
 #Reading in the arrays
-path = '/home/neuhauser/git_rep/graviclass/'
-file = path + 'dhm.asc'
-release_file = path + 'class_1.asc'
-infra_path = path + 'infra.tif'
 # =============================================================================
-# path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
-# file = path + 'DEM_10_3.tif'
-# release_file = path + 'init/release_class_1.asc'
+# path = '/home/neuhauser/git_rep/graviclass/'
+# file = path + 'dhm.asc'
+# release_file = path + 'class_1.asc'
+# infra_path = path + 'infra.tif'
 # =============================================================================
-elh_out = path + 'energy_flowr.asc'
-mass_out = path + 'mass_flowr.asc'
-index_out = path + 'index_flowr.asc'
+path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
+file = path + 'DEM_10_3.tif'
+release_file = path + 'init/release_class_1.asc'
+elh_out = path + 'energy_flowr_v3.asc' # V3 with dh dependend on energylinehight
+mass_out = path + 'mass_flowr_v3.asc'
+#index_out = path + 'index_flowr.asc'
 
 dem, header = io.read_raster(file)
-cellsize = header["cellsize"]  
-release, header = io.read_raster(release_file) 
-infra, header = io.read_raster(infra_path) 
+cellsize = header["cellsize"]
+nodata = header["noDataValue"]
+release, header_release = io.read_raster(release_file) 
+#infra, header = io.read_raster(infra_path) 
 
 elh = np.zeros_like(dem)
 mass_array = np.zeros_like(dem)
@@ -221,7 +225,7 @@ while startcell_idx < len(row_list):
     row_idx = row_list[startcell_idx]
     col_idx = col_list[startcell_idx]    
     dem_ng = dem[row_idx - 1:row_idx + 2, col_idx - 1:col_idx + 2] # neighbourhood DEM
-    if np.size(dem_ng) < 9:
+    if nodata in dem_ng:
         startcell_idx += 1
         continue
     
@@ -249,7 +253,7 @@ while startcell_idx < len(row_list):
          
         for k in range(len(row)):
             dem_ng = dem[row[k]-1:row[k]+2, col[k]-1:col[k]+2]  # neighbourhood DEM
-            if np.size(dem_ng) < 9:
+            if nodata in dem_ng:
                 #checked += 1# Dirty way to don´t care about the edge of the DEM
                 continue
             cell_list.append(Cell(row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], cells, startcell))            
