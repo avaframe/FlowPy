@@ -5,9 +5,14 @@ import time
 sys.path.append('/home/W/Neuhauser/Frei/python_libs/')
 import raster_io as io
 
+'''
+Every raster file has to have the same shape!!!
+'''
+#ToDo: Scale alpha to ELH
+
 class Cell():
     
-    def __init__(self, rowindex, colindex, dem_ng, cellsize, mass, kin_e, parent, startcell):
+    def __init__(self, rowindex, colindex, dem_ng, cellsize, mass, kin_e, forest, parent, startcell):
         self.rowindex = rowindex
         self.colindex = colindex
         self.altitude = dem_ng[1, 1]
@@ -18,8 +23,10 @@ class Cell():
         self.direction = np.zeros_like(self.dem_ng)
         self.p_fd = np.zeros_like(self.dem_ng)
         self.alpha = 25
+        self.alpha_forest = 5
         self.exp = 8 
         self.mass_threshold = 3*10**-4
+        self.forest = forest
         #self.velocity_sqr = 0
         self.mass = mass
         self.kin_e = kin_e
@@ -64,7 +71,8 @@ class Cell():
             dx = (self.startcell.colindex - self.colindex) * self.cellsize
             dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
             ds = np.sqrt(dx**2 + dy**2)
-            dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
+            tan_alpha = np.tan(np.deg2rad(self.alpha + self.forest * self.alpha_forest))
+            dh = (self.startcell.altitude - self.altitude - ds * tan_alpha)
             #dh = self.kin_e / 9.81
             #dh = 1
 
@@ -198,18 +206,26 @@ def back_calculation(cell):
 path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
 file = path + 'DEM_10_3.tif'
 release_file = path + 'init/release_class_1.asc'
+forest_file = path + 'forest.asc'
+
 elh_out = path + 'energy_flowr_v3.asc' # V3 with dh dependend on energylinehight
 mass_out = path + 'mass_flowr_v3.asc'
 #index_out = path + 'index_flowr.asc'
 
+
 dem, header = io.read_raster(file)
 cellsize = header["cellsize"]
 nodata = header["noDataValue"]
-release, header_release = io.read_raster(release_file) 
+release, header_release = io.read_raster(release_file)
+try:
+    forest, header_forest = io.read_raster(forest_file)
+except:
+    forest = np.zeros_like(dem)
 #infra, header = io.read_raster(infra_path) 
 
 elh = np.zeros_like(dem)
 mass_array = np.zeros_like(dem)
+count_array = np.zeros_like(dem)
 #index_array = np.zeros_like(dem)
 
 start = time.time()
@@ -229,7 +245,7 @@ while startcell_idx < len(row_list):
         startcell_idx += 1
         continue
     
-    startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 15, None, startcell=True)
+    startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, forest[row_idx, col_idx], None, startcell=True)
     # If this is a startcell just give a Bool to startcell otherwise the object startcell
     
     cell_list.append(startcell)
@@ -256,10 +272,11 @@ while startcell_idx < len(row_list):
             if nodata in dem_ng:
                 #checked += 1# Dirty way to don´t care about the edge of the DEM
                 continue
-            cell_list.append(Cell(row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], cells, startcell))            
+            cell_list.append(Cell(row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]], cells, startcell))            
         #checked += 1         
         elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
         mass_array[cells.rowindex, cells.colindex] = cells.mass
+        count_array[cells.rowindex, cells.colindex] += 1
         #index_array[cells.rowindex, cells.colindex] = index
         #index += 1
     release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
