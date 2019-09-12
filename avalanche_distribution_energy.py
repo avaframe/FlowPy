@@ -198,8 +198,8 @@ def back_calculation(cell):
 path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
 file = path + 'DEM_10_3.tif'
 release_file = path + 'init/release_class_1.asc'
-elh_out = path + 'energy_flowr_v3.asc' # V3 with dh dependend on energylinehight
-mass_out = path + 'mass_flowr_v3.asc'
+elh_out = path + 'energy_flowr_v4.asc' # V3 with dh dependend on energylinehight
+mass_out = path + 'mass_flowr_v4.asc'
 #index_out = path + 'index_flowr.asc'
 
 dem, header = io.read_raster(file)
@@ -229,7 +229,7 @@ while startcell_idx < len(row_list):
         startcell_idx += 1
         continue
     
-    startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 15, None, startcell=True)
+    startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, None, startcell=True)
     # If this is a startcell just give a Bool to startcell otherwise the object startcell
     
     cell_list.append(startcell)
