@@ -20,7 +20,6 @@ class Cell():
         self.alpha = 25
         self.exp = 8 
         self.mass_threshold = 3*10**-4
-        #self.velocity_sqr = 0
         self.mass = mass
         self.kin_e = kin_e
         self.parent = []
@@ -34,13 +33,12 @@ class Cell():
             self.is_start = False # set is_satrt to False        
         
         self.calc_kinetic_energy()
-        #self.calc_global_direction()
         self.calc_direction()
         self.calc_tanbeta()
         
        
     def calc_kinetic_energy(self):
-        delta_e_kin_pot = (self.dem_ng - dem_ng[1,1]) * (-1)
+        delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
         e_friction = ds * self.cellsize * np.tan(np.deg2rad(self.alpha))
         self.kin_energy_neighbour = self.kin_e + delta_e_kin_pot - e_friction
@@ -55,21 +53,24 @@ class Cell():
            
     def calc_tanbeta(self):  
         exp = self.exp
-        snowdepth = 2
+        snowdepth = 1
         density = 100
-        #dh = self.kin_e/(9.81*self.mass*self.cellsize**2 * snowdepth * density) # Calculate the remaining Energyheight with a kind of mass.... 
-        if self.is_start:
-            dh = 0
-        else:
-            dx = (self.startcell.colindex - self.colindex) * self.cellsize
-            dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
-            ds = np.sqrt(dx**2 + dy**2)
-            dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
-            #dh = self.kin_e / 9.81
-            #dh = 1
+        dh = self.kin_e/(9.81*self.mass*self.cellsize**2 * snowdepth * density) # Calculate the remaining Energyheight with a kind of mass.... 
+# =============================================================================
+#         if self.is_start:
+#             dh = 0
+#         else:
+#             dx = (self.startcell.colindex - self.colindex) * self.cellsize
+#             dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
+#             ds = np.sqrt(dx**2 + dy**2)
+#             dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
+#             dh = self.kin_e / 9.81
+# =============================================================================
+            #dh = 0
 
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
         distance = ds * self.cellsize
+        #self.tan_beta = ((self.dem_ng - (self.altitude + dh)) * (-1)) / distance
         self.tan_beta = ((self.dem_ng - (self.altitude + dh)) * (-1)) / distance
 
         self.tan_beta[self.tan_beta < 0] = 0
@@ -82,8 +83,8 @@ class Cell():
     def calc_direction(self):
         if self.is_start:
             self.direction += 1
-        elif self.parent[0].is_start:
-            self.direction += 1
+        #elif self.parent[0].is_start:
+            #self.direction += 1
         else:
             for parent in self.parent:
                 dx = (parent.colindex - self.colindex) * -1 +1
@@ -123,26 +124,7 @@ class Cell():
                     self.direction[1, 2] += 0.707
 
             np.rot90(self.direction,2)
-
-            
-    def calc_global_direction(self):
-        
-        if self.is_start:
-            self.global_dir = np.ones((3,3))
-        else:
-            dx = (self.colindex - self.startcell.colindex) * self.cellsize # x component of avalanche flow direction, global
-            dy = (self.rowindex - self.startcell.rowindex) * self.cellsize # y component of avalanche flow direction, global
-            avi_direction = np.rad2deg(np.arctan2(dy, dx)) * -1 # avalanche direction in degrees, global
-            #neighbour_direction = np.linspace(0.0, 315, 8)  # direction in deg to all cells
-            
-            # Setting the direction for the Center Cell in the opositre direction for the avalanche, so it´s not calculated
-            neighbour_direction = np.array([[135, 90, 45], [180, np.nan, 0], [225, 270 , 315]])  # direction in deg to all cells, local
-            delta_deg = neighbour_direction - avi_direction  # difference between ava direction and the neighbor cells
-            self.global_dir = np.cos(np.deg2rad(delta_deg))
-            #self.global_dir *= 0.3# direction_projection[1] = NE, direction_projection[2] = N ..., global influence
-            self.global_dir[self.global_dir < 0.1] = 0
-            self.global_dir[1, 1] = 0
-            
+           
                     
     def calc_distribution(self):
         threshold = self.mass_threshold
@@ -174,7 +156,7 @@ def get_start_idx(release):
         altitude_list = []
         for i in range(len(row_list)):
             altitude_list.append(dem[row_list[i], col_list[i]])    
-        altitude_list, row_list, col_list = list(zip(*sorted(zip(altitude_list, row_list, col_list), reverse=True)))  #Sort this lists by altitude
+        altitude_list, row_list, col_list = list(zip(*sorted(zip(altitude_list, row_list, col_list), reverse=False)))  #Sort this lists by altitude
     return row_list, col_list   
 
 def back_calculation(cell):
@@ -189,17 +171,17 @@ def back_calculation(cell):
 
         
 #Reading in the arrays
+path = '/home/neuhauser/git_rep/graviclass/'
+file = path + 'Fonnbu_dhm.asc'
+release_file = path + 'class_1.asc'
+infra_path = path + 'infra.tif'
 # =============================================================================
-# path = '/home/neuhauser/git_rep/graviclass/'
-# file = path + 'dhm.asc'
-# release_file = path + 'class_1.asc'
-# infra_path = path + 'infra.tif'
+# path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
+# file = path + 'DEM_10_3.tif'
+# release_file = path + 'init/release_class_1.asc'
 # =============================================================================
-path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
-file = path + 'DEM_10_3.tif'
-release_file = path + 'init/release_class_1.asc'
-elh_out = path + 'energy_flowr_v4.asc' # V3 with dh dependend on energylinehight
-mass_out = path + 'mass_flowr_v4.asc'
+elh_out = path + 'energy_flowr_fonnbu.asc' # V3 with dh dependend on energylinehight
+mass_out = path + 'mass_flowr_fonnbu.asc'
 #index_out = path + 'index_flowr.asc'
 
 dem, header = io.read_raster(file)
@@ -237,6 +219,9 @@ while startcell_idx < len(row_list):
     index = 0
     for cells in cell_list:
         row, col, mass, kin_e = cells.calc_distribution()
+        if len(mass) > 0:
+            mass, row, col, kin_e = list(zip(*sorted(zip(mass, row, col, kin_e), reverse=False)))  
+            #Sort this lists by mass to start the spreading from the middle
 
         for i in range(int(checked), len(cell_list)):  # Check if Cell already exists
             k = 0
