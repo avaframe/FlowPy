@@ -20,12 +20,12 @@ class Cell():
         self.cellsize = cellsize
         self.tan_beta = np.zeros_like(self.dem_ng)
         self.dist = np.zeros_like(self.dem_ng)
-        self.direction = np.zeros_like(self.dem_ng)
-        self.p_fd = np.zeros_like(self.dem_ng)
-        self.alpha = 25
+        #self.direction = np.zeros_like(self.dem_ng)
+       # self.p_fd = np.zeros_like(self.dem_ng)
+        self.alpha = 28
         self.alpha_forest = 5
         self.exp = 8
-        self.mass_threshold = 3*10**-4
+        self.mass_threshold = 3*10**-10
         self.forest = forest
         #self.velocity_sqr = 0
         self.mass = mass
@@ -41,15 +41,16 @@ class Cell():
             self.is_start = False # set is_satrt to False
 
         self.calc_kinetic_energy()
-        #self.calc_global_direction()
-        self.calc_direction()
+        self.calc_global_direction()
+        #self.calc_direction()
         self.calc_tanbeta()
 
 
     def calc_kinetic_energy(self):
         delta_e_kin_pot = (self.dem_ng - dem_ng[1,1]) * (-1)
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
-        e_friction = ds * self.cellsize * np.tan(np.deg2rad(self.alpha))
+        tan_alpha = np.tan(np.deg2rad(self.alpha + self.forest * self.alpha_forest))
+        e_friction = ds * self.cellsize * tan_alpha
         self.kin_energy_neighbour = self.kin_e + delta_e_kin_pot - e_friction
         self.kin_energy_neighbour[self.kin_energy_neighbour < 0] = 0
 
@@ -58,7 +59,7 @@ class Cell():
 
     def add_parent(self, parent):
         self.parent.append(parent)
-        self.calc_direction()
+        #self.calc_direction()
 
     def calc_tanbeta(self):
         exp = self.exp
@@ -82,55 +83,11 @@ class Cell():
 
         self.tan_beta[self.tan_beta < 0] = 0
         self.tan_beta[self.kin_energy_neighbour <= 0] = 0
-        self.tan_beta[self.direction <= 0] = 0
+        #self.tan_beta[self.direction <= 0] = 0
         self.tan_beta[1,1] = 0
         if np.sum(self.tan_beta > 0):
             self.p_fd = self.tan_beta ** exp/ np.sum(self.tan_beta ** exp)
 
-    def calc_direction(self):
-        if self.is_start:
-            self.direction += 1
-        elif self.parent[0].is_start:
-            self.direction += 1
-        else:
-            for parent in self.parent:
-                dx = (parent.colindex - self.colindex) * -1 +1
-                dy = (parent.rowindex - self.rowindex) * -1 +1
-                maxweight = 1
-                if dx == 0 and dy == 0:
-                    self.direction[0, 0] += maxweight
-                    self.direction[1, 0] += 0.707
-                    self.direction[0, 1] += 0.707
-                elif dx == 1 and dy == 0:
-                    self.direction[0, 1] += maxweight
-                    self.direction[0, 0] += 0.707
-                    self.direction[0, 2] += 0.707
-                elif dx == 2 and dy == 0:
-                    self.direction[0, 2] += maxweight
-                    self.direction[0, 1] += 0.707
-                    self.direction[1, 2] += 0.707
-                elif dx == 0 and dy == 1:
-                    self.direction[1, 0] += maxweight
-                    self.direction[2, 0] += 0.707
-                    self.direction[0, 0] += 0.707
-                elif dx == 2 and dy == 1:
-                    self.direction[1, 2] += maxweight
-                    self.direction[0, 2] += 0.707
-                    self.direction[2, 2] += 0.707
-                elif dx == 0 and dy == 2:
-                    self.direction[2, 0] += maxweight
-                    self.direction[1, 0] += 0.707
-                    self.direction[2, 1] += 0.707
-                elif dx == 1 and dy == 2:
-                    self.direction[2, 1] += maxweight
-                    self.direction[2, 0] += 0.707
-                    self.direction[2, 2] += 0.707
-                elif dx == 2 and dy == 2:
-                    self.direction[2, 2] += maxweight
-                    self.direction[2, 1] += 0.707
-                    self.direction[1, 2] += 0.707
-
-            np.rot90(self.direction,2)
 
 
     def calc_global_direction(self):
@@ -144,7 +101,8 @@ class Cell():
             #neighbour_direction = np.linspace(0.0, 315, 8)  # direction in deg to all cells
 
             # Setting the direction for the Center Cell in the opositre direction for the avalanche, so its not calculated
-            neighbour_direction = np.array([[135, 90, 45], [180, np.nan, 0], [225, 270 , 315]])  # direction in deg to all cells, local
+            #neighbour_direction = np.array([[135, 90, 45], [180, np.nan, 0], [225, 270 , 315]])  # direction in deg to all cells, local
+            neighbour_direction = np.array([[225, 270, 315], [180, np.nan, 0], [135, 90, 45]])
             delta_deg = neighbour_direction - avi_direction  # difference between ava direction and the neighbor cells
             self.global_dir = np.cos(np.deg2rad(delta_deg))
             #self.global_dir *= 0.3# direction_projection[1] = NE, direction_projection[2] = N ..., global influence
@@ -154,14 +112,14 @@ class Cell():
 
     def calc_distribution(self):
         threshold = self.mass_threshold
-        if np.sum(self.p_fd > 0):
+        #if np.sum(self.p_fd > 0):
 # =============================================================================
 #             for i in range(3):
 #                 for j in range(3):
 #                     self.dist[i, j] = self.direction[i, j] * self.p_fd[i, j] / np.sum(self.direction * self.p_fd) * self.mass
 # =============================================================================
-            #self.dist = self.direction * self.p_fd * self.global_dir / np.sum(self.direction * self.p_fd * self.global_dir) * self.mass
-            self.dist = self.direction * self.p_fd / np.sum(self.direction * self.p_fd) * self.mass
+        self.dist =  (self.kin_e / 10 * self.global_dir + self.tan_beta)/ np.sum(self.kin_e/ 10 *self.global_dir + self.tan_beta) * self.mass
+            #self.dist = self.direction * self.p_fd / np.sum(self.direction * self.p_fd) * self.mass
 
         count = ((0 < self.dist) & (self.dist < threshold)).sum()
         mass_to_distribute = np.sum(self.dist[self.dist < threshold])
@@ -203,11 +161,11 @@ def back_calculation(cell):
 # release_file = path + 'class_1.asc'
 # infra_path = path + 'infra.tif'
 # =============================================================================
-path = '/home/chris/Documents/GR4A/graviclass/example/'
+path = 'example/'
 file = path + 'dhm.asc'
 release_file = path + 'release.asc'
-forest_file = path + 'trees.asc'
-
+#forest_file = path + 'trees.asc'
+forest_file = None
 elh_out = path + 'energy_line.asc' # V3 with dh dependend on energylinehight
 mass_out = path + 'mass_flowr_v3.asc'
 count_out = path + 'hit_count.asc'
