@@ -203,8 +203,8 @@ def back_calculation(cell):
 # release_file = path + 'class_1.asc'
 # infra_path = path + 'infra.tif'
 # =============================================================================
-path = '/home/chris/Documents/GR4A/graviclass/example'
-file = path + 'dem.asc'
+path = '/home/chris/Documents/GR4A/graviclass/example/'
+file = path + 'dhm.asc'
 release_file = path + 'release.asc'
 forest_file = path + 'trees.asc'
 
