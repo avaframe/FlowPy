@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import time
+from collections import deque
 
 #sys.path.append('/home/W/Neuhauser/Frei/python_libs/')
 import raster_io as io
@@ -25,7 +26,7 @@ class Cell():
         self.alpha = 28
         self.alpha_forest = 5
         self.exp = 8
-        self.mass_threshold = 3*10**-10
+        self.mass_threshold = 0 #3*10**-6
         self.forest = forest
         #self.velocity_sqr = 0
         self.mass = mass
@@ -118,7 +119,8 @@ class Cell():
 #                 for j in range(3):
 #                     self.dist[i, j] = self.direction[i, j] * self.p_fd[i, j] / np.sum(self.direction * self.p_fd) * self.mass
 # =============================================================================
-        self.dist =  (self.kin_e / 10 * self.global_dir + self.tan_beta)/ np.sum(self.kin_e/ 10 *self.global_dir + self.tan_beta) * self.mass
+        global_factor = 1.
+        self.dist =  (self.kin_e / global_factor * self.global_dir + self.tan_beta)/ np.sum(self.kin_e/ global_factor *self.global_dir + self.tan_beta) * self.mass
             #self.dist = self.direction * self.p_fd / np.sum(self.direction * self.p_fd) * self.mass
 
         count = ((0 < self.dist) & (self.dist < threshold)).sum()
@@ -189,14 +191,14 @@ count_array = np.zeros_like(dem)
 
 start = time.time()
 #Core
-cell_list = []
+cell_list = deque()
 row_list, col_list = get_start_idx(release)
 
 startcell_idx = 0
 while startcell_idx < len(row_list):
     sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx+1) + " of " + str(len(row_list)) + " = " + str(round((startcell_idx + 1)/len(row_list)*100,2)) + "%" '\r')
     sys.stdout.flush()
-    cell_list = []
+    cell_list = deque()
     row_idx = row_list[startcell_idx]
     col_idx = col_list[startcell_idx]
     dem_ng = dem[row_idx - 1:row_idx + 2, col_idx - 1:col_idx + 2] # neighbourhood DEM
@@ -210,28 +212,30 @@ while startcell_idx < len(row_list):
     cell_list.append(startcell)
     checked = 0
     index = 0
-    for cells in cell_list:
+    while cell_list:
+        cells = cell_list.popleft()
         row, col, mass, kin_e = cells.calc_distribution()
 
-        for i in range(int(checked), len(cell_list)):  # Check if Cell already exists
-            k = 0
-            while k < len(row):
-                if (row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex):
-                    cell_list[i].add_mass(mass[k])
-                    cell_list[i].add_parent(cells)
-                    row = np.delete(row, k)
-                    col = np.delete(col, k)
-                    mass = np.delete(mass, k)
-                    kin_e = np.delete(kin_e, k)
-                else:
-                    k += 1
+        # for i in range(int(checked), len(cell_list)):  # Check if Cell already exists
+        #     k = 0
+        #     while k < len(row):
+        #         if (row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex):
+        #             cell_list[i].add_mass(mass[k])
+        #             cell_list[i].add_parent(cells)
+        #             row = np.delete(row, k)
+        #             col = np.delete(col, k)
+        #             mass = np.delete(mass, k)
+        #             kin_e = np.delete(kin_e, k)
+        #         else:
+        #             k += 1
 
         for k in range(len(row)):
             dem_ng = dem[row[k]-1:row[k]+2, col[k]-1:col[k]+2]  # neighbourhood DEM
             if nodata in dem_ng:
                 #checked += 1# Dirty way to dont care about the edge of the DEM
                 continue
-            cell_list.append(Cell(row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]], cells, startcell))
+            elif elh[cells.rowindex, cells.colindex] > cells.kin_e:
+                cell_list.append(Cell(row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]], cells, startcell))
         #checked += 1
         elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
         mass_array[cells.rowindex, cells.colindex] = cells.mass
