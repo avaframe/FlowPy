@@ -39,7 +39,7 @@ class Cell():
         
         self.calc_kinetic_energy()
         self.calc_direction()
-        self.calc_global_direction()
+        #self.calc_global_direction()
         self.calc_tanbeta()
         
        
@@ -62,22 +62,26 @@ class Cell():
         #snowdepth = 1
         #density = 100
         #dh = self.kin_e/(9.81*self.mass*self.cellsize**2 * snowdepth * density) # Calculate the remaining Energyheight with a kind of mass.... 
-        if self.is_start:
-            dh = 0
-        else:
-            dx = (self.startcell.colindex - self.colindex) * self.cellsize
-            dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
-            ds = np.sqrt(dx**2 + dy**2)
-            #dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
-            #dh = self.kin_e / 9.81
-            dh = 10
+# =============================================================================
+#         if self.is_start:
+#             dh = 0
+#         else:
+#             dx = (self.startcell.colindex - self.colindex) * self.cellsize
+#             dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
+#             ds = np.sqrt(dx**2 + dy**2)
+#             #dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
+#             #dh = self.kin_e / 9.81
+#             dh = 10
+# =============================================================================
 
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
         distance = ds * self.cellsize
         #dh = 1
-        self.tan_beta = ((self.dem_ng - (self.altitude)) * (-1)) / distance
+        self.tan_beta = np.arctan(((self.dem_ng - (self.altitude)) * (-1)) / distance)
+        #self.tan_beta = np.tan((beta+90)/2)
 
-        self.tan_beta[self.tan_beta < 0] = 0
+        #self.tan_beta[self.tan_beta < 0] = 0
+        self.tan_beta = abs(self.tan_beta)
         self.tan_beta[self.kin_energy_neighbour <= 0] = 0
         self.tan_beta[self.direction <= 0] = 0
         self.tan_beta[1,1] = 0
@@ -151,17 +155,16 @@ class Cell():
     def calc_distribution(self):
         threshold = self.mass_threshold
         if np.sum(self.p_fd > 0):
+            self.dist = self.direction * self.p_fd / np.sum(self.direction * self.p_fd) * self.mass
             #self.dist = self.global_dir * self.p_fd / np.sum(self.global_dir * self.p_fd) * self.mass
-            self.dist = (self.direction*self.kin_e + self.tan_beta)/np.sum(self.direction*self.kin_e + self.tan_beta)*self.mass
-# =============================================================================
-#         count = ((0 < self.dist) & (self.dist < threshold)).sum()
-#         mass_to_distribute = np.sum(self.dist[self.dist < threshold])
-#         if mass_to_distribute > 0 and count > 0:
-#             self.dist[self.dist > threshold] += mass_to_distribute / count
-#             self.dist[self.dist < threshold] = 0
-#         if np.sum(self.dist) < self.mass and count > 0:
-#             self.dist[self.dist > threshold] += (self.mass - np.sum(self.dist))/count
-# =============================================================================
+            #self.dist = (self.direction*self.kin_e + self.tan_beta)/np.sum(self.direction*self.kin_e + self.tan_beta)*self.mass
+        count = ((0 < self.dist) & (self.dist < threshold)).sum()
+        mass_to_distribute = np.sum(self.dist[self.dist < threshold])
+        if mass_to_distribute > 0 and count > 0:
+            self.dist[self.dist > threshold] += mass_to_distribute / count
+            self.dist[self.dist < threshold] = 0
+        if np.sum(self.dist) < self.mass and count > 0:
+            self.dist[self.dist > threshold] += (self.mass - np.sum(self.dist))/count
             #print('Mass Loss' , np.sum(self.dist) - self.mass)
         row_local, col_local = np.where(self.dist > threshold)  # Zellen die nicht im threshold liegen müssen ihre masse auf die anderen verteilen!
         

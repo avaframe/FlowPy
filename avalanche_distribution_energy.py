@@ -137,13 +137,15 @@ class Cell():
             #self.dist = self.direction * self.p_fd * self.global_dir / np.sum(self.direction * self.p_fd * self.global_dir) * self.mass
             self.dist = self.direction * self.p_fd / np.sum(self.direction * self.p_fd) * self.mass
 
-        count = ((0 < self.dist) & (self.dist < threshold)).sum()
-        mass_to_distribute = np.sum(self.dist[self.dist < threshold])
-        if mass_to_distribute > 0 and count > 0:
-            self.dist[self.dist > threshold] += mass_to_distribute / count
-            self.dist[self.dist < threshold] = 0
-        if np.sum(self.dist) < self.mass and count > 0:
-            self.dist[self.dist > threshold] += (self.mass - np.sum(self.dist))/count
+# =============================================================================
+#         count = ((0 < self.dist) & (self.dist < threshold)).sum()
+#         mass_to_distribute = np.sum(self.dist[self.dist < threshold])
+#         if mass_to_distribute > 0 and count > 0:
+#             self.dist[self.dist > threshold] += mass_to_distribute / count
+#             self.dist[self.dist < threshold] = 0
+#         if np.sum(self.dist) < self.mass and count > 0:
+#             self.dist[self.dist > threshold] += (self.mass - np.sum(self.dist))/count
+# =============================================================================
             #print('Mass Loss' , np.sum(self.dist) - self.mass)
         row_local, col_local = np.where(self.dist > threshold)  # Zellen die nicht im threshold liegen müssen ihre masse auf die anderen verteilen!
         

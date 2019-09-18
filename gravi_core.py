@@ -89,7 +89,7 @@ def calculation(row_list, col_list):
             #index += 1
         release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
         #ToDo: if i hit a startcell add this "mass"
-        #ToDo: Backcalulation
+        #ToDo: Backcalculation
         row_list, col_list = get_start_idx(release)
         startcell_idx += 1
         
