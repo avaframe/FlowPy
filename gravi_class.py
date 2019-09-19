@@ -79,8 +79,9 @@ class Cell():
 
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
         distance = ds * self.cellsize
-        dh = 1
-        self.tan_beta = ((self.dem_ng - (self.altitude + dh)) * (-1)) / distance
+        #dh = 1
+        beta = np.arctan(((self.dem_ng - (self.altitude)) * (-1)) / distance) + 90
+        self.tan_beta = np.tan(beta/2)
         #self.tan_beta = np.tan((beta+90)/2)
 
         #self.tan_beta[self.tan_beta < 0] = 0

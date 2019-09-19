@@ -100,9 +100,14 @@ def calculation(row_list, col_list):
 # release_file = path + 'class_1.asc'
 # infra_path = path + 'infra.tif'
 # =============================================================================
-path = 'example/'
-file = path + 'dhm.asc'
-release_file = path + 'release.asc'
+path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
+dem_file = path + 'DEM_clipped_for_sim.tif'
+release_file = path + 'init/release_class1_clipped.tif'
+# =============================================================================
+# path = 'example/'
+# file = path + 'dhm.asc'
+# release_file = path + 'release.asc'
+# =============================================================================
 #forest_file = path + 'trees.asc'
 #infra_path = 'infra/infra_10_3.tif'
 elh_out = path + 'energy.tif' # V3 with dh dependend on energylinehight
@@ -115,7 +120,7 @@ count_out = path + "cell_counts.tif"
 # =============================================================================
 
 
-dem, header = io.read_raster(file)
+dem, header = io.read_raster(dem_file)
 cellsize = header["cellsize"]
 nodata = header["noDataValue"]
 release, header_release = io.read_raster(release_file) 
@@ -204,9 +209,9 @@ end = time.time()
 print('Time needed: ' + str(end - start) + ' seconds')
 
 # Output
-io.output_raster(file, elh_out, elh, 3857)
-io.output_raster(file, mass_out, mass_array, 3857)
-io.output_raster(file, count_out, count_array, 3857)
+io.output_raster(dem_file, elh_out, elh, 3857)
+io.output_raster(dem_file, mass_out, mass_array, 3857)
+io.output_raster(dem_file, count_out, count_array, 3857)
 #io.output_raster(file, index_out, index_array, 4326)
     
 
