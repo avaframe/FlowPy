@@ -95,45 +95,45 @@ class Cell():
     def calc_direction(self):
         if self.is_start:
             self.direction += 1
-        #elif self.parent[0].is_start:
-            #self.direction += 1
+        elif self.parent[0].is_start:
+            self.direction += 1
         else:
             for parent in self.parent:
                 dx = (parent.colindex - self.colindex) * -1 +1
                 dy = (parent.rowindex - self.rowindex) * -1 +1
-                maxweight = 1
+                maxweight = 1 * parent.kin_e
                 if dx == 0 and dy == 0:
                     self.direction[0, 0] += maxweight
-                    self.direction[1, 0] += 0.707
-                    self.direction[0, 1] += 0.707
+                    self.direction[1, 0] += 0.707 * maxweight
+                    self.direction[0, 1] += 0.707 * maxweight
                 elif dx == 1 and dy == 0:
                     self.direction[0, 1] += maxweight
-                    self.direction[0, 0] += 0.707
-                    self.direction[0, 2] += 0.707
+                    self.direction[0, 0] += 0.707 * maxweight
+                    self.direction[0, 2] += 0.707 * maxweight
                 elif dx == 2 and dy == 0:
                     self.direction[0, 2] += maxweight
-                    self.direction[0, 1] += 0.707
-                    self.direction[1, 2] += 0.707
+                    self.direction[0, 1] += 0.707 * maxweight
+                    self.direction[1, 2] += 0.707 * maxweight
                 elif dx == 0 and dy == 1:
                     self.direction[1, 0] += maxweight
-                    self.direction[2, 0] += 0.707
-                    self.direction[0, 0] += 0.707
+                    self.direction[2, 0] += 0.707 * maxweight
+                    self.direction[0, 0] += 0.707 * maxweight
                 elif dx == 2 and dy == 1:
                     self.direction[1, 2] += maxweight
-                    self.direction[0, 2] += 0.707
-                    self.direction[2, 2] += 0.707
+                    self.direction[0, 2] += 0.707 * maxweight
+                    self.direction[2, 2] += 0.707 * maxweight
                 elif dx == 0 and dy == 2:
                     self.direction[2, 0] += maxweight
-                    self.direction[1, 0] += 0.707
-                    self.direction[2, 1] += 0.707
+                    self.direction[1, 0] += 0.707 * maxweight
+                    self.direction[2, 1] += 0.707 * maxweight
                 elif dx == 1 and dy == 2:
                     self.direction[2, 1] += maxweight
-                    self.direction[2, 0] += 0.707
-                    self.direction[2, 2] += 0.707
+                    self.direction[2, 0] += 0.707 * maxweight
+                    self.direction[2, 2] += 0.707 * maxweight
                 elif dx == 2 and dy == 2:
                     self.direction[2, 2] += maxweight
-                    self.direction[2, 1] += 0.707
-                    self.direction[1, 2] += 0.707
+                    self.direction[2, 1] += 0.707 * maxweight
+                    self.direction[1, 2] += 0.707 * maxweight
 
             np.rot90(self.direction,2)
             

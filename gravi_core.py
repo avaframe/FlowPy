@@ -96,8 +96,8 @@ def calculation(row_list, col_list):
 #Reading in the arrays
 # =============================================================================
 # path = '/home/neuhauser/git_rep/graviclass/'
-# file = path + 'Fonnbu_dhm.asc'
-# release_file = path + 'class_1.asc'
+# dem_file = path + 'Fonnbu_dhm.asc'
+# release_file = path + 'release.tif'
 # infra_path = path + 'infra.tif'
 # =============================================================================
 path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
@@ -110,9 +110,9 @@ release_file = path + 'init/release_class1_clipped.tif'
 # =============================================================================
 #forest_file = path + 'trees.asc'
 #infra_path = 'infra/infra_10_3.tif'
-elh_out = path + 'energy.tif' # V3 with dh dependend on energylinehight
-mass_out = path + 'mass.tif'
-count_out = path + "cell_counts.tif"
+elh_out = path + 'energy_v3.tif' # V3 with dh dependend on energylinehight
+mass_out = path + 'mass_v3.tif'
+count_out = path + "cell_counts_v3.tif"
 #index_out = path + 'index_flowr.asc'
 # =============================================================================
 # elh_out = path + 'energy_flowr_fonnbu.asc' # V3 with dh dependend on energylinehight
@@ -170,7 +170,8 @@ while startcell_idx < len(row_list):
     for cells in cell_list:
         row, col, mass, kin_e = cells.calc_distribution()
         if len(mass) > 0:
-            kin_e, mass, row, col  = list(zip(*sorted(zip(kin_e, mass, row, col), reverse=True)))
+            #mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
+            kin_e, mass, row, col  = list(zip(*sorted(zip(kin_e, mass, row, col), reverse=False)))
             #Sort this lists by mass to start the spreading from the middle
 
         for i in range(int(checked), len(cell_list)):  # Check if Cell already exists
@@ -195,7 +196,7 @@ while startcell_idx < len(row_list):
             cell_list.append(Cell(row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]], cells, startcell))
         #checked += 1         
         elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
-        mass_array[cells.rowindex, cells.colindex] = cells.mass
+        mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
         count_array[cells.rowindex, cells.colindex] += 1
         #index_array[cells.rowindex, cells.colindex] = index
         #index += 1
@@ -209,9 +210,10 @@ end = time.time()
 print('Time needed: ' + str(end - start) + ' seconds')
 
 # Output
-io.output_raster(dem_file, elh_out, elh, 3857)
-io.output_raster(dem_file, mass_out, mass_array, 3857)
-io.output_raster(dem_file, count_out, count_array, 3857)
+epsg = 4326
+io.output_raster(dem_file, elh_out, elh, epsg)
+io.output_raster(dem_file, mass_out, mass_array, epsg)
+io.output_raster(dem_file, count_out, count_array, epsg)
 #io.output_raster(file, index_out, index_array, 4326)
     
 
