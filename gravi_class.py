@@ -12,7 +12,7 @@ import numpy as np
 
 class Cell():
     
-    def __init__(self, rowindex, colindex, dem_ng, cellsize, mass, kin_e, parent, startcell):
+    def __init__(self, rowindex, colindex, dem_ng, cellsize, mass, kin_e, forest, parent, startcell):
         self.rowindex = rowindex
         self.colindex = colindex
         self.altitude = dem_ng[1, 1]
@@ -23,8 +23,10 @@ class Cell():
         self.direction = np.zeros_like(self.dem_ng)
         self.p_fd = np.zeros_like(self.dem_ng)
         self.alpha = 25
+        self.alpha_forest = 5
         self.exp = 8 
-        self.mass_threshold = 3*10**-6
+        self.mass_threshold = 3*10**-4
+        self.forest = forest
         self.mass = mass
         self.kin_e = kin_e
         self.parent = []
@@ -46,7 +48,8 @@ class Cell():
     def calc_kinetic_energy(self):
         delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
-        e_friction = ds * self.cellsize * np.tan(np.deg2rad(self.alpha))
+        tan_alpha = np.tan(np.deg2rad(self.alpha + self.forest * self.alpha_forest))  # increased friction due to forest scaled with forest value (forest)
+        e_friction = ds * self.cellsize * tan_alpha
         self.kin_energy_neighbour = self.kin_e + delta_e_kin_pot - e_friction
         self.kin_energy_neighbour[self.kin_energy_neighbour < 0] = 0
                     
@@ -76,12 +79,12 @@ class Cell():
 
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
         distance = ds * self.cellsize
-        #dh = 1
-        self.tan_beta = np.arctan(((self.dem_ng - (self.altitude)) * (-1)) / distance)
+        dh = 1
+        self.tan_beta = ((self.dem_ng - (self.altitude + dh)) * (-1)) / distance
         #self.tan_beta = np.tan((beta+90)/2)
 
         #self.tan_beta[self.tan_beta < 0] = 0
-        self.tan_beta = abs(self.tan_beta)
+        #self.tan_beta = abs(self.tan_beta)
         self.tan_beta[self.kin_energy_neighbour <= 0] = 0
         self.tan_beta[self.direction <= 0] = 0
         self.tan_beta[1,1] = 0

@@ -12,8 +12,6 @@ import sys
 import time
 #from multiprocessing import Pool
 #import os
-
-sys.path.append('/home/W/Neuhauser/Frei/python_libs/')
 import raster_io as io
 from gravi_class import Cell
 
@@ -102,12 +100,14 @@ def calculation(row_list, col_list):
 # release_file = path + 'class_1.asc'
 # infra_path = path + 'infra.tif'
 # =============================================================================
-path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
-file = path + 'DEM_clipped_for_sim.tif'
-release_file = path + 'init/release_class1_clipped.tif'
+path = 'example/'
+file = path + 'dhm.asc'
+release_file = path + 'release.asc'
+#forest_file = path + 'trees.asc'
 #infra_path = 'infra/infra_10_3.tif'
-elh_out = path + 'energy_flowr_clipped_v10.tif' # V3 with dh dependend on energylinehight
-mass_out = path + 'mass_flowr_clipped_v10.tif'
+elh_out = path + 'energy.tif' # V3 with dh dependend on energylinehight
+mass_out = path + 'mass.tif'
+count_out = path + "cell_counts.tif"
 #index_out = path + 'index_flowr.asc'
 # =============================================================================
 # elh_out = path + 'energy_flowr_fonnbu.asc' # V3 with dh dependend on energylinehight
@@ -120,9 +120,15 @@ cellsize = header["cellsize"]
 nodata = header["noDataValue"]
 release, header_release = io.read_raster(release_file) 
 #infra, header = io.read_raster(infra_path) 
+try:
+    forest, header_forest = io.read_raster(forest_file)
+except:
+    forest = np.zeros_like(dem)
+
 
 elh = np.zeros_like(dem)
 mass_array = np.zeros_like(dem)
+count_array = np.zeros_like(dem)
 #index_array = np.zeros_like(dem)
 
 start = time.time()
@@ -150,7 +156,7 @@ while startcell_idx < len(row_list):
         startcell_idx += 1
         continue
     
-    startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, None, startcell=True)
+    startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, forest[row_idx, col_idx], None, startcell=True)
     # If this is a startcell just give a Bool to startcell otherwise the object startcell
     
     cell_list.append(startcell)
@@ -159,7 +165,7 @@ while startcell_idx < len(row_list):
     for cells in cell_list:
         row, col, mass, kin_e = cells.calc_distribution()
         if len(mass) > 0:
-            mass, row, col, kin_e = list(zip(*sorted(zip(mass, row, col, kin_e), reverse=False)))  
+            kin_e, mass, row, col  = list(zip(*sorted(zip(kin_e, mass, row, col), reverse=True)))
             #Sort this lists by mass to start the spreading from the middle
 
         for i in range(int(checked), len(cell_list)):  # Check if Cell already exists
@@ -181,10 +187,11 @@ while startcell_idx < len(row_list):
             if (nodata in dem_ng) or np.size(dem_ng) < 9:
                 #checked += 1# Dirty way to don´t care about the edge of the DEM
                 continue
-            cell_list.append(Cell(row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], cells, startcell))            
+            cell_list.append(Cell(row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]], cells, startcell))
         #checked += 1         
         elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
         mass_array[cells.rowindex, cells.colindex] = cells.mass
+        count_array[cells.rowindex, cells.colindex] += 1
         #index_array[cells.rowindex, cells.colindex] = index
         #index += 1
     release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
@@ -199,6 +206,7 @@ print('Time needed: ' + str(end - start) + ' seconds')
 # Output
 io.output_raster(file, elh_out, elh, 3857)
 io.output_raster(file, mass_out, mass_array, 3857)
+io.output_raster(file, count_out, count_array, 3857)
 #io.output_raster(file, index_out, index_array, 4326)
     
 
