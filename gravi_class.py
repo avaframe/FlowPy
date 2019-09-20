@@ -46,12 +46,14 @@ class Cell():
         
        
     def calc_kinetic_energy(self):
+        #max_elh = 250
         delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
         tan_alpha = np.tan(np.deg2rad(self.alpha + self.forest * self.alpha_forest))  # increased friction due to forest scaled with forest value (forest)
         e_friction = ds * self.cellsize * tan_alpha
         self.kin_energy_neighbour = self.kin_e + delta_e_kin_pot - e_friction
         self.kin_energy_neighbour[self.kin_energy_neighbour < 0] = 0
+        #self.kin_energy_neighbour[self.kin_energy_neighbour > 0] = 0
                     
     def add_mass(self, mass):
         self.mass += mass
@@ -93,6 +95,7 @@ class Cell():
             self.p_fd = self.tan_beta ** exp/ np.sum(self.tan_beta ** exp)
         
     def calc_direction(self):
+        self.direction = np.zeros_like(self.dem_ng)
         if self.is_start:
             self.direction += 1
         elif self.parent[0].is_start:

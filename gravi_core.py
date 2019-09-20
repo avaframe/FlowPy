@@ -94,15 +94,15 @@ def calculation(row_list, col_list):
 
    
 #Reading in the arrays
+path = '/home/neuhauser/git_rep/graviclass/'
+dem_file = path + 'Fonnbu_dhm.asc'
+release_file = path + 'release.tif'
+infra_path = path + 'infra.tif'
 # =============================================================================
-# path = '/home/neuhauser/git_rep/graviclass/'
-# dem_file = path + 'Fonnbu_dhm.asc'
-# release_file = path + 'release.tif'
-# infra_path = path + 'infra.tif'
+# path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
+# dem_file = path + 'DEM_clipped_for_sim.tif'
+# release_file = path + 'init/release_class1_clipped.tif'
 # =============================================================================
-path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
-dem_file = path + 'DEM_clipped_for_sim.tif'
-release_file = path + 'init/release_class1_clipped.tif'
 # =============================================================================
 # path = 'example/'
 # file = path + 'dhm.asc'
@@ -110,9 +110,9 @@ release_file = path + 'init/release_class1_clipped.tif'
 # =============================================================================
 #forest_file = path + 'trees.asc'
 #infra_path = 'infra/infra_10_3.tif'
-elh_out = path + 'energy_v3.tif' # V3 with dh dependend on energylinehight
-mass_out = path + 'mass_v3.tif'
-count_out = path + "cell_counts_v3.tif"
+elh_out = path + 'energy_v4.tif' # V3 with dh dependend on energylinehight
+mass_out = path + 'mass_v4.tif'
+count_out = path + "cell_counts_v4.tif"
 #index_out = path + 'index_flowr.asc'
 # =============================================================================
 # elh_out = path + 'energy_flowr_fonnbu.asc' # V3 with dh dependend on energylinehight
