@@ -94,10 +94,10 @@ def calculation(row_list, col_list):
 
    
 #Reading in the arrays
-path = '/home/neuhauser/git_rep/graviclass/'
-dem_file = path + 'Fonnbu_dhm.asc'
-release_file = path + 'release.tif'
-infra_path = path + 'infra.tif'
+path = '/home/P/Projekte/xxxxx-GR4A/simulation/GraviMod/input/asc/gries_vals/'
+dem_file = path + 'dhm_cropped.asc'
+release_file = path + 'init_ava_c1.asc'
+
 # =============================================================================
 # path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
 # dem_file = path + 'DEM_clipped_for_sim.tif'
@@ -108,11 +108,12 @@ infra_path = path + 'infra.tif'
 # file = path + 'dhm.asc'
 # release_file = path + 'release.asc'
 # =============================================================================
-forest_file = path + 'trees.asc'
+forest_file = path + 'wald_cropped.asc'
 #infra_path = 'infra/infra_10_3.tif'
-elh_out = path + 'energy_with_Forest.tif'
-mass_out = path + 'mass_with_Forest.tif'
-count_out = path + "cell_counts_with_Forest.tif"
+path_out = "/home/lawinenforschung/DAKUMO/"
+elh_out = path_out + 'energy_with_Forest.tif'
+mass_out = path_out + 'mass_with_Forest.tif'
+count_out = path_out + "cell_counts_with_Forest.tif"
 #index_out = path + 'index_flowr.asc'
 # =============================================================================
 # elh_out = path + 'energy_flowr_fonnbu.asc' # V3 with dh dependend on energylinehight
@@ -127,6 +128,10 @@ release, header_release = io.read_raster(release_file)
 #infra, header = io.read_raster(infra_path) 
 try:
     forest, header_forest = io.read_raster(forest_file)
+    if np.amax(forest) > 1.:
+        print("Forest layers max is greater than 1!! Foret layer MAX = ", np.amax(forest))
+        forest = forest/np.amax(forest)
+        print("now max forest is ", np.amax(forest))
 except:
     forest = np.zeros_like(dem)
 
@@ -219,9 +224,9 @@ io.output_raster(dem_file, count_out, count_array, epsg)
 
 ## Calculation without Forest
 
-elh_out = path + 'energy_without_Forest.tif'
-mass_out = path + 'mass_without_Forest.tif'
-count_out = path + "cell_counts_without_Forest.tif"
+elh_out = path_out + 'energy_without_Forest.tif'
+mass_out = path_out + 'mass_without_Forest.tif'
+count_out = path_out + "cell_counts_without_Forest.tif"
 
 forest = np.zeros_like(dem)
 
