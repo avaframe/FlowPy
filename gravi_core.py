@@ -94,10 +94,12 @@ def calculation(row_list, col_list):
 
    
 #Reading in the arrays
-path = '/home/neuhauser/git_rep/graviclass/'
-dem_file = path + 'Fonnbu_dhm.asc'
-release_file = path + 'release.tif'
-infra_path = path + 'infra.tif'
+# =============================================================================
+# path = '/home/neuhauser/git_rep/graviclass/'
+# dem_file = path + 'Fonnbu_dhm.asc'
+# release_file = path + 'release.tif'
+# infra_path = path + 'infra.tif'
+# =============================================================================
 # =============================================================================
 # path = '/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/'
 # dem_file = path + 'DEM_clipped_for_sim.tif'
@@ -108,11 +110,15 @@ infra_path = path + 'infra.tif'
 # file = path + 'dhm.asc'
 # release_file = path + 'release.asc'
 # =============================================================================
-#forest_file = path + 'trees.asc'
+path = '/home/W/Neuhauser/Frei/Flow-Py/arzler_test/'
+dem_file = path + 'DHM/arzl10m_EPSG31287.tif'
+release_file = path + 'Release/release.tif'
+#infra_path = path + 'infra.tif'
+forest_file = path + 'Forest/Forest_value_v2.tif'
 #infra_path = 'infra/infra_10_3.tif'
-elh_out = path + 'energy_v4.tif' # V3 with dh dependend on energylinehight
-mass_out = path + 'mass_v4.tif'
-count_out = path + "cell_counts_v4.tif"
+elh_out = path + 'energy_forest_exp6.tif' # V3 with dh dependend on energylinehight
+mass_out = path + 'mass_forest.tif'
+count_out = path + "cell_counts_forest.tif"
 #index_out = path + 'index_flowr.asc'
 # =============================================================================
 # elh_out = path + 'energy_flowr_fonnbu.asc' # V3 with dh dependend on energylinehight
@@ -210,7 +216,7 @@ end = time.time()
 print('Time needed: ' + str(end - start) + ' seconds')
 
 # Output
-epsg = 4326
+epsg = 31287
 io.output_raster(dem_file, elh_out, elh, epsg)
 io.output_raster(dem_file, mass_out, mass_array, epsg)
 io.output_raster(dem_file, count_out, count_array, epsg)

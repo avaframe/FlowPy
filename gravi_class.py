@@ -12,7 +12,7 @@ import numpy as np
 
 class Cell():
     
-    def __init__(self, rowindex, colindex, dem_ng, cellsize, mass, kin_e, forest, parent, startcell):
+    def __init__(self, rowindex, colindex, dem_ng, cellsize, mass, elh, forest, parent, startcell):
         self.rowindex = rowindex
         self.colindex = colindex
         self.altitude = dem_ng[1, 1]
@@ -23,12 +23,12 @@ class Cell():
         self.direction = np.zeros_like(self.dem_ng)
         self.p_fd = np.zeros_like(self.dem_ng)
         self.alpha = 25
-        self.alpha_forest = 5
-        self.exp = 8 
+        self.alpha_forest = 10
+        self.exp = 6
         self.mass_threshold = 3*10**-4
         self.forest = forest
         self.mass = mass
-        self.kin_e = kin_e
+        self.kin_e = elh
         self.parent = []
         if parent:
             self.parent.append(parent)
@@ -49,11 +49,17 @@ class Cell():
         #max_elh = 250
         delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
         ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
-        tan_alpha = np.tan(np.deg2rad(self.alpha + self.forest * self.alpha_forest))  # increased friction due to forest scaled with forest value (forest)
+        max_friction = self.alpha_forest * self.forest
+        if self.kin_e < 45:
+            alpha_calc = self.alpha + max(0, - self.kin_e * (max_friction / 45) + max_friction)
+        else:
+            alpha_calc = 25
+        #print(alpha_calc)
+        tan_alpha = np.tan(np.deg2rad(alpha_calc))  # increased friction due to forest scaled with forest value (forest)
         e_friction = ds * self.cellsize * tan_alpha
         self.kin_energy_neighbour = self.kin_e + delta_e_kin_pot - e_friction
         self.kin_energy_neighbour[self.kin_energy_neighbour < 0] = 0
-        #self.kin_energy_neighbour[self.kin_energy_neighbour > 0] = 0
+        self.kin_energy_neighbour[self.kin_energy_neighbour > 270] = 270
                     
     def add_mass(self, mass):
         self.mass += mass
