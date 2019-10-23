@@ -12,7 +12,7 @@ import numpy as np
 
 class Cell():
     
-    def __init__(self, rowindex, colindex, dem_ng, cellsize, mass, elh, forest, parent, startcell):
+    def __init__(self, process,  rowindex, colindex, dem_ng, cellsize, mass, elh, forest, parent, startcell):
         self.rowindex = rowindex
         self.colindex = colindex
         self.altitude = dem_ng[1, 1]
@@ -22,44 +22,57 @@ class Cell():
         self.dist = np.zeros_like(self.dem_ng)
         self.direction = np.zeros_like(self.dem_ng)
         self.p_fd = np.zeros_like(self.dem_ng)
-        self.alpha = 25
-        self.alpha_forest = 10
-        self.exp = 6
-        self.mass_threshold = 3*10**-4
         self.forest = forest
         self.mass = mass
         self.kin_e = elh
+
+        if process == 'Avalanche':
+            self.alpha = 25
+            self.alpha_forest = 10
+            self.exp = 8
+            self.mass_threshold = 3 * 10 ** -4
+            self.max_elh = 270  # maximum velocity this process can reach
+        if process == 'Rockfall':
+            self.alpha = 32
+            self.alpha_forest = 10
+            self.exp = 75
+            self.mass_threshold = 3 * 10 ** -4
+            self.max_elh = 40  # maximum velocity this process can reach
+        if process == 'Soil':
+            self.alpha = 22
+            self.alpha_forest = 10
+            self.exp = 75
+            self.mass_threshold = 3 * 10 ** -4
+            self.max_elh = 12  # maximum velocity this process can reach
         self.parent = []
         if parent:
             self.parent.append(parent)
         
-        if startcell == True: #check, if start cell exist (start cell is release point)
-            self.is_start = True # set is_satrt to True
+        if startcell:  # check, if start cell exist (start cell is release point)
+            self.is_start = True  # set is_start to True
         else:            
-            self.startcell = startcell # set is_satrt to True
-            self.is_start = False # set is_satrt to False        
+            self.startcell = startcell  # set is_start to True
+            self.is_start = False  # set is_start to False
         
         self.calc_kinetic_energy()
         self.calc_direction()
-        #self.calc_global_direction()
         self.calc_tanbeta()
-        
-       
+
     def calc_kinetic_energy(self):
-        #max_elh = 250
+
         delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
-        ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
+        ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         max_friction = self.alpha_forest * self.forest
         if self.kin_e < 45:
             alpha_calc = self.alpha + max(0, - self.kin_e * (max_friction / 45) + max_friction)
         else:
             alpha_calc = 25
-        #print(alpha_calc)
+        # print(alpha_calc)
         tan_alpha = np.tan(np.deg2rad(alpha_calc))  # increased friction due to forest scaled with forest value (forest)
         e_friction = ds * self.cellsize * tan_alpha
         self.kin_energy_neighbour = self.kin_e + delta_e_kin_pot - e_friction
         self.kin_energy_neighbour[self.kin_energy_neighbour < 0] = 0
-        self.kin_energy_neighbour[self.kin_energy_neighbour > 270] = 270
+        self.kin_energy_neighbour[self.kin_energy_neighbour > self.max_elh] = self.max_elh
                     
     def add_mass(self, mass):
         self.mass += mass
@@ -70,35 +83,18 @@ class Cell():
            
     def calc_tanbeta(self):  
         exp = self.exp
-        #snowdepth = 1
-        #density = 100
-        #dh = self.kin_e/(9.81*self.mass*self.cellsize**2 * snowdepth * density) # Calculate the remaining Energyheight with a kind of mass.... 
-# =============================================================================
-#         if self.is_start:
-#             dh = 0
-#         else:
-#             dx = (self.startcell.colindex - self.colindex) * self.cellsize
-#             dy = (self.startcell.rowindex - self.rowindex) * self.cellsize
-#             ds = np.sqrt(dx**2 + dy**2)
-#             #dh = (self.startcell.altitude - self.altitude - ds * np.tan(np.deg2rad(self.alpha)))
-#             #dh = self.kin_e / 9.81
-#             dh = 10
-# =============================================================================
 
-        ds = np.array([[np.sqrt(2),1,np.sqrt(2)],[1,0,1],[np.sqrt(2),1,np.sqrt(2)]])
+        ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         distance = ds * self.cellsize
-        #dh = 1
-        beta = np.arctan(((self.dem_ng - (self.altitude)) * (-1)) / distance) + 90
-        self.tan_beta = np.tan(beta/2)
-        #self.tan_beta = np.tan((beta+90)/2)
 
-        #self.tan_beta[self.tan_beta < 0] = 0
-        #self.tan_beta = abs(self.tan_beta)
+        beta = np.arctan(((self.dem_ng - self.altitude) * (-1)) / distance) + 90
+        self.tan_beta = np.tan(beta/2)
+
         self.tan_beta[self.kin_energy_neighbour <= 0] = 0
         self.tan_beta[self.direction <= 0] = 0
-        self.tan_beta[1,1] = 0
+        self.tan_beta[1, 1] = 0
         if np.sum(self.tan_beta > 0):
-            self.p_fd = self.tan_beta ** exp/ np.sum(self.tan_beta ** exp)
+            self.p_fd = self.tan_beta ** exp / np.sum(self.tan_beta ** exp)
         
     def calc_direction(self):
         self.direction = np.zeros_like(self.dem_ng)
@@ -108,8 +104,8 @@ class Cell():
             self.direction += 1
         else:
             for parent in self.parent:
-                dx = (parent.colindex - self.colindex) * -1 +1
-                dy = (parent.rowindex - self.rowindex) * -1 +1
+                dx = (parent.colindex - self.colindex) * -1 + 1
+                dy = (parent.rowindex - self.rowindex) * -1 + 1
                 maxweight = 1 * parent.kin_e
                 if dx == 0 and dy == 0:
                     self.direction[0, 0] += maxweight
@@ -145,32 +141,13 @@ class Cell():
                     self.direction[1, 2] += 0.707 * maxweight
 
             np.rot90(self.direction,2)
-            
-    def calc_global_direction(self):
-        
-        if self.is_start:
-            self.global_dir = np.ones((3,3))
-        else:
-            dx = (self.colindex - self.startcell.colindex) * self.cellsize # x component of avalanche flow direction, global
-            dy = (self.rowindex - self.startcell.rowindex) * self.cellsize # y component of avalanche flow direction, global
-            avi_direction = np.rad2deg(np.arctan2(dy, dx)) * -1 # avalanche direction in degrees, global
-            #neighbour_direction = np.linspace(0.0, 315, 8)  # direction in deg to all cells
-            
-            # Setting the direction for the Center Cell in the opositre direction for the avalanche, so it´s not calculated
-            neighbour_direction = np.array([[225, 270, 315], [180, np.nan, 0], [225, 270 , 315]])  # direction in deg to all cells, local
-            delta_deg = neighbour_direction - avi_direction  # difference between ava direction and the neighbor cells
-            self.global_dir = np.cos(np.deg2rad(delta_deg))
-            #self.global_dir *= 0.3# direction_projection[1] = NE, direction_projection[2] = N ..., global influence
-            self.global_dir[self.global_dir < 0.1] = 0
-            self.global_dir[1, 1] = 0
-           
                     
     def calc_distribution(self):
         threshold = self.mass_threshold
         if np.sum(self.p_fd > 0):
             self.dist = self.direction * self.p_fd / np.sum(self.direction * self.p_fd) * self.mass
-            #self.dist = self.global_dir * self.p_fd / np.sum(self.global_dir * self.p_fd) * self.mass
-            #self.dist = (self.direction*self.kin_e + self.tan_beta)/np.sum(self.direction*self.kin_e + self.tan_beta)*self.mass
+        # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose "mass"
+        # The mass of this cells will then be spreaded equally to all neighbour cells
         count = ((0 < self.dist) & (self.dist < threshold)).sum()
         mass_to_distribute = np.sum(self.dist[self.dist < threshold])
         if mass_to_distribute > 0 and count > 0:
@@ -178,8 +155,7 @@ class Cell():
             self.dist[self.dist < threshold] = 0
         if np.sum(self.dist) < self.mass and count > 0:
             self.dist[self.dist > threshold] += (self.mass - np.sum(self.dist))/count
-            #print('Mass Loss' , np.sum(self.dist) - self.mass)
-        row_local, col_local = np.where(self.dist > threshold)  # Zellen die nicht im threshold liegen müssen ihre masse auf die anderen verteilen!
+
+        row_local, col_local = np.where(self.dist > threshold)
         
         return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.kin_energy_neighbour[row_local, col_local]
- 

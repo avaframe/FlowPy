@@ -35,27 +35,12 @@ def read_raster(input_file):
 
     return my_array, header
 
-#Output
-def output_raster(file, file_out, raster, epsg):
+
+def output_raster(file, file_out, raster):
     """Input is the original file, path to new file, raster_data, and the EPSG Code"""
-    """
-    Parameters
-    ----------
-    arg1 : filepath
-        The file with same EPSG Code and Tranformation
-    arg2 : str
-        Description of arg2
-
-    Returns
-    -------
-    rasteroutput
-        The raster you defined as outputfile
-
-    """
-    
 
     raster_trans = rasterio.open(file)
-    crs = rasterio.crs.CRS.from_epsg(epsg)
+    crs = rasterio.crs.CRS.from_dict(raster_trans.crs.data)
     new_dataset = rasterio.open(file_out, 'w', driver='GTiff', height = raster.shape[0], width = raster.shape[1], count=1,  dtype = raster.dtype, crs=crs, transform=raster_trans.transform, nodata=-9999)
     new_dataset.write(raster, 1)
     new_dataset.close()  
