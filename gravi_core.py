@@ -132,9 +132,9 @@ release_file = path + 'init/release_rockfall_45deg.tif'
 # forest_file = path + 'Forest/Forest_value_v2.tif'
 # =============================================================================
 #infra_path = 'infra/infra_10_3.tif'
-elh_out = path + 'energy_elhmax.tif' # V3 with dh dependend on energylinehight
-mass_out = path + 'mass_elhmax.tif'
-count_out = path + "cell_counts_elhmax.tif"
+elh_out = path + 'energy_elhmax_50.tif' # V3 with dh dependend on energylinehight
+mass_out = path + 'mass_elhmax_50.tif'
+count_out = path + "cell_counts_elhmax_50.tif"
 #index_out = path + 'index_flowr.asc'
 # =============================================================================
 # elh_out = path + 'energy_flowr_fonnbu.asc' # V3 with dh dependend on energylinehight
@@ -172,7 +172,7 @@ row_list, col_list = get_start_idx(release)
 # pool.map(calculation, calc_list)
 # =============================================================================
 startcell_idx = 0
-process = 'Avalanche'
+process = 'Rockfall'
 while startcell_idx < len(row_list):
     sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx+1) + " of " + str(len(row_list)) + " = " + str(round((startcell_idx + 1)/len(row_list)*100,2)) + "%" '\r')
     sys.stdout.flush()

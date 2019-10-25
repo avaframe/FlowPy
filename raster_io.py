@@ -40,7 +40,10 @@ def output_raster(file, file_out, raster):
     """Input is the original file, path to new file, raster_data, and the EPSG Code"""
 
     raster_trans = rasterio.open(file)
-    crs = rasterio.crs.CRS.from_dict(raster_trans.crs.data)
+    try:
+        crs = rasterio.crs.CRS.from_dict(raster_trans.crs.data)
+    except:
+        crs = rasterio.crs.CRS.from_epsg(4326)
     new_dataset = rasterio.open(file_out, 'w', driver='GTiff', height = raster.shape[0], width = raster.shape[1], count=1,  dtype = raster.dtype, crs=crs, transform=raster_trans.transform, nodata=-9999)
     new_dataset.write(raster, 1)
     new_dataset.close()  

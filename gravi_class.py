@@ -10,7 +10,7 @@ This is the graviclass
 import numpy as np
 
 
-class Cell():
+class Cell:
     
     def __init__(self, process,  rowindex, colindex, dem_ng, cellsize, mass, elh, forest, parent, startcell):
         self.rowindex = rowindex
@@ -37,7 +37,7 @@ class Cell():
             self.alpha_forest = 10
             self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
-            self.max_elh = 40  # maximum velocity this process can reach
+            self.max_elh = 50  # maximum velocity this process can reach
         if process == 'Soil':
             self.alpha = 22
             self.alpha_forest = 10

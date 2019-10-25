@@ -7,11 +7,13 @@ Created on Mon May  7 14:23:00 2018
 """
 import sys
 import numpy as np
+import multiprocessing
+from xml.etree import ElementTree as ET
 
 import raster_io as io
 import gravi_core_gui as gc
 
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
@@ -24,7 +26,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
         self.setupUi(self)
-        self.showMaximized()
+        #self.showMaximized()
         self.setWindowTitle("Flow Py GUI")
 
         self.directory = '/home'
@@ -39,8 +41,42 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.forest_Button.clicked.connect(self.open_forest)
         self.process_Box.currentIndexChanged.connect(self.processChanged)
         self.calc_Button.clicked.connect(self.calculation)
+        self.actionSave.triggered.connect(self.save)
+        self.actionLoad.triggered.connect(self.load)
+        self.actionQuit.triggered.connect(self.quit)
+
+        self.calc_class = None
 
     @pyqtSlot()
+    def save(self):
+        """Save the input paths"""
+        name = QFileDialog.getSaveFileName(self, 'Save File')[0]
+        #file = open(name, 'w')
+        #text = self.wDirlineEdit.text()
+
+        root = ET.Element("root")
+        wdir = ET.SubElement(root, "wDir")
+        dhm = ET.SubElement(root, "DHM")
+
+        ET.SubElement(wdir, self.wDir_lineEdit.text())
+        ET.SubElement(dhm, self.DEM_lineEdit.text())
+
+        tree = ET.ElementTree(root)
+        tree.write(name)
+        #text = self.textEdit.toPlainText()
+        #file.write(text)
+        #file.close()
+
+    def load(self):
+        xml_file = QFileDialog.getOpenFileNames(self, 'Open xml',
+                                                self.directory,
+                                                "xml (*.xml);;All Files (*.*)")[0]
+        xml = xml_file[0]
+        print(xml)
+
+    def quit(self):
+        QCoreApplication.quit()
+
     def open_wDir(self):
         """Open the Working Directory, where results are stored"""
         self.directory = QFileDialog.getExistingDirectory(self, 'Open Working Directory',
@@ -52,7 +88,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         """Open the Working Directory, where results are stored"""
         dem_file = QFileDialog.getOpenFileNames(self, 'Open DEM',
                                                 self.directory,
-                                                "raster (*.asc);;All Files (*.*)")
+                                                "tif (*.tif);;raster (*.asc);;All Files (*.*)")
         dem = dem_file[0]
         self.DEM_lineEdit.setText(dem[0])
 
@@ -60,7 +96,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         """Open the Working Directory, where results are stored"""
         release_file = QFileDialog.getOpenFileNames(self, 'Open Release',
                                                     self.directory,
-                                                    "raster (*.asc);;All Files (*.*)")
+                                                    "tif (*.tif);;raster (*.asc);;All Files (*.*)")
         release = release_file[0]
         self.release_lineEdit.setText(release[0])
 
@@ -68,7 +104,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         """Open the Working Directory, where results are stored"""
         infra_file = QFileDialog.getOpenFileNames(self, 'Open Infrastructure Layer',
                                                   self.directory,
-                                                  "raster (*.asc);;All Files (*.*)")
+                                                  "tif (*.tif);;raster (*.asc);;All Files (*.*)")
         infra = infra_file[0]
         self.infra_lineEdit.setText(infra[0])
 
@@ -76,7 +112,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         """Open the Working Directory, where results are stored"""
         forest_file = QFileDialog.getOpenFileNames(self, 'Open Forest Layer',
                                                    self.directory,
-                                                   "raster (*.asc);;All Files (*.*)")
+                                                   "tif (*.tif);;raster (*.asc);;All Files (*.*)")
         forest = forest_file[0]
         self.forest_lineEdit.setText(forest[0])
 
@@ -90,6 +126,10 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         if self.process_Box.currentText() == 'Soil Slides':
             self.alpha_Edit.setText('22')
             self.exp_Edit.setText('75')
+
+    def update_progressBar(self, float):
+        print(float)
+        self.progressBar.setValue(float)
 
     def showdialog(self, path):
         msg = QMessageBox()
@@ -120,37 +160,29 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         # Start of Calculation
         # Read in raster files
         dem, header = io.read_raster(self.DEM_lineEdit.text())
-        cellsize = header["cellsize"]
-        nodata = header["noDataValue"]
         release, header_release = io.read_raster(self.release_lineEdit.text())
-
         # infra, header = io.read_raster(infra_path) needed for backcalculation
         try:
             forest, header_forest = io.read_raster(self.forest_lineEdit.text())
         except:
             forest = np.zeros_like(dem)
+        process = self.process_Box.currentText()
 
         # Calculation
-        # Create needed arrays
-        mass_array = np.zeros_like(dem)
-        elh = np.zeros_like(dem)
-        count_array = np.zeros_like(dem)
-
-        row_list, col_list = gc.get_start_idx(dem, release)
-        startcell_idx = 0
-        while startcell_idx < len(row_list):
-            self.progressBar.value(round((startcell_idx + 1) / len(row_list) * 100, 2))
-            elh, mass_array, count_array = gc.calculation(dem, release, forest, self.process_Box.currentText(), cellsize, nodata, row_list, col_list, startcell_idx, elh, mass_array, count_array)
-            release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
-            # ToDo: if i hit a startcell add this "mass"
-            # ToDo: Backcalulation
-            row_list, col_list = gc.get_start_idx(dem, release)
-            startcell_idx += 1
+        cpu_count = multiprocessing.cpu_count()
+        self.calc_class = gc.Simulation(dem, header, release, forest, process)
+        self.calc_class.value_changed.connect(self.update_progressBar)
+        self.calc_class.finished.connect(self.output)
+        self.calc_class.start()
 
         # Output
-        io.output_raster(dem_file, self.directory + "mass.tif", mass_array)
-        io.output_raster(dem_file, self.directory + "elh.tif", elh)
-        io.output_raster(dem_file, self.directory + "cell_count.tif", count_array)
+        #self.calc_class.finished.connect(self.output)
+
+    def output(self, elh, mass_array, count_array):
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "mass_gui.tif", mass_array)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "elh_gui.tif", elh)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "cell_count_gui.tif", count_array)
+        print("Calculation finished")
 
 
 def main():
