@@ -179,9 +179,9 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         #self.calc_class.finished.connect(self.output)
 
     def output(self, elh, mass_array, count_array):
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "mass_gui.tif", mass_array)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "elh_gui.tif", elh)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "cell_count_gui.tif", count_array)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_gui.tif", mass_array)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_gui.tif", elh)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_count_gui.tif", count_array)
         print("Calculation finished")
 
 
