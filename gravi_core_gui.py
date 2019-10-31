@@ -9,6 +9,7 @@ This is core function
 
 import numpy as np
 from gravi_class import Cell
+import sys
 from PyQt5.QtCore import QThread, pyqtSignal
 
 
@@ -66,6 +67,10 @@ class Simulation(QThread):
         # =============================================================================
         startcell_idx = 0
         while startcell_idx < len(row_list):
+            
+            sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx + 1) + " of " + str(len(row_list)) + " = " + str(
+                round((startcell_idx + 1) / len(row_list) * 100, 2)) + "%" '\r')
+            sys.stdout.flush()
 
             calculation_percent = round((startcell_idx + 1) / len(row_list) * 100, 2)
             self.value_changed.emit(calculation_percent)

@@ -128,7 +128,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
             self.exp_Edit.setText('75')
 
     def update_progressBar(self, float):
-        print(float)
+        #print(float)
         self.progressBar.setValue(float)
 
     def showdialog(self, path):

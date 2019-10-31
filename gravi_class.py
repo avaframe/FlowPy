@@ -38,7 +38,7 @@ class Cell:
             self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 50  # maximum velocity this process can reach
-        if process == 'Soil':
+        if process == 'Soil Slides':
             self.alpha = 22
             self.alpha_forest = 10
             self.exp = 75
