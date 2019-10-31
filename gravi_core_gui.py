@@ -11,6 +11,7 @@ import numpy as np
 from gravi_class import Cell
 import sys
 from PyQt5.QtCore import QThread, pyqtSignal
+import time
 
 
 def get_start_idx(dem, release):
@@ -65,6 +66,7 @@ class Simulation(QThread):
         # pool = Pool(processes=4)
         # pool.map(calculation, calc_list)
         # =============================================================================
+        start = time.time()
         startcell_idx = 0
         while startcell_idx < len(row_list):
             
@@ -127,5 +129,7 @@ class Simulation(QThread):
             row_list, col_list = get_start_idx(self.dem, self.release)
             startcell_idx += 1
         self.finished.emit(elh, mass_array, count_array)
+        end = time.time()            
+        print('Time needed: ' + str(end - start) + ' seconds')
         #return elh, mass_array, count_array
 
