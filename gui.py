@@ -8,6 +8,7 @@ Created on Mon May  7 14:23:00 2018
 import sys
 import numpy as np
 import multiprocessing
+from multiprocessing import Pool
 from xml.etree import ElementTree as ET
 
 import raster_io as io
@@ -46,6 +47,16 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.actionQuit.triggered.connect(self.quit)
 
         self.calc_class = None
+        self.threads_calc = 0
+        self.progress_value = 0
+        self.cpu_count = multiprocessing.cpu_count()
+        self.thread_list = []
+        self.start_list = []
+        self.end_list = []
+        for i in range(self.cpu_count):
+            self.thread_list.append(0)
+            self.start_list.append(0)
+            self.end_list.append(0)
 
     @pyqtSlot()
     def save(self):
@@ -127,10 +138,20 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
             self.alpha_Edit.setText('22')
             self.exp_Edit.setText('75')
 
-    def update_progressBar(self, float):
+    def update_progressBar(self, float, thread, start, end):
         #print(float)
-        self.progressBar.setValue(float)
-
+        self.thread_list[thread] = float
+        self.start_list[thread] = start
+        self.end_list[thread] = end
+                    
+        self.progress_value = sum(self.thread_list)/len(self.thread_list)
+        self.progressBar.setValue(self.progress_value)
+        for i in range(len(self.thread_list)):             
+                sys.stdout.write("Thread {}: Startcell {} of {} = {}%"'\n'.format(i+1, self.start_list[i], self.end_list[i], self.thread_list[i]))
+                sys.stdout.flush()
+        for i in range(len(self.thread_list)):
+            sys.stdout.write('\x1b[1A' + '\x1b[2K') # Go 1 line up and erase that line
+                
     def showdialog(self, path):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
@@ -167,6 +188,9 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         except:
             forest = np.zeros_like(dem)
         process = self.process_Box.currentText()
+        self.elh = np.zeros_like(dem)
+        self.mass = np.zeros_like(dem)
+        self.cell_counts = np.zeros_like(dem)
 
         # Calculation
         
@@ -179,23 +203,36 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
 # =============================================================================
         
         # Try to set up multiple threads
-        cpu_count = multiprocessing.cpu_count()
+        #cpu_count = multiprocessing.cpu_count()
+        #pool = Pool(processes=cpu_count)
         self.threadpool = QThreadPool()
         thread_list = []
-        for i in range(2):
-            thread_list.append(gc.Simulation(dem, header, release, forest, process))
+        for i in range(self.cpu_count):
+            #proc = multiprocessing.Process(target = gc.Simulation, args=(dem, header, release, forest, process, i, cpu_count))
+            thread_list.append(gc.Simulation(dem, header, release, forest, process, i, self.cpu_count))
+            #thread_list.append(proc)
         for thread in thread_list:
             thread.signals.value_changed.connect(self.update_progressBar)
-            thread.signals.finished.connect(self.output)
+            thread.signals.finished.connect(self.thread_finished)
             self.threadpool.start(thread)
+            #pool.map(thread)
 
+        #self.threadpool.waitForDone(self.output)
         # Output
         #self.calc_class.finished.connect(self.output)
-
-    def output(self, elh, mass_array, count_array):
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_gui.tif", mass_array)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_gui.tif", elh)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_count_gui.tif", count_array)
+    
+    def thread_finished(self, elh, mass_array, count_array):
+        self.threads_calc +=1
+        self.elh = np.maximum(self.elh, elh)
+        self.mass = np.maximum(self.mass, mass_array)
+        self.cell_counts += count_array 
+        if self.threads_calc == self.cpu_count:
+            self.output()
+    
+    def output(self):
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_gui.tif", self.mass)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_gui.tif", self.elh)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_count_gui.tif", self.cell_counts)
         self.progressBar.setValue(100)
         print("Calculation finished")
 
