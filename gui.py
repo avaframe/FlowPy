@@ -13,7 +13,7 @@ from xml.etree import ElementTree as ET
 import raster_io as io
 import gravi_core_gui as gc
 
-from PyQt5.QtCore import pyqtSlot, QCoreApplication
+from PyQt5.QtCore import pyqtSlot, QCoreApplication, QThreadPool
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
@@ -169,11 +169,25 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         process = self.process_Box.currentText()
 
         # Calculation
+        
+        #for i in range(2):
+# =============================================================================
+#         self.calc_class = gc.Simulation(dem, header, release, forest, process)
+#         self.calc_class.value_changed.connect(self.update_progressBar)
+#         self.calc_class.finished.connect(self.output)
+#         self.calc_class.start()
+# =============================================================================
+        
+        # Try to set up multiple threads
         cpu_count = multiprocessing.cpu_count()
-        self.calc_class = gc.Simulation(dem, header, release, forest, process)
-        self.calc_class.value_changed.connect(self.update_progressBar)
-        self.calc_class.finished.connect(self.output)
-        self.calc_class.start()
+        self.threadpool = QThreadPool()
+        thread_list = []
+        for i in range(2):
+            thread_list.append(gc.Simulation(dem, header, release, forest, process))
+        for thread in thread_list:
+            thread.signals.value_changed.connect(self.update_progressBar)
+            thread.signals.finished.connect(self.output)
+            self.threadpool.start(thread)
 
         # Output
         #self.calc_class.finished.connect(self.output)
@@ -182,6 +196,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_gui.tif", mass_array)
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_gui.tif", elh)
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_count_gui.tif", count_array)
+        self.progressBar.setValue(100)
         print("Calculation finished")
 
 

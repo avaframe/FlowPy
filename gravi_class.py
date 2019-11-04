@@ -8,7 +8,7 @@ This is the graviclass
 """
 
 import numpy as np
-
+import numba
 
 class Cell:
     

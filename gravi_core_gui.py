@@ -8,9 +8,10 @@ This is core function
 """
 
 import numpy as np
+import time
 from gravi_class import Cell
 import sys
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, QRunnable, QObject
 
 
 def get_start_idx(dem, release):
@@ -33,9 +34,16 @@ def back_calculation(cell):
     return back_list
 
 
-class Simulation(QThread):
+class WorkerSignals(QObject):
+    
     value_changed = pyqtSignal(float)
     finished = pyqtSignal(np.ndarray, np.ndarray, np.ndarray)
+    
+
+
+class Simulation(QRunnable):
+    #value_changed = pyqtSignal(float)
+    #finished = pyqtSignal(np.ndarray, np.ndarray, np.ndarray)
 
     def __init__(self, dem, header, release, forest, process):
         QThread.__init__(self)
@@ -44,6 +52,7 @@ class Simulation(QThread):
         self.release = release
         self.forest = forest
         self.process = process
+        self.signals = WorkerSignals()
 
     def run(self):
         elh = np.zeros_like(self.dem)
@@ -54,7 +63,7 @@ class Simulation(QThread):
         nodata = self.header["noDataValue"]
 
         # Core
-
+        start = time.time()
         row_list, col_list = get_start_idx(self.dem, self.release)
         # =============================================================================
         # for i in range(len(row_list)):
@@ -73,7 +82,7 @@ class Simulation(QThread):
             sys.stdout.flush()
 
             calculation_percent = round((startcell_idx + 1) / len(row_list) * 100, 2)
-            self.value_changed.emit(calculation_percent)
+            self.signals.value_changed.emit(calculation_percent)
 
             cell_list = []
             row_idx = row_list[startcell_idx]
@@ -121,11 +130,15 @@ class Simulation(QThread):
                 mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
                 count_array[cells.rowindex, cells.colindex] += 1
 
-            self.release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
+            #self.release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
             # ToDo: if i hit a startcell add this "mass"
             # ToDo: Backcalulation
-            row_list, col_list = get_start_idx(self.dem, self.release)
+            #row_list, col_list = get_start_idx(self.dem, self.release)
             startcell_idx += 1
-        self.finished.emit(elh, mass_array, count_array)
+        self.signals.finished.emit(elh, mass_array, count_array)
+        end = time.time()            
+        print('Time needed: ' + str(end - start) + ' seconds')
+        #self.quit()
+
         #return elh, mass_array, count_array
 
