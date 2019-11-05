@@ -200,31 +200,6 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.calc_class.finished.connect(self.output)
         self.calc_class.start()
                 
-        # Try to set up multiple threads with threadpool, but it uses not all 
-        # cpu resources
-        
-# =============================================================================
-#         self.threadpool = QThreadPool()
-#         thread_list = []
-#         for i in range(self.cpu_count):
-#             thread_list.append(gc.Simulation(dem, header, release, forest, process, i, self.cpu_count)) 
-#         for thread in thread_list:
-#             thread.signals.value_changed.connect(self.update_progressBar)
-#             thread.signals.finished.connect(self.thread_finished)
-#             self.threadpool.start(thread)
-# =============================================================================
-            
-
-        # Trying it with multiprocessing
-# =============================================================================
-#         proc = multiprocessing.Process(target = gc.Simulation, args=(dem, header, release, forest, process, 0, self.cpu_count))
-#         proc.start()
-#         proc.join()
-# =============================================================================
-        #thread_list.append(proc)
-        #cpu_count = multiprocessing.cpu_count()
-        #pool = Pool(processes=self.cpu_count)
-        #pool.map(thread)
     
     def thread_finished(self, elh, mass_array, count_array):
         self.threads_calc +=1
