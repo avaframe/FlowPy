@@ -49,7 +49,8 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.calc_class = None
         self.threads_calc = 0
         self.progress_value = 0
-        self.cpu_count = multiprocessing.cpu_count()
+        #self.cpu_count = multiprocessing.cpu_count()
+        self.cpu_count = 1
         self.thread_list = []
         self.start_list = []
         self.end_list = []
@@ -194,24 +195,24 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
 
         # Calculation
         # One Thread        
-# =============================================================================
-#         self.calc_class = gc.Simulation(dem, header, release, forest, process)
-#         self.calc_class.value_changed.connect(self.update_progressBar)
-#         self.calc_class.finished.connect(self.output)
-#         self.calc_class.start()
-# =============================================================================
+        self.calc_class = gc.Simulation(dem, header, release, forest, process)
+        self.calc_class.value_changed.connect(self.update_progressBar)
+        self.calc_class.finished.connect(self.output)
+        self.calc_class.start()
                 
         # Try to set up multiple threads with threadpool, but it uses not all 
         # cpu resources
         
-        self.threadpool = QThreadPool()
-        thread_list = []
-        for i in range(self.cpu_count):
-            thread_list.append(gc.Simulation(dem, header, release, forest, process, i, self.cpu_count)) 
-        for thread in thread_list:
-            thread.signals.value_changed.connect(self.update_progressBar)
-            thread.signals.finished.connect(self.thread_finished)
-            self.threadpool.start(thread)
+# =============================================================================
+#         self.threadpool = QThreadPool()
+#         thread_list = []
+#         for i in range(self.cpu_count):
+#             thread_list.append(gc.Simulation(dem, header, release, forest, process, i, self.cpu_count)) 
+#         for thread in thread_list:
+#             thread.signals.value_changed.connect(self.update_progressBar)
+#             thread.signals.finished.connect(self.thread_finished)
+#             self.threadpool.start(thread)
+# =============================================================================
             
 
         # Trying it with multiprocessing

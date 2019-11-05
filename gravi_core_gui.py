@@ -11,6 +11,7 @@ import numpy as np
 import time
 from gravi_class import Cell
 import sys
+import multiprocessing as mp
 from PyQt5.QtCore import QThread, pyqtSignal, QRunnable, QObject, QProcess
 
 
@@ -43,22 +44,21 @@ class WorkerSignals(QObject):
     finished = pyqtSignal(np.ndarray, np.ndarray, np.ndarray)  
 
 
-class Simulation(QRunnable):
-    #value_changed = pyqtSignal(float)
-    #finished = pyqtSignal(np.ndarray, np.ndarray, np.ndarray)
+class Simulation(QThread):
+    value_changed = pyqtSignal(float)
+    finished = pyqtSignal(np.ndarray, np.ndarray, np.ndarray)
 
-    def __init__(self, dem, header, release, forest, process, thread, numberofthreads):
-        QRunnable.__init__(self)
+    def __init__(self, dem, header, release, forest, process):
+        QThread.__init__(self)
         self.dem = dem
         self.header = header
         self.release = release
         self.forest = forest
         self.process = process
-        self.thread = thread
-        self.numberofthreads = numberofthreads
-        self.signals = WorkerSignals()
+        self.numberofthreads = mp.cpu_count()
+        #self.signals = WorkerSignals()
 
-    def run(self):
+    def calculation(self):
         elh = np.zeros_like(self.dem)
         mass_array = np.zeros_like(self.dem)
         count_array = np.zeros_like(self.dem)
@@ -78,21 +78,21 @@ class Simulation(QRunnable):
         # pool = Pool(processes=4)
         # pool.map(calculation, calc_list)
         # =============================================================================
-        divided_rowlist = list(divide_chunks(row_list, int(len(row_list)/self.numberofthreads - 1)))
-        divided_collist = list(divide_chunks(col_list, int(len(col_list)/self.numberofthreads - 1)))
-        row_list = divided_rowlist[self.thread]
-        col_list = divided_collist[self.thread]
+# =============================================================================
+#         divided_rowlist = list(divide_chunks(row_list, int(len(row_list)/self.numberofthreads - 1)))
+#         divided_collist = list(divide_chunks(col_list, int(len(col_list)/self.numberofthreads - 1)))
+#         row_list = divided_rowlist[self.thread]
+#         col_list = divided_collist[self.thread]
+# =============================================================================
         startcell_idx = 0
         while startcell_idx < len(row_list):
             
-# =============================================================================
-#             sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx + 1) + " of " + str(len(row_list)) + " = " + str(
-#                 round((startcell_idx + 1) / len(row_list) * 100, 2)) + "%" '\r')
-#             sys.stdout.flush()
-# =============================================================================
+            sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx + 1) + " of " + str(len(row_list)) + " = " + str(
+                round((startcell_idx + 1) / len(row_list) * 100, 2)) + "%" '\r')
+            sys.stdout.flush()
 
-            calculation_percent = round((startcell_idx + 1) / len(row_list) * 100, 2)
-            self.signals.value_changed.emit(calculation_percent, self.thread, startcell_idx, len(row_list))
+            #calculation_percent = round((startcell_idx + 1) / len(row_list) * 100, 2)
+            #self.signals.value_changed.emit(calculation_percent, self.thread, startcell_idx, len(row_list))
 
             cell_list = []
             row_idx = row_list[startcell_idx]
@@ -145,10 +145,14 @@ class Simulation(QRunnable):
             # ToDo: Backcalulation
             #row_list, col_list = get_start_idx(self.dem, self.release)
             startcell_idx += 1
-        self.signals.finished.emit(elh, mass_array, count_array)
+        #self.signals.finished.emit(elh, mass_array, count_array)
         end = time.time()            
         print('\n Time needed: ' + str(end - start) + ' seconds')
         #self.quit()
+        return elh, mass_array, count_array
 
-        #return elh, mass_array, count_array
-
+    def run(self):
+        elh, mass, cc = self.calculation()
+        self.finished.emit(elh, mass, cc)
+        
+        
