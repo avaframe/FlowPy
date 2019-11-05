@@ -193,33 +193,37 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.cell_counts = np.zeros_like(dem)
 
         # Calculation
-        
-        #for i in range(2):
+        # One Thread        
 # =============================================================================
 #         self.calc_class = gc.Simulation(dem, header, release, forest, process)
 #         self.calc_class.value_changed.connect(self.update_progressBar)
 #         self.calc_class.finished.connect(self.output)
 #         self.calc_class.start()
 # =============================================================================
+                
+        # Try to set up multiple threads with threadpool, but it uses not all 
+        # cpu resources
         
-        # Try to set up multiple threads
-        #cpu_count = multiprocessing.cpu_count()
-        #pool = Pool(processes=cpu_count)
         self.threadpool = QThreadPool()
         thread_list = []
         for i in range(self.cpu_count):
-            #proc = multiprocessing.Process(target = gc.Simulation, args=(dem, header, release, forest, process, i, cpu_count))
-            thread_list.append(gc.Simulation(dem, header, release, forest, process, i, self.cpu_count))
-            #thread_list.append(proc)
+            thread_list.append(gc.Simulation(dem, header, release, forest, process, i, self.cpu_count)) 
         for thread in thread_list:
             thread.signals.value_changed.connect(self.update_progressBar)
             thread.signals.finished.connect(self.thread_finished)
             self.threadpool.start(thread)
-            #pool.map(thread)
+            
 
-        #self.threadpool.waitForDone(self.output)
-        # Output
-        #self.calc_class.finished.connect(self.output)
+        # Trying it with multiprocessing
+# =============================================================================
+#         proc = multiprocessing.Process(target = gc.Simulation, args=(dem, header, release, forest, process, 0, self.cpu_count))
+#         proc.start()
+#         proc.join()
+# =============================================================================
+        #thread_list.append(proc)
+        #cpu_count = multiprocessing.cpu_count()
+        #pool = Pool(processes=self.cpu_count)
+        #pool.map(thread)
     
     def thread_finished(self, elh, mass_array, count_array):
         self.threads_calc +=1

@@ -40,9 +40,7 @@ def divide_chunks(l, n):
 
 class WorkerSignals(QObject):
     value_changed = pyqtSignal(float, int, int, int)
-    finished = pyqtSignal(np.ndarray, np.ndarray, np.ndarray)
-    
-    
+    finished = pyqtSignal(np.ndarray, np.ndarray, np.ndarray)  
 
 
 class Simulation(QRunnable):
