@@ -7,8 +7,6 @@ Created on Mon May  7 14:23:00 2018
 """
 import sys
 import numpy as np
-import multiprocessing
-from multiprocessing import Pool
 from xml.etree import ElementTree as ET
 
 import raster_io as io
