@@ -194,20 +194,19 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.cell_counts = np.zeros_like(dem)
 
         # Calculation
-        # One Thread        
         self.calc_class = gc.Simulation(dem, header, release, forest, process)
         self.calc_class.value_changed.connect(self.update_progressBar)
-        self.calc_class.finished.connect(self.output)
+        self.calc_class.finished.connect(self.thread_finished)
         self.calc_class.start()
                 
     
-    def thread_finished(self, elh, mass_array, count_array):
-        self.threads_calc +=1
-        self.elh = np.maximum(self.elh, elh)
-        self.mass = np.maximum(self.mass, mass_array)
-        self.cell_counts += count_array 
-        if self.threads_calc == self.cpu_count:
-            self.output()
+    def thread_finished(self, elh, mass, count_array):
+        print("Len elh = ", len(elh))
+        for i in range(len(elh)):
+            self.elh = np.maximum(self.elh, elh[i])
+            self.mass = np.maximum(self.mass, mass[i])
+            self.cell_counts += count_array[i]
+        self.output()
     
     def output(self):
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_gui.tif", self.mass)
