@@ -67,9 +67,6 @@ def calculation(args):
             round((startcell_idx + 1) / len(row_list) * 100, 2)) + "%" '\r')
         sys.stdout.flush()
 
-        #calculation_percent = round((startcell_idx + 1) / len(row_list) * 100, 2)
-        #self.signals.value_changed.emit(calculation_percent, self.thread, startcell_idx, len(row_list))
-
         cell_list = []
         row_idx = row_list[startcell_idx]
         col_idx = col_list[startcell_idx]
@@ -129,7 +126,6 @@ def calculation(args):
 
 class Simulation(QThread):
     value_changed = pyqtSignal(float)
-    #finished = pyqtSignal(np.ndarray, np.ndarray, np.ndarray)
     finished = pyqtSignal(list, list, list)
 
     def __init__(self, dem, header, release, forest, process):

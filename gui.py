@@ -47,7 +47,6 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.calc_class = None
         self.threads_calc = 0
         self.progress_value = 0
-        #self.cpu_count = multiprocessing.cpu_count()
         self.cpu_count = 1
         self.thread_list = []
         self.start_list = []
@@ -138,7 +137,6 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
             self.exp_Edit.setText('75')
 
     def update_progressBar(self, float, thread, start, end):
-        #print(float)
         self.thread_list[thread] = float
         self.start_list[thread] = start
         self.end_list[thread] = end
@@ -164,18 +162,13 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         if self.wDir_lineEdit.text() == '':
             self.showdialog('Working Directory')
             return
-        else:
-            path = self.wDir_lineEdit.text()
         if self.DEM_lineEdit.text() == '':
             self.showdialog('DEM Layer')
             return
-        else:
-            dem_file = self.DEM_lineEdit.text()
         if self.release_lineEdit.text() == '':
             self.showdialog('Release Layer')
             return
-        else:
-            release_file = self.release_lineEdit.text()
+        self.calc_Button.setEnabled(False)
 
         # Start of Calculation
         # Read in raster files
@@ -199,7 +192,6 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
                 
     
     def thread_finished(self, elh, mass, count_array):
-        print("Len elh = ", len(elh))
         for i in range(len(elh)):
             self.elh = np.maximum(self.elh, elh[i])
             self.mass = np.maximum(self.mass, mass[i])
@@ -212,6 +204,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_count_gui.tif", self.cell_counts)
         self.progressBar.setValue(100)
         print("Calculation finished")
+        self.calc_Button.setEnabled(True)
 
 
 def main():
