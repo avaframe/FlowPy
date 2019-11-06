@@ -12,7 +12,7 @@ from xml.etree import ElementTree as ET
 import raster_io as io
 import gravi_core_gui as gc
 
-from PyQt5.QtCore import pyqtSlot, QCoreApplication, QThreadPool
+from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
@@ -169,6 +169,11 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
             self.showdialog('Release Layer')
             return
         self.calc_Button.setEnabled(False)
+        self.wDir_lineEdit.setEnabled(False)
+        self.DEM_lineEdit.setEnabled(False)
+        self.release_lineEdit.setEnabled(False)
+        self.forest_lineEdit.setEnabled(False)
+        
 
         # Start of Calculation
         # Read in raster files
@@ -185,7 +190,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.cell_counts = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = gc.Simulation(dem, header, release, forest, process)
+        self.calc_class = gc.Simulation(dem, header, release, header_release, forest, process)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         self.calc_class.start()
@@ -205,6 +210,10 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.progressBar.setValue(100)
         print("Calculation finished")
         self.calc_Button.setEnabled(True)
+        self.wDir_lineEdit.setEnabled(True)
+        self.DEM_lineEdit.setEnabled(True)
+        self.release_lineEdit.setEnabled(True)
+        self.forest_lineEdit.setEnabled(True)
 
 
 def main():

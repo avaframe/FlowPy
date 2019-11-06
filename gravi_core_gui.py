@@ -38,6 +38,32 @@ def back_calculation(cell):
 def divide_chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i+n]
+        
+def split_release(release, header_release):
+    nodata = header_release["noDataValue"]
+    release[release == nodata] = 0
+    release[release > 1] = 1
+    summ = np.sum(release)
+    sum_per_split = summ/mp.cpu_count()
+    release_list = []
+    breakpoint_x = 0
+    
+    
+    for i in range(breakpoint_x, release.shape[1]):
+        if len(release_list) == (mp.cpu_count() -1):
+            c = np.zeros_like(release)
+            c[:, breakpoint_x:] = release[:,breakpoint_x:]
+            release_list.append(c)
+            break
+        if np.sum(release[:,breakpoint_x:i]) < sum_per_split:
+            continue
+        else:
+            c = np.zeros_like(release)
+            c[:, breakpoint_x:i] = release[:,breakpoint_x:i]
+            release_list.append(c)
+            breakpoint_x = i
+        
+    return release_list
 
     
 def calculation(args):
@@ -46,8 +72,11 @@ def calculation(args):
     header = args[1]
     forest = args[2]
     process = args[3]
-    row_list = args[4]
-    col_list = args[5]
+# =============================================================================
+#     row_list = args[4]
+#     col_list = args[5]
+# =============================================================================
+    release = args[4]
     
     elh = np.zeros_like(dem)
     mass_array = np.zeros_like(dem)
@@ -58,7 +87,7 @@ def calculation(args):
 
     # Core
     start = time.time()
-    #row_list, col_list = get_start_idx(self.dem, self.release)
+    row_list, col_list = get_start_idx(dem, release)
 
     startcell_idx = 0
     while startcell_idx < len(row_list):
@@ -113,10 +142,10 @@ def calculation(args):
             mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
             count_array[cells.rowindex, cells.colindex] += 1
 
-        #self.release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
+        release[elh > 0] = 0  # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
         # ToDo: if i hit a startcell add this "mass"
         # ToDo: Backcalulation
-        #row_list, col_list = get_start_idx(self.dem, self.release)
+        row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
     end = time.time()            
     print('\n Time needed: ' + str(end - start) + ' seconds')
@@ -128,11 +157,12 @@ class Simulation(QThread):
     value_changed = pyqtSignal(float)
     finished = pyqtSignal(list, list, list)
 
-    def __init__(self, dem, header, release, forest, process):
+    def __init__(self, dem, header, release, release_header, forest, process):
         QThread.__init__(self)
         self.dem = dem
         self.header = header
         self.release = release
+        self.release_header = release_header
         self.forest = forest
         self.process = process
         self.numberofprocesses = mp.cpu_count()
@@ -140,13 +170,22 @@ class Simulation(QThread):
 
     def run(self):
 
-        row_list, col_list = get_start_idx(self.dem, self.release)
-        divided_rowlist = list(divide_chunks(row_list, int(len(row_list)/self.numberofprocesses - 1)))
-        divided_collist = list(divide_chunks(col_list, int(len(col_list)/self.numberofprocesses - 1)))
-
+        # This part is for Calculation of all release cells
+# =============================================================================
+#         row_list, col_list = get_start_idx(self.dem, self.release)
+#         divided_rowlist = list(divide_chunks(row_list, int(len(row_list)/self.numberofprocesses - 1)))
+#         divided_collist = list(divide_chunks(col_list, int(len(col_list)/self.numberofprocesses - 1)))
+# 
+#         iterable = []
+#         for i in range(self.numberofprocesses):
+#             iterable.append((self.dem, self.header, self.forest, self.process, divided_rowlist[i], divided_collist[i]))
+# =============================================================================
+        
+        # This part will is for Calculation of the top release cells and ereasing the lower ones
+        release_list = split_release(self.release, self.release_header)
         iterable = []
         for i in range(self.numberofprocesses):
-            iterable.append((self.dem, self.header, self.forest, self.process, divided_rowlist[i], divided_collist[i]))
+            iterable.append((self.dem, self.header, self.forest, self.process, release_list[i]))
         
         pool = mp.Pool(processes = self.numberofprocesses)
         results = pool.map(calculation, iterable)

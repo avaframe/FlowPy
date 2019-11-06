@@ -8,7 +8,7 @@ This is the graviclass
 """
 
 import numpy as np
-import numba
+from numba import jit
 
 class Cell:
     
@@ -57,7 +57,8 @@ class Cell:
         self.calc_kinetic_energy()
         self.calc_direction()
         self.calc_tanbeta()
-
+        
+    
     def calc_kinetic_energy(self):
 
         delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
@@ -82,7 +83,6 @@ class Cell:
         self.calc_direction()
            
     def calc_tanbeta(self):  
-        exp = self.exp
 
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         distance = ds * self.cellsize
@@ -94,7 +94,8 @@ class Cell:
         self.tan_beta[self.direction <= 0] = 0
         self.tan_beta[1, 1] = 0
         if np.sum(self.tan_beta > 0):
-            self.p_fd = self.tan_beta ** exp / np.sum(self.tan_beta ** exp)
+            self.p_fd = self.tan_beta ** self.exp / np.sum(self.tan_beta ** self.exp)
+            
         
     def calc_direction(self):
         self.direction = np.zeros_like(self.dem_ng)
