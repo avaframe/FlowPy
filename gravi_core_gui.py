@@ -12,6 +12,7 @@ import time
 from gravi_class import Cell
 import sys
 import multiprocessing as mp
+import psutil
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
@@ -50,7 +51,7 @@ def split_release(release, header_release):
     
     
     for i in range(breakpoint_x, release.shape[1]):
-        if len(release_list) == (mp.cpu_count() -1):
+        if len(release_list) == (psutil.cpu_count() -1):
             c = np.zeros_like(release)
             c[:, breakpoint_x:] = release[:,breakpoint_x:]
             release_list.append(c)
@@ -182,6 +183,7 @@ class Simulation(QThread):
 # =============================================================================
         
         # This part will is for Calculation of the top release cells and ereasing the lower ones
+        
         release_list = split_release(self.release, self.release_header)
         iterable = []
         for i in range(self.numberofprocesses):

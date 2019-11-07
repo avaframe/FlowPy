@@ -15,18 +15,19 @@ import gravi_core_gui as gc
 from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtGui import QIcon
 
 FORM_CLASS = uic.loadUiType("Flow_GUI.ui")[0]
 
 
 class GUI(QtWidgets.QMainWindow, FORM_CLASS):
-    """extract the front and the Mask from a MTI Plot"""
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
         self.setupUi(self)
         #self.showMaximized()
         self.setWindowTitle("Flow Py GUI")
+        self.setWindowIcon(QIcon('logo.jpg'))
 
         self.directory = '/home'
 
@@ -59,29 +60,68 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
     @pyqtSlot()
     def save(self):
         """Save the input paths"""
-        name = QFileDialog.getSaveFileName(self, 'Save File')[0]
+        name = QFileDialog.getSaveFileName(self, 'Save File',
+                                           "xml (*.xml);;All Files (*.*)")[0]
+        print(name)
         #file = open(name, 'w')
         #text = self.wDirlineEdit.text()
 
-        root = ET.Element("root")
-        wdir = ET.SubElement(root, "wDir")
-        dhm = ET.SubElement(root, "DHM")
+        root = ET.Element('root')
+        wdir = ET.SubElement(root, 'wDir')
+        dhm = ET.SubElement(root, 'DHM')
+        release = ET.SubElement(root, 'Release')
+        infra = ET.SubElement(root, 'Infrastrucutre')
+        forest = ET.SubElement(root, 'Forest')
 
-        ET.SubElement(wdir, self.wDir_lineEdit.text())
-        ET.SubElement(dhm, self.DEM_lineEdit.text())
+        wdir.set('Directory', 'Working')
+        dhm.set('Directory', 'DHM')
+        release.set('Directory', 'Release')
+        infra.set('Directory', 'Infrastructure')
+        forest.set('Directory', 'Forest')
+        
+        wdir.text = self.wDir_lineEdit.text()
+        dhm.text = self.DEM_lineEdit.text()
+        release.text = self.release_lineEdit.text()
+        infra.text = self.infra_lineEdit.text()
+        forest.text = self.forest_lineEdit.text()
 
         tree = ET.ElementTree(root)
         tree.write(name)
-        #text = self.textEdit.toPlainText()
-        #file.write(text)
-        #file.close()
+
 
     def load(self):
         xml_file = QFileDialog.getOpenFileNames(self, 'Open xml',
                                                 self.directory,
                                                 "xml (*.xml);;All Files (*.*)")[0]
-        xml = xml_file[0]
-        print(xml)
+        
+        tree = ET.parse(xml_file[0])
+        root = tree.getroot()
+        
+        try:
+            self.wDir_lineEdit.setText(root[0].text)
+        except:
+            print("No Working Directory Path in File!")
+        
+        try:
+            self.DEM_lineEdit.setText(root[1].text)
+        except:
+            print("No DEM Path in File!")
+            
+        try:
+            self.release_lineEdit.setText(root[2].text)
+        except:
+            print("No Release Path in File!")
+            
+        try:
+            self.infra_lineEdit.setText(root[3].text)
+        except:
+            print("No Infrastructure Path in File!")
+            
+        try:
+            self.forest_lineEdit.setText(root[4].text)
+        except:
+            print("No Forest Path in File!")
+        
 
     def quit(self):
         QCoreApplication.quit()
@@ -203,10 +243,16 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
             self.cell_counts += count_array[i]
         self.output()
     
-    def output(self):
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_gui.tif", self.mass)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_gui.tif", self.elh)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_count_gui.tif", self.cell_counts)
+    def output(self):        
+        if self.process_Box.currentText() == 'Avalanche':
+            proc = 'ava'
+        if self.process_Box.currentText() == 'Rockfall':
+            proc = 'rf'
+        if self.process_Box.currentText() == 'Soil Slides':
+            proc = 'ds'
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_{}{}".format(proc, self.outputBox.currentText()), self.mass)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_{}{}".format(proc, self.outputBox.currentText()), self.elh)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_counts_{}{}".format(proc, self.outputBox.currentText()), self.cell_counts)
         self.progressBar.setValue(100)
         print("Calculation finished")
         self.calc_Button.setEnabled(True)
