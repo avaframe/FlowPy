@@ -110,7 +110,7 @@ def calculation(args):
 
         cell_list.append(startcell)
         for cells in cell_list:
-            if (release[cells.rowindex, cells.colindex] > 0 and cells.is_start != True):
+            if (release[cells.rowindex, cells.colindex] > 0 and cells.is_start != True and process == 'Avalanche'):
                 cells.add_mass(1)
                 # Adds the mass of a release cell which is then erased on the way down
                 # So the mass threshold starts later... 
