@@ -47,10 +47,10 @@ class Cell:
         if parent:
             self.parent.append(parent)
         
-        if startcell:  # check, if start cell exist (start cell is release point)
+        if startcell == True:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
         else:            
-            self.startcell = startcell  # set is_start to True
+            self.startcell = startcell  # give startcell to cell
             self.is_start = False  # set is_start to False
         
         self.calc_kinetic_energy()

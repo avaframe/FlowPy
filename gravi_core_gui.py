@@ -110,11 +110,16 @@ def calculation(args):
 
         cell_list.append(startcell)
         for cells in cell_list:
+            if (release[cells.rowindex, cells.colindex] > 0 and cells.is_start != True):
+                cells.add_mass(1)
+                # Adds the mass of a release cell which is then erased on the way down
+                # So the mass threshold starts later... 
+                
             row, col, mass, kin_e = cells.calc_distribution()
             if len(mass) > 0:
                 # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
                 kin_e, mass, row, col = list(zip(*sorted(zip(kin_e, mass, row, col), reverse=False)))
-                # Sort this lists by mass to start the spreading from the middle
+                # Sort this lists by elh, to start with the highest cell
 
             for i in range(len(cell_list)):  # Check if Cell already exists
                 k = 0
@@ -154,62 +159,3 @@ def calculation(args):
     print('\n Time needed: ' + str(end - start) + ' seconds')
     # self.quit()
     return elh, mass_array, count_array, elh_sum
-
-
-# =============================================================================
-# class Simulation(QThread):
-#     value_changed = pyqtSignal(float)
-#     finished = pyqtSignal(list, list, list)
-# 
-#     def __init__(self, dem, header, release, release_header, forest, process):
-#         QThread.__init__(self)
-#         self.dem = dem
-#         self.header = header
-#         self.release = release
-#         self.release_header = release_header
-#         self.forest = forest
-#         self.process = process
-#         self.numberofprocesses = mp.cpu_count()
-# 
-# 
-#     def run(self):
-# 
-#         # This part is for Calculation of all release cells
-# # =============================================================================
-# #         row_list, col_list = get_start_idx(self.dem, self.release)
-# #         divided_rowlist = list(divide_chunks(row_list, int(len(row_list)/self.numberofprocesses - 1)))
-# #         divided_collist = list(divide_chunks(col_list, int(len(col_list)/self.numberofprocesses - 1)))
-# # 
-# #         iterable = []
-# #         for i in range(self.numberofprocesses):
-# #             iterable.append((self.dem, self.header, self.forest, self.process, divided_rowlist[i], divided_collist[i]))
-# # =============================================================================
-#         
-#         # This part will is for Calculation of the top release cells and ereasing the lower ones
-#         if __name__ == "__main__": ##needed that it runs on windows
-#             release_list = split_release(self.release, self.release_header)
-#             iterable = []
-#             for i in range(self.numberofprocesses):
-#                 iterable.append((self.dem, self.header, self.forest, self.process, release_list[i]))
-#         
-#         
-#             pool = mp.Pool(processes = self.numberofprocesses)
-#             results = pool.map(calculation, iterable)
-#             pool.close()
-#             pool.join()
-#         
-#             print("Processes finished")
-#                 
-#             elh_list = []
-#             mass_list = []
-#             cc_list = []
-#             for i in range(len(results)):
-#                 res = results[i]
-#                 res = list(res)
-#                 elh_list.append(res[0])
-#                 mass_list.append(res[1])
-#                 cc_list.append(res[2])        
-#     
-#             self.finished.emit(elh_list, mass_list, cc_list)
-#             print("Results passed")       
-# =============================================================================
