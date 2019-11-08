@@ -7,6 +7,7 @@ Created on Mon May  7 14:23:00 2018
 """
 import sys
 import numpy as np
+from datetime import datetime
 from xml.etree import ElementTree as ET
 
 import raster_io as io
@@ -62,9 +63,6 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         """Save the input paths"""
         name = QFileDialog.getSaveFileName(self, 'Save File',
                                            "xml (*.xml);;All Files (*.*)")[0]
-        print(name)
-        #file = open(name, 'w')
-        #text = self.wDirlineEdit.text()
 
         root = ET.Element('root')
         wdir = ET.SubElement(root, 'wDir')
@@ -88,7 +86,6 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         tree = ET.ElementTree(root)
         tree.write(name)
 
-
     def load(self):
         xml_file = QFileDialog.getOpenFileNames(self, 'Open xml',
                                                 self.directory,
@@ -99,6 +96,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         
         try:
             self.wDir_lineEdit.setText(root[0].text)
+            self.directory = root[0].text
         except:
             print("No Working Directory Path in File!")
         
@@ -223,7 +221,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         
         #Check if Layers have same size!!!
         if (header['ncols'] == release_header['ncols'] and header['nrows'] == release_header['nrows']):
-            print("DEM and Release ok!")
+            print("DEM and Release Layer ok!")
         else:
             print("Error: Release Layer doesn't match DEM!")
             return
@@ -274,9 +272,10 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
             proc = 'rf'
         if self.process_Box.currentText() == 'Soil Slides':
             proc = 'ds'
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_{}{}".format(proc, self.outputBox.currentText()), self.mass)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_{}{}".format(proc, self.outputBox.currentText()), self.elh)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_counts_{}{}".format(proc, self.outputBox.currentText()), self.cell_counts)
+        time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.mass)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.elh)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_counts_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.cell_counts)
         self.progressBar.setValue(100)
         print("Calculation finished")
         self.calc_Button.setEnabled(True)

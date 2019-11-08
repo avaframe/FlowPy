@@ -83,9 +83,9 @@ class Cell:
            
     def calc_tanbeta(self):  
 
-        ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
+        ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 1, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         distance = ds * self.cellsize
-
+        
         beta = np.arctan(((self.dem_ng - self.altitude) * (-1)) / distance) + 90
         self.tan_beta = np.tan(beta/2)
 
