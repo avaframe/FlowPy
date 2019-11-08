@@ -5,13 +5,13 @@ Created on Mon May  7 14:23:00 2018
 
 @author: Neuhauser
 """
-import sys
+import sys 
 import numpy as np
 from datetime import datetime
 from xml.etree import ElementTree as ET
 
 import raster_io as io
-import gravi_core_gui as gc
+import Simulation as Sim
 
 from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from PyQt5 import QtWidgets, uic
@@ -26,7 +26,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
         self.setupUi(self)
-        #self.showMaximized()
+        # self.showMaximized()
         self.setWindowTitle("Flow Py GUI")
         self.setWindowIcon(QIcon('logo.jpg'))
 
@@ -119,7 +119,6 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
             self.forest_lineEdit.setText(root[4].text)
         except:
             print("No Forest Path in File!")
-        
 
     def quit(self):
         QCoreApplication.quit()
@@ -211,6 +210,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.wDir_lineEdit.setEnabled(False)
         self.DEM_lineEdit.setEnabled(False)
         self.release_lineEdit.setEnabled(False)
+        self.infra_lineEdit.setEnabled(False)
         self.forest_lineEdit.setEnabled(False)
         
 
@@ -220,7 +220,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         release, release_header = io.read_raster(self.release_lineEdit.text())
         
         #Check if Layers have same size!!!
-        if (header['ncols'] == release_header['ncols'] and header['nrows'] == release_header['nrows']):
+        if header['ncols'] == release_header['ncols'] and header['nrows'] == release_header['nrows']:
             print("DEM and Release Layer ok!")
         else:
             print("Error: Release Layer doesn't match DEM!")
@@ -246,23 +246,24 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         except:
             forest = np.zeros_like(dem)
 
-        
         process = self.process_Box.currentText()
         self.elh = np.zeros_like(dem)
         self.mass = np.zeros_like(dem)
         self.cell_counts = np.zeros_like(dem)
+        self.elh_sum = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = gc.Simulation(dem, header, release, release_header, forest, process)
+        self.calc_class = Sim.Simulation(dem, header, release, release_header, forest, process)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         self.calc_class.start()
                     
-    def thread_finished(self, elh, mass, count_array):
+    def thread_finished(self, elh, mass, count_array, elh_sum):
         for i in range(len(elh)):
             self.elh = np.maximum(self.elh, elh[i])
             self.mass = np.maximum(self.mass, mass[i])
             self.cell_counts += count_array[i]
+            self.elh_sum += elh_sum[i]
         self.output()
     
     def output(self):        
@@ -276,8 +277,11 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/mass_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.mass)
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.elh)
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_counts_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.cell_counts)
-        self.progressBar.setValue(100)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_sum_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.elh_sum)
         print("Calculation finished")
+        
+        # Handle GUI
+        self.progressBar.setValue(100)
         self.calc_Button.setEnabled(True)
         self.wDir_lineEdit.setEnabled(True)
         self.DEM_lineEdit.setEnabled(True)
