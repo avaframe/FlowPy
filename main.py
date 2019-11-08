@@ -208,6 +208,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         if self.release_lineEdit.text() == '':
             self.showdialog('Release Layer')
             return
+        # Disable all input line Edits and Buttons
         self.calc_Button.setEnabled(False)
         self.wDir_lineEdit.setEnabled(False)
         self.DEM_lineEdit.setEnabled(False)
@@ -218,24 +219,47 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         # Start of Calculation
         # Read in raster files
         dem, header = io.read_raster(self.DEM_lineEdit.text())
-        release, header_release = io.read_raster(self.release_lineEdit.text())
-        # infra, header = io.read_raster(infra_path) needed for backcalculation
+        release, release_header = io.read_raster(self.release_lineEdit.text())
+        
+        #Check if Layers have same size!!!
+        if (header['ncols'] == release_header['ncols'] and header['nrows'] == release_header['nrows']):
+            print("DEM and Release ok!")
+        else:
+            print("Error: Release Layer doesn't match DEM!")
+            return
+                
         try:
-            forest, header_forest = io.read_raster(self.forest_lineEdit.text())
+            infra, infra_header = io.read_raster(self.infra_lineEdit.text())
+            if (header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']):
+                print("DEM and Release ok!")
+            else:
+                print("Error: Infra Layer doesn't match DEM!")
+                return
+        except:
+            infra = np.zeros_like(dem)
+            
+        try:
+            forest, forest_header = io.read_raster(self.forest_lineEdit.text())
+            if (header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']):
+                print("DEM and Release ok!")
+            else:
+                print("Error: Forest Layer doesn't match DEM!")
+                return
         except:
             forest = np.zeros_like(dem)
+
+        
         process = self.process_Box.currentText()
         self.elh = np.zeros_like(dem)
         self.mass = np.zeros_like(dem)
         self.cell_counts = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = gc.Simulation(dem, header, release, header_release, forest, process)
+        self.calc_class = gc.Simulation(dem, header, release, release_header, forest, process)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         self.calc_class.start()
-                
-    
+                    
     def thread_finished(self, elh, mass, count_array):
         for i in range(len(elh)):
             self.elh = np.maximum(self.elh, elh[i])
