@@ -39,8 +39,8 @@ class Simulation(QThread):
 #             iterable.append((self.dem, self.header, self.forest, self.process, divided_rowlist[i], divided_collist[i]))
 # =============================================================================
         
-        # This part will is for Calculation of the top release cells and ereasing the lower ones
-        if __name__ != '__main__':  # needed that it runs on windows
+        # This part will is for Calculation of the top release cells and erasing the lower ones
+        if __name__ != '__main__':  # needed that it runs on windows, but it doesnt!!! if __name__ == main: would it be.
             
             release_list = gc.split_release(self.release, self.release_header)
             iterable = []
