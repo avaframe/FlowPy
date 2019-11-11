@@ -5,26 +5,29 @@ Created on Mon May  7 14:23:00 2018
 
 @author: Neuhauser
 """
+# import standard libraries
 import sys 
 import numpy as np
 from datetime import datetime
 from xml.etree import ElementTree as ET
 
+# Flow-Py Libraries
 import raster_io as io
 import Simulation as Sim
 
+# Libraries for GUI, PyQt5
+from PyQt5 import uic
 from PyQt5.QtCore import pyqtSlot, QCoreApplication
-from PyQt5 import QtWidgets, uic
-from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QFileDialog, QMessageBox, QMainWindow, QApplication
 from PyQt5.QtGui import QIcon
 
 FORM_CLASS = uic.loadUiType("Flow_GUI.ui")[0]
 
 
-class GUI(QtWidgets.QMainWindow, FORM_CLASS):
+class GUI(QMainWindow, FORM_CLASS):
 
     def __init__(self, parent=None):
-        QtWidgets.QMainWindow.__init__(self, parent)
+        QMainWindow.__init__(self, parent)
         self.setupUi(self)
         # self.showMaximized()
         self.setWindowTitle("Flow Py GUI")
@@ -62,13 +65,13 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
     def save(self):
         """Save the input paths"""
         name = QFileDialog.getSaveFileName(self, 'Save File',
-                                           "xml (*.xml);;All Files (*.*)")[0]
+                                           ".xml")[0]
 
         root = ET.Element('root')
         wdir = ET.SubElement(root, 'wDir')
         dhm = ET.SubElement(root, 'DHM')
         release = ET.SubElement(root, 'Release')
-        infra = ET.SubElement(root, 'Infrastrucutre')
+        infra = ET.SubElement(root, 'Infrastructure')
         forest = ET.SubElement(root, 'Forest')
 
         wdir.set('Directory', 'Working')
@@ -131,7 +134,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.wDir_lineEdit.setText(self.directory)
 
     def open_dhm(self):
-        """Open the Working Directory, where results are stored"""
+        """Open digital elevation model"""
         dem_file = QFileDialog.getOpenFileNames(self, 'Open DEM',
                                                 self.directory,
                                                 "tif (*.tif);;raster (*.asc);;All Files (*.*)")
@@ -139,7 +142,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.DEM_lineEdit.setText(dem[0])
 
     def open_release(self):
-        """Open the Working Directory, where results are stored"""
+        """Open release layer"""
         release_file = QFileDialog.getOpenFileNames(self, 'Open Release',
                                                     self.directory,
                                                     "tif (*.tif);;raster (*.asc);;All Files (*.*)")
@@ -147,7 +150,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.release_lineEdit.setText(release[0])
 
     def open_infra(self):
-        """Open the Working Directory, where results are stored"""
+        """Open infrastructure layer"""
         infra_file = QFileDialog.getOpenFileNames(self, 'Open Infrastructure Layer',
                                                   self.directory,
                                                   "tif (*.tif);;raster (*.asc);;All Files (*.*)")
@@ -155,7 +158,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.infra_lineEdit.setText(infra[0])
 
     def open_forest(self):
-        """Open the Working Directory, where results are stored"""
+        """Open forest layer"""
         forest_file = QFileDialog.getOpenFileNames(self, 'Open Forest Layer',
                                                    self.directory,
                                                    "tif (*.tif);;raster (*.asc);;All Files (*.*)")
@@ -212,14 +215,13 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.release_lineEdit.setEnabled(False)
         self.infra_lineEdit.setEnabled(False)
         self.forest_lineEdit.setEnabled(False)
-        
 
         # Start of Calculation
         # Read in raster files
         dem, header = io.read_raster(self.DEM_lineEdit.text())
         release, release_header = io.read_raster(self.release_lineEdit.text())
         
-        #Check if Layers have same size!!!
+        # Check if Layers have same size!!!
         if header['ncols'] == release_header['ncols'] and header['nrows'] == release_header['nrows']:
             print("DEM and Release Layer ok!")
         else:
@@ -228,7 +230,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
                 
         try:
             infra, infra_header = io.read_raster(self.infra_lineEdit.text())
-            if (header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']):
+            if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
                 print("Infra Layer ok!")
             else:
                 print("Error: Infra Layer doesn't match DEM!")
@@ -238,7 +240,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
             
         try:
             forest, forest_header = io.read_raster(self.forest_lineEdit.text())
-            if (header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']):
+            if header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']:
                 print("Forest Layer ok!")
             else:
                 print("Error: Forest Layer doesn't match DEM!")
@@ -294,7 +296,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
 
 def main():
     """Go!"""
-    app = QtWidgets.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     ex = GUI()
     ex.show()
     app.exec_()

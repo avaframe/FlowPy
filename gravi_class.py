@@ -9,6 +9,7 @@ This is the graviclass
 
 import numpy as np
 
+
 class Cell:
     
     def __init__(self, process,  rowindex, colindex, dem_ng, cellsize, mass, elh, forest, parent, startcell):
@@ -56,8 +57,7 @@ class Cell:
         self.calc_kinetic_energy()
         self.calc_direction()
         self.calc_tanbeta()
-        
-    
+
     def calc_kinetic_energy(self):
 
         delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
@@ -94,8 +94,7 @@ class Cell:
         self.tan_beta[1, 1] = 0
         if np.sum(self.tan_beta > 0):
             self.p_fd = self.tan_beta ** self.exp / np.sum(self.tan_beta ** self.exp)
-            
-        
+
     def calc_direction(self):
         self.direction = np.zeros_like(self.dem_ng)
         if self.is_start:

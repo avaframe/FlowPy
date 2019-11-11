@@ -5,10 +5,11 @@ Created on Fri Nov  8 10:41:45 2019
 
 @author: Neuhauser
 """
-
+# Flow-Py libraries
 import multiprocessing as mp
 import gravi_core_gui as gc
 
+# PyQt libraries
 from PyQt5.QtCore import QThread, pyqtSignal
 
 
@@ -41,34 +42,34 @@ class Simulation(QThread):
 # =============================================================================
         
         # This part will is for Calculation of the top release cells and erasing the lower ones
-        if __name__ != '__main__':  # needed that it runs on windows, but it doesnt!!! if __name__ == main: would it be.
+        #if __name__ != '__main__':  # needed that it runs on windows, but it doesnt!!! if __name__ == main: would it be.
             
-            release_list = gc.split_release(self.release, self.release_header)
-            iterable = []
-            for i in range(len(release_list)):
-                iterable.append((self.dem, self.header, self.infra, self.forest, self.process, release_list[i]))
-        
-            print("{} Processes started.".format(len(release_list)))
-            pool = mp.Pool(len(release_list))
-            results = pool.map(gc.calculation, iterable)
-            pool.close()
-            pool.join()
-        
-            print("Processes finished")
-                
-            elh_list = []
-            mass_list = []
-            cc_list = []
-            elh_sum_list = []
-            backcalc_list = []
-            for i in range(len(results)):
-                res = results[i]
-                res = list(res)
-                elh_list.append(res[0])
-                mass_list.append(res[1])
-                cc_list.append(res[2])
-                elh_sum_list.append(res[3])
-                backcalc_list.append(res[4])
-    
-            self.finished.emit(elh_list, mass_list, cc_list, elh_sum_list, backcalc_list)
-            print("Results passed")
+        release_list = gc.split_release(self.release, self.release_header)
+        iterable = []
+        for i in range(len(release_list)):
+            iterable.append((self.dem, self.header, self.infra, self.forest, self.process, release_list[i]))
+
+        print("{} Processes started.".format(len(release_list)))
+        pool = mp.Pool(len(release_list))
+        results = pool.map(gc.calculation, iterable)
+        pool.close()
+        pool.join()
+
+        print("Processes finished")
+
+        elh_list = []
+        mass_list = []
+        cc_list = []
+        elh_sum_list = []
+        backcalc_list = []
+        for i in range(len(results)):
+            res = results[i]
+            res = list(res)
+            elh_list.append(res[0])
+            mass_list.append(res[1])
+            cc_list.append(res[2])
+            elh_sum_list.append(res[3])
+            backcalc_list.append(res[4])
+
+        self.finished.emit(elh_list, mass_list, cc_list, elh_sum_list, backcalc_list)
+        print("Results passed")

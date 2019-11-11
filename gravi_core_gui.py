@@ -235,7 +235,9 @@ def calculation(args):
         for cell in cell_list:
             if infra[cell.rowindex, cell.colindex] > 0:
                 hit_cell_list.append(cell)
-        back_calculation(hit_cell_list)
+        back_list = back_calculation(hit_cell_list)
+        for cell in back_list:
+            backcalc[cell.rowindex, cell.colindex] = 1
             
         release[elh > 0] = 0
         # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
