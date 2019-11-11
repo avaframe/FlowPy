@@ -14,14 +14,15 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 class Simulation(QThread):
     value_changed = pyqtSignal(float)
-    finished = pyqtSignal(list, list, list, list)
+    finished = pyqtSignal(list, list, list, list, list)
 
-    def __init__(self, dem, header, release, release_header, forest, process):
+    def __init__(self, dem, header, release, release_header, infra, forest, process):
         QThread.__init__(self)
         self.dem = dem
         self.header = header
         self.release = release
         self.release_header = release_header
+        self.infra = infra
         self.forest = forest
         self.process = process
         self.numberofprocesses = mp.cpu_count()
@@ -45,7 +46,7 @@ class Simulation(QThread):
             release_list = gc.split_release(self.release, self.release_header)
             iterable = []
             for i in range(len(release_list)):
-                iterable.append((self.dem, self.header, self.forest, self.process, release_list[i]))
+                iterable.append((self.dem, self.header, self.infra, self.forest, self.process, release_list[i]))
         
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(len(release_list))
@@ -59,6 +60,7 @@ class Simulation(QThread):
             mass_list = []
             cc_list = []
             elh_sum_list = []
+            backcalc_list = []
             for i in range(len(results)):
                 res = results[i]
                 res = list(res)
@@ -66,6 +68,7 @@ class Simulation(QThread):
                 mass_list.append(res[1])
                 cc_list.append(res[2])
                 elh_sum_list.append(res[3])
+                backcalc_list.append(res[4])
     
-            self.finished.emit(elh_list, mass_list, cc_list, elh_sum_list)
+            self.finished.emit(elh_list, mass_list, cc_list, elh_sum_list, backcalc_list)
             print("Results passed")

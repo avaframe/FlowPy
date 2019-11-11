@@ -229,7 +229,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         try:
             infra, infra_header = io.read_raster(self.infra_lineEdit.text())
             if (header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']):
-                print("DEM and Release ok!")
+                print("Infra Layer ok!")
             else:
                 print("Error: Infra Layer doesn't match DEM!")
                 return
@@ -239,7 +239,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         try:
             forest, forest_header = io.read_raster(self.forest_lineEdit.text())
             if (header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']):
-                print("DEM and Release ok!")
+                print("Forest Layer ok!")
             else:
                 print("Error: Forest Layer doesn't match DEM!")
                 return
@@ -251,19 +251,21 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         self.mass = np.zeros_like(dem)
         self.cell_counts = np.zeros_like(dem)
         self.elh_sum = np.zeros_like(dem)
+        self.backcalc = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = Sim.Simulation(dem, header, release, release_header, forest, process)
+        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, forest, process)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         self.calc_class.start()
                     
-    def thread_finished(self, elh, mass, count_array, elh_sum):
+    def thread_finished(self, elh, mass, count_array, elh_sum, backcalc):
         for i in range(len(elh)):
             self.elh = np.maximum(self.elh, elh[i])
             self.mass = np.maximum(self.mass, mass[i])
             self.cell_counts += count_array[i]
             self.elh_sum += elh_sum[i]
+            self.backcalc = np.maximum(self.backcalc, backcalc[i])
         self.output()
     
     def output(self):        
@@ -278,6 +280,7 @@ class GUI(QtWidgets.QMainWindow, FORM_CLASS):
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.elh)
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_counts_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.cell_counts)
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_sum_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.elh_sum)
+        io.output_raster(self.DEM_lineEdit.text(), self.directory + "/backcalculation_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.backcalc)
         print("Calculation finished")
         
         # Handle GUI
