@@ -58,11 +58,11 @@ def back_calculation(hit_cell_list):
         #print("{} Elements sorted!".format(len(hit_cell_list)))
     back_list = []
     for cell in hit_cell_list:
-        if not cell.is_start:
+        if cell not in back_list:
             for parent in cell.parent:
-                back_list.append(parent)
-        for cell in back_list:
-            if not cell.is_start:
+                if parent not in back_list:
+                    back_list.append(parent)
+            for cell in back_list:
                 for parent in cell.parent:
                     # Check if parent already in list
                     if parent not in back_list:
