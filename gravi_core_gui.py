@@ -52,7 +52,8 @@ def back_calculation(hit_cell_list):
         Back_list   List of pixels that are on the way to the start cell
                     Maybe change it to array like DEM?
     """
-    hit_cell_list.sort(key=lambda cell: cell.altitude, reverse=False)
+    if len(hit_cell_list) > 1:
+        hit_cell_list.sort(key=lambda cell: cell.altitude, reverse=False)
     back_list = []
     for cell in hit_cell_list:
         if not cell.is_start:
