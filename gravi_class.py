@@ -3,7 +3,7 @@
 """
 Created on Mon Sep 16 15:14:39 2019
 
-@author: neuhauser
+@author: Michael Neuhauser
 This is the graviclass
 """
 
