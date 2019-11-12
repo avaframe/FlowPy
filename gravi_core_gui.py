@@ -52,10 +52,10 @@ def back_calculation(hit_cell_list):
         Back_list   List of pixels that are on the way to the start cell
                     Maybe change it to array like DEM?
     """
-    #start = time.time()
+    start = time.time()
     if len(hit_cell_list) > 1:
         hit_cell_list.sort(key=lambda cell: cell.altitude, reverse=False)
-        #print("{} Elements sorted!".format(len(hit_cell_list)))
+        print("{} Elements sorted!".format(len(hit_cell_list)))
     back_list = []
     for cell in hit_cell_list:
         if cell not in back_list:
@@ -67,8 +67,8 @@ def back_calculation(hit_cell_list):
                     # Check if parent already in list
                     if parent not in back_list:
                         back_list.append(parent)
-    #end = time.time()            
-    #print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
+    end = time.time()            
+    print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
     return back_list
 
 

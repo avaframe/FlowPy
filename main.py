@@ -50,6 +50,7 @@ class GUI(QMainWindow, FORM_CLASS):
         self.actionQuit.triggered.connect(self.quit)
 
         self.calc_class = None
+        self.prot_for_bool = False
         self.threads_calc = 0
         self.progress_value = 0
         self.cpu_count = 1
@@ -232,21 +233,25 @@ class GUI(QMainWindow, FORM_CLASS):
             infra, infra_header = io.read_raster(self.infra_lineEdit.text())
             if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
                 print("Infra Layer ok!")
+                self.prot_for_bool = True
             else:
                 print("Error: Infra Layer doesn't match DEM!")
                 return
         except:
             infra = np.zeros_like(dem)
+            self.prot_for_bool = False
             
         try:
             forest, forest_header = io.read_raster(self.forest_lineEdit.text())
             if header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']:
                 print("Forest Layer ok!")
+                self.prot_for_bool = True
             else:
                 print("Error: Forest Layer doesn't match DEM!")
                 return
         except:
             forest = np.zeros_like(dem)
+            self.prot_for_bool = False
 
         process = self.process_Box.currentText()
         self.elh = np.zeros_like(dem)
@@ -283,6 +288,14 @@ class GUI(QMainWindow, FORM_CLASS):
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/cell_counts_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.cell_counts)
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/elh_sum_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.elh_sum)
         io.output_raster(self.DEM_lineEdit.text(), self.directory + "/backcalculation_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), self.backcalc)
+        
+        # Output of Protection forest if Infra structure and forest layer are
+        # provided
+        if self.prot_for_bool:
+            forest, forest_header = io.read_raster(self.forest_lineEdit.text())
+            prot_for = np.where(self.backcalc > 0, forest, 0)
+            io.output_raster(self.DEM_lineEdit.text(), self.directory + "/protectionforest_{}_{}{}".format(proc, time_string, self.outputBox.currentText()), prot_for)
+            
         print("Calculation finished")
         
         # Handle GUI
