@@ -16,6 +16,7 @@ of DEM, return arrays)
 import sys
 import multiprocessing as mp
 import numpy as np
+from datetime import datetime
 import time
 from gravi_class import Cell
 
@@ -162,7 +163,7 @@ def calculation(args):
     nodata = header["noDataValue"]
 
     # Core
-    start = time.time()
+    start = datetime.now().replace(microsecond=0)
     row_list, col_list = get_start_idx(dem, release)
 
     startcell_idx = 0
@@ -251,7 +252,7 @@ def calculation(args):
         # ToDo: Backcalculation
         row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
-    end = time.time()            
-    print('\n Time needed: ' + str(end - start) + ' seconds')
+    end = datetime.now().replace(microsecond=0)            
+    print('\n Time needed: ' + str(end - start))
     # self.quit()
     return elh, mass_array, count_array, elh_sum, backcalc
