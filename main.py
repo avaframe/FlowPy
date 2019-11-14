@@ -7,7 +7,7 @@ Created on Mon May  7 14:23:00 2018
 """
 # import standard libraries
 import os
-import sys 
+import sys
 import numpy as np
 from datetime import datetime
 from multiprocessing import cpu_count
@@ -64,7 +64,6 @@ class GUI(QMainWindow, FORM_CLASS):
             self.thread_list.append(0)
             self.start_list.append(0)
             self.end_list.append(0)
-            
 
     @pyqtSlot()
     def save(self):
@@ -84,7 +83,7 @@ class GUI(QMainWindow, FORM_CLASS):
         release.set('Directory', 'Release')
         infra.set('Directory', 'Infrastructure')
         forest.set('Directory', 'Forest')
-        
+
         wdir.text = self.wDir_lineEdit.text()
         dhm.text = self.DEM_lineEdit.text()
         release.text = self.release_lineEdit.text()
@@ -98,31 +97,31 @@ class GUI(QMainWindow, FORM_CLASS):
         xml_file = QFileDialog.getOpenFileNames(self, 'Open xml',
                                                 self.directory,
                                                 "xml (*.xml);;All Files (*.*)")[0]
-        
+
         tree = ET.parse(xml_file[0])
         root = tree.getroot()
-        
+
         try:
             self.wDir_lineEdit.setText(root[0].text)
             self.directory = root[0].text
         except:
             print("No Working Directory Path in File!")
-        
+
         try:
             self.DEM_lineEdit.setText(root[1].text)
         except:
             print("No DEM Path in File!")
-            
+
         try:
             self.release_lineEdit.setText(root[2].text)
         except:
             print("No Release Path in File!")
-            
+
         try:
             self.infra_lineEdit.setText(root[3].text)
         except:
             print("No Infrastructure Path in File!")
-            
+
         try:
             self.forest_lineEdit.setText(root[4].text)
         except:
@@ -185,16 +184,19 @@ class GUI(QMainWindow, FORM_CLASS):
         self.thread_list[thread] = float
         self.start_list[thread] = start
         self.end_list[thread] = end
-                    
-        self.progress_value = sum(self.thread_list)/len(self.thread_list)
+
+        self.progress_value = sum(self.thread_list) / len(self.thread_list)
         self.progressBar.setValue(self.progress_value)
-        for i in range(len(self.thread_list)):             
-                sys.stdout.write("Thread {}: Startcell {} of {} = {}%"'\n'.format(i+1, self.start_list[i], self.end_list[i], self.thread_list[i]))
-                sys.stdout.flush()
         for i in range(len(self.thread_list)):
-            sys.stdout.write('\x1b[1A' + '\x1b[2K') # Go 1 line up and erase that line
-                
-    def showdialog(self, path):
+            sys.stdout.write(
+                "Thread {}: Startcell {} of {} = {}%"'\n'.format(i + 1, self.start_list[i], self.end_list[i],
+                                                                 self.thread_list[i]))
+            sys.stdout.flush()
+        for i in range(len(self.thread_list)):
+            sys.stdout.write('\x1b[1A' + '\x1b[2K')  # Go 1 line up and erase that line
+
+    @staticmethod
+    def showdialog(path):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setText("No " + path + " set")
@@ -203,27 +205,8 @@ class GUI(QMainWindow, FORM_CLASS):
         msg.exec_()
 
     def calculation(self):
-        self.start = datetime.now().replace(microsecond=0) 
-        
-        # Create result directory
-        time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
-        try:
-            os.makedirs(self.wDir_lineEdit.text() + '/res_{}/'.format(time_string))
-            self.res_dir = ('/res_{}/'.format(time_string))
-        except FileExistsError:
-            self.res_dir = ('/res_{}/'.format(time_string))        
-        
-        # Setup logger
-        
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
+        self.start = datetime.now().replace(microsecond=0)
 
-        logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s %(levelname)-8s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        filename= (self.directory + self.res_dir + 'log_{}.txt').format(time_string),
-                        filemode='w')
-        
         # Check if input is ok
         if self.wDir_lineEdit.text() == '':
             self.showdialog('Working Directory')
@@ -241,6 +224,25 @@ class GUI(QMainWindow, FORM_CLASS):
         self.release_lineEdit.setEnabled(False)
         self.infra_lineEdit.setEnabled(False)
         self.forest_lineEdit.setEnabled(False)
+        
+                # Create result directory
+        time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
+        try:
+            os.makedirs(self.wDir_lineEdit.text() + '/res_{}/'.format(time_string))
+            self.res_dir = ('/res_{}/'.format(time_string))
+        except FileExistsError:
+            self.res_dir = ('/res_{}/'.format(time_string))
+
+            # Setup logger
+
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(levelname)-8s %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S',
+                            filename=(self.directory + self.res_dir + 'log_{}.txt').format(time_string),
+                            filemode='w')
 
         # Start of Calculation
         logging.info('Start Calculation')
@@ -251,21 +253,21 @@ class GUI(QMainWindow, FORM_CLASS):
         except FileNotFoundError:
             print("Wrong filepath or filename")
             return
-            
-        try:    
+
+        try:
             release, release_header = io.read_raster(self.release_lineEdit.text())
             logging.info('Release File: {}'.format(self.release_lineEdit.text()))
         except FileNotFoundError:
             print("Wrong filepath or filename")
             return
-        
+
         # Check if Layers have same size!!!
         if header['ncols'] == release_header['ncols'] and header['nrows'] == release_header['nrows']:
             print("DEM and Release Layer ok!")
         else:
             print("Error: Release Layer doesn't match DEM!")
             return
-                
+
         try:
             infra, infra_header = io.read_raster(self.infra_lineEdit.text())
             if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
@@ -278,7 +280,7 @@ class GUI(QMainWindow, FORM_CLASS):
         except:
             infra = np.zeros_like(dem)
             self.prot_for_bool = False
-            
+
         try:
             forest, forest_header = io.read_raster(self.forest_lineEdit.text())
             if header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']:
@@ -291,7 +293,7 @@ class GUI(QMainWindow, FORM_CLASS):
         except:
             forest = np.zeros_like(dem)
             self.prot_for_bool = False
-            
+
         logging.info('Files read in')
 
         process = self.process_Box.currentText()
@@ -301,7 +303,7 @@ class GUI(QMainWindow, FORM_CLASS):
         self.cell_counts = np.zeros_like(dem)
         self.elh_sum = np.zeros_like(dem)
         self.backcalc = np.zeros_like(dem)
-                
+        self.elh_multi = np.ones_like(dem)
 
         # Calculation
         self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, forest, process)
@@ -309,8 +311,8 @@ class GUI(QMainWindow, FORM_CLASS):
         self.calc_class.finished.connect(self.thread_finished)
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
         self.calc_class.start()
-                    
-    def thread_finished(self, elh, mass, count_array, elh_sum, backcalc):
+
+    def thread_finished(self, elh, mass, count_array, elh_sum, backcalc, elh_multi):
         logging.info('Calculation finished, getting results.')
         for i in range(len(elh)):
             self.elh = np.maximum(self.elh, elh[i])
@@ -318,34 +320,51 @@ class GUI(QMainWindow, FORM_CLASS):
             self.cell_counts += count_array[i]
             self.elh_sum += elh_sum[i]
             self.backcalc = np.maximum(self.backcalc, backcalc[i])
+            self.elh_multi *= elh_multi[i]
+            #self.elh_multi[self.elh_multi == 1] = 0
         self.output()
-    
-    def output(self):        
+
+    def output(self):
         if self.process_Box.currentText() == 'Avalanche':
             proc = 'ava'
         if self.process_Box.currentText() == 'Rockfall':
             proc = 'rf'
         if self.process_Box.currentText() == 'Soil Slides':
             proc = 'ds'
-        #time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
         logging.info('Writing Output Files')
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + self.res_dir + "mass_{}_{}".format(proc, self.outputBox.currentText()), self.mass)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + self.res_dir + "elh_{}_{}".format(proc, self.outputBox.currentText()), self.elh)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + self.res_dir + "cell_counts_{}_{}".format(proc, self.outputBox.currentText()), self.cell_counts)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + self.res_dir + "elh_sum_{}_{}".format(proc, self.outputBox.currentText()), self.elh_sum)
-        io.output_raster(self.DEM_lineEdit.text(), self.directory + self.res_dir + "backcalculation_{}_{}".format(proc, self.outputBox.currentText()), self.backcalc)
-        
+        io.output_raster(self.DEM_lineEdit.text(),
+                         self.directory + self.res_dir + "mass_{}{}".format(proc, self.outputBox.currentText()),
+                         self.mass)
+        io.output_raster(self.DEM_lineEdit.text(),
+                         self.directory + self.res_dir + "elh_{}{}".format(proc, self.outputBox.currentText()),
+                         self.elh)
+        io.output_raster(self.DEM_lineEdit.text(),
+                         self.directory + self.res_dir + "cell_counts_{}{}".format(proc, self.outputBox.currentText()),
+                         self.cell_counts)
+        io.output_raster(self.DEM_lineEdit.text(),
+                         self.directory + self.res_dir + "elh_sum_{}{}".format(proc, self.outputBox.currentText()),
+                         self.elh_sum)
+        io.output_raster(self.DEM_lineEdit.text(),
+                         self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.outputBox.currentText()),
+                         self.backcalc)
+        io.output_raster(self.DEM_lineEdit.text(),
+                         self.directory + self.res_dir + "elh_multi_{}{}".format(proc, self.outputBox.currentText()),
+                         self.elh_multi)
+
         # Output of Protection forest if Infra structure and forest layer are
         # provided
         if self.prot_for_bool:
             forest, forest_header = io.read_raster(self.forest_lineEdit.text())
             prot_for = np.where(self.backcalc > 0, forest, 0)
-            io.output_raster(self.DEM_lineEdit.text(), self.directory + self.res_dir + "protectionforest_{}_{}".format(proc, self.outputBox.currentText()), prot_for)
-            
+            io.output_raster(self.DEM_lineEdit.text(),
+                             self.directory + self.res_dir + "protectionforest_{}_{}".format(proc, self.outputBox.currentText()),
+                             prot_for)
+
         print("Calculation finished")
-        end = datetime.now().replace(microsecond=0)            
+        end = datetime.now().replace(microsecond=0)
         logging.info('Calculation needed: ' + str(end - self.start) + ' seconds')
-        
+
         # Handle GUI
         self.progressBar.setValue(100)
         self.calc_Button.setEnabled(True)

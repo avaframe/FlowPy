@@ -17,7 +17,7 @@ import sys
 import multiprocessing as mp
 import numpy as np
 from datetime import datetime
-import time
+#import time
 from gravi_class import Cell
 
 
@@ -53,10 +53,10 @@ def back_calculation(hit_cell_list):
         Back_list   List of pixels that are on the way to the start cell
                     Maybe change it to array like DEM?
     """
-    start = time.time()
+    #start = time.time()
     if len(hit_cell_list) > 1:
         hit_cell_list.sort(key=lambda cell: cell.altitude, reverse=False)
-        print("{} Elements sorted!".format(len(hit_cell_list)))
+        #print("{} Elements sorted!".format(len(hit_cell_list)))
     back_list = []
     for cell in hit_cell_list:
         if cell not in back_list:
@@ -68,8 +68,8 @@ def back_calculation(hit_cell_list):
                     # Check if parent already in list
                     if parent not in back_list:
                         back_list.append(parent)
-    end = time.time()            
-    print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
+    #end = time.time()            
+    #print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
     return back_list
 
 
@@ -158,6 +158,7 @@ def calculation(args):
     mass_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
+    elh_multi = np.ones_like(dem)
 
     cellsize = header["cellsize"]
     nodata = header["noDataValue"]
@@ -235,6 +236,7 @@ def calculation(args):
             mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
             count_array[cells.rowindex, cells.colindex] += 1
             elh_sum[cells.rowindex, cells.colindex] += cells.kin_e
+            elh_multi[cells.rowindex, cells.colindex] *= cells.kin_e
             
         #Backcalculation
         hit_cell_list = []
@@ -252,7 +254,8 @@ def calculation(args):
         # ToDo: Backcalculation
         row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
-    end = datetime.now().replace(microsecond=0)            
+    end = datetime.now().replace(microsecond=0)
+    #elh_multi[elh_multi == 1] = 0         
     print('\n Time needed: ' + str(end - start))
     # self.quit()
-    return elh, mass_array, count_array, elh_sum, backcalc
+    return elh, mass_array, count_array, elh_sum, backcalc, elh_multi
