@@ -37,28 +37,33 @@ def read_raster(input_file):
 
 
 def output_raster(file, file_out, raster):
-    """Input is the original file, path to new file, raster_data, and the EPSG Code"""
+    """Input is the original file, path to new file, raster_data
+    
+    Input parameters:
+        file        the path to the file to reference on, mostly DEM on where 
+                    Calculations were done
+        file_out    path for the outputfile, possible extends are .asc or .tif"""
 
     raster_trans = rasterio.open(file)
     try:
         crs = rasterio.crs.CRS.from_dict(raster_trans.crs.data)
     except:
         crs = rasterio.crs.CRS.from_epsg(4326)
-    new_dataset = rasterio.open(file_out, 'w', driver='GTiff', height = raster.shape[0], width = raster.shape[1], count=1,  dtype = raster.dtype, crs=crs, transform=raster_trans.transform, nodata=-9999)
+    if file_out[-3:] == 'asc': 
+        new_dataset = rasterio.open(file_out, 'w', driver='AAIGrid', height = raster.shape[0], width = raster.shape[1], count=1,  dtype = raster.dtype, crs=crs, transform=raster_trans.transform, nodata=-9999)
+    if file_out[-3:] == 'tif': 
+        new_dataset = rasterio.open(file_out, 'w', driver='GTiff', height = raster.shape[0], width = raster.shape[1], count=1,  dtype = raster.dtype, crs=crs, transform=raster_trans.transform, nodata=-9999)
+# =============================================================================
+#     if file_out[-3:] != 'tif' & file_out[-3:] != 'asc':
+#         print('This Fileformat is not supported: .{}'.format(file_out[-3:]))
+#         return
+# =============================================================================
     new_dataset.write(raster, 1)
-    new_dataset.close()  
-
-    
-def output_raster_v2(file_out, raster, epsg):
-    """Input is path to file, raster_data"""
-    
-
-    #raster_trans = rasterio.open(file)
-    crs = rasterio.crs.CRS.from_epsg(epsg)
-    new_dataset = rasterio.open(file_out, 'w', driver='GTiff', height = raster.shape[0], width = raster.shape[1], count=1,  dtype = raster.dtype, crs=crs, nodata=-9999)
-    new_dataset.write(raster, 1)
-    new_dataset.close()  
+    new_dataset.close()
 
 
-#header = read_header('/home/P/Projekte/18130-GreenRisk4Alps/Simulation/PAR3_Oberammergau/DEM_1_3.asc')
-#output_raster_v2('example.tif', raster)
+#path = '/home/lawinenforschung/Desktop/PAR6_ValsGries_AUT/dhm_10_6.tif'
+#output = 'example.asc'
+#raster, header = read_raster(path)
+#output_raster(path, output, raster)
+#rasterio.rio.convert(output, 'example.asc', driver='AAIGrid')

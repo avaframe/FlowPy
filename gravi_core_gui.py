@@ -250,8 +250,6 @@ def calculation(args):
             
         release[elh > 0] = 0
         # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
-        # ToDo: if i hit a startcell add this "mass"
-        # ToDo: Backcalculation
         row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)
