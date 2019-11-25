@@ -42,7 +42,7 @@ def get_start_idx(dem, release):
     return row_list, col_list   
 
 
-def back_calculation(hit_cell_list):
+def back_calculation(back_cell):
     """Here the back calculation from a run out pixel that hits a infrastructure
     to the release pixel is performed.
     
@@ -54,20 +54,18 @@ def back_calculation(hit_cell_list):
                     Maybe change it to array like DEM?
     """
     #start = time.time()
-    if len(hit_cell_list) > 1:
-        hit_cell_list.sort(key=lambda cell: cell.altitude, reverse=False)
+    #if len(hit_cell_list) > 1:
+        #hit_cell_list.sort(key=lambda cell: cell.altitude, reverse=False)
         #print("{} Elements sorted!".format(len(hit_cell_list)))
     back_list = []
-    for cell in hit_cell_list:
-        if cell not in back_list:
-            for parent in cell.parent:
-                if parent not in back_list:
-                    back_list.append(parent)
-            for cell in back_list:
-                for parent in cell.parent:
-                    # Check if parent already in list
-                    if parent not in back_list:
-                        back_list.append(parent)
+    for parent in back_cell.parent:
+        if parent not in back_list:
+            back_list.append(parent)
+    for cell in back_list:
+        for parent in cell.parent:
+            # Check if parent already in list
+            if parent not in back_list:
+                back_list.append(parent)
     #end = time.time()            
     #print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
     return back_list
@@ -98,15 +96,20 @@ def split_release(release, header_release):
         """
         
     nodata = header_release["noDataValue"]
-    release[release == nodata] = 0
+    if nodata:
+        release[release == nodata] = 0
+    else:
+        print("Release Layer has no No Data Value, negative Value asumed!")
+        release[release < 0] = 0
     release[release > 1] = 1
     summ = np.sum(release) # Count number of release pixels
-    sum_per_split = summ/mp.cpu_count()  # Divide the number by avaible Cores
+    print("Number of release pixels: ", summ)
+    sum_per_split = summ/(mp.cpu_count()*2)  # Divide the number by avaible Cores
     release_list = []
     breakpoint_x = 0
 
     for i in range(breakpoint_x, release.shape[1]):
-        if len(release_list) == (mp.cpu_count() - 1):
+        if len(release_list) == (mp.cpu_count()*2 - 1):
             c = np.zeros_like(release)
             c[:, breakpoint_x:] = release[:, breakpoint_x:]
             release_list.append(c)
@@ -117,7 +120,9 @@ def split_release(release, header_release):
             c = np.zeros_like(release)
             c[:, breakpoint_x:i] = release[:, breakpoint_x:i]
             release_list.append(c)
+            print("Release Split from {} to {}".format(breakpoint_x, i))
             breakpoint_x = i
+            
         
     return release_list
 
@@ -239,14 +244,12 @@ def calculation(args):
             elh_multi[cells.rowindex, cells.colindex] *= cells.kin_e
             
         #Backcalculation
-        hit_cell_list = []
+        back_list = []
         for cell in cell_list:
             if infra[cell.rowindex, cell.colindex] > 0:
-                hit_cell_list.append(cell)
-        if len(hit_cell_list) > 0:
-            back_list = back_calculation(hit_cell_list)
-            for cell in back_list:
-                backcalc[cell.rowindex, cell.colindex] = 1
+                back_list = back_calculation(cell)
+            for back_cell in back_list:
+                backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex], infra[cell.rowindex, cell.colindex])
             
         release[elh > 0] = 0
         # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells

@@ -51,7 +51,8 @@ class Simulation(QThread):
 
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(len(release_list))
-        results = pool.map(gc.calculation, iterable)
+        #results = pool.map(gc.calculation, iterable)
+        results = pool.map(gc.calculation, [[self.dem, self.header, self.infra, self.forest, self.process, release_pixel] for release_pixel in release_list])
         pool.close()
         pool.join()
 
