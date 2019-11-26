@@ -78,7 +78,7 @@ def divide_chunks(l, n):
         yield l[i:i+n]
 
 
-def split_release(release, header_release):
+def split_release(release, header_release, pieces):
     """Split the release layer in several tiles, the number is depending on the
     available CPU Cores, so every Core gets one tile. The area is determined by
     the number of release pixels in it, so that every tile has the same amount
@@ -104,12 +104,12 @@ def split_release(release, header_release):
     release[release > 1] = 1
     summ = np.sum(release) # Count number of release pixels
     print("Number of release pixels: ", summ)
-    sum_per_split = summ/(mp.cpu_count()*2)  # Divide the number by avaible Cores
+    sum_per_split = summ/(pieces)  # Divide the number by avaible Cores
     release_list = []
     breakpoint_x = 0
 
     for i in range(breakpoint_x, release.shape[1]):
-        if len(release_list) == (mp.cpu_count()*2 - 1):
+        if len(release_list) == (pieces - 1):
             c = np.zeros_like(release)
             c[:, breakpoint_x:] = release[:, breakpoint_x:]
             release_list.append(c)
@@ -163,7 +163,6 @@ def calculation(args):
     mass_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
-    elh_multi = np.ones_like(dem)
 
     cellsize = header["cellsize"]
     nodata = header["noDataValue"]
@@ -241,7 +240,6 @@ def calculation(args):
             mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
             count_array[cells.rowindex, cells.colindex] += 1
             elh_sum[cells.rowindex, cells.colindex] += cells.kin_e
-            elh_multi[cells.rowindex, cells.colindex] *= cells.kin_e
             
         #Backcalculation
         back_list = []
@@ -259,4 +257,109 @@ def calculation(args):
     #elh_multi[elh_multi == 1] = 0         
     print('\n Time needed: ' + str(end - start))
     # self.quit()
-    return elh, mass_array, count_array, elh_sum, backcalc, elh_multi
+    return elh, mass_array, count_array, elh_sum, backcalc
+
+def calculation_effect(args):
+    """This is the core function where all the data handling and calculation is
+    done. 
+    
+    Input parameters:
+        dem         The digital elevation model
+        header      The header of the elevation model
+        forest      The forest layer
+        process     Which process to calculate (Avalanche, Rockfall, SoilSlides)     
+        release     The list of release arrays
+        
+    Output parameters:
+        elh         Array like DEM with the max. Energy Line Height for every 
+                    pixel
+        mass_array  Array with max. concentration factor saved
+        count_array Array with the number of hits for every pixel
+        elh_sum     Array with the sum of Energy Line Height
+        back_calc   Array with back calculation, still to do!!!
+        """
+    
+    dem = args[0]
+    header = args[1]
+    forest = args[2]
+    process = args[3]
+# =============================================================================
+#     row_list = args[4]
+#     col_list = args[5]
+# =============================================================================
+    release = args[4]
+    #number = args[6]
+    #length = args[7]
+    
+    elh = np.zeros_like(dem)
+    elh_sum = np.zeros_like(dem)
+    mass_array = np.zeros_like(dem)
+    count_array = np.zeros_like(dem)
+    backcalc = np.zeros_like(dem)
+
+    cellsize = header["cellsize"]
+    nodata = header["noDataValue"]
+
+    # Core
+    start = datetime.now().replace(microsecond=0)
+    row_list, col_list = get_start_idx(dem, release)
+
+    startcell_idx = 0
+    while startcell_idx < len(row_list):
+        
+        sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx + 1) + " of " + str(len(row_list)) + " = " + str(
+            round((startcell_idx + 1) / len(row_list) * 100, 2)) + "%" '\r')
+        sys.stdout.flush()
+
+        cell_list = []
+        row_idx = row_list[startcell_idx]
+        col_idx = col_list[startcell_idx]
+        dem_ng = dem[row_idx - 1:row_idx + 2, col_idx - 1:col_idx + 2]  # neighbourhood DEM
+        if (nodata in dem_ng) or np.size(dem_ng) < 9:
+            startcell_idx += 1
+            continue
+
+        startcell = Cell(process, row_idx, col_idx, dem_ng, cellsize, 1, 0, forest[row_idx, col_idx], None,
+                         startcell=True)
+        # If this is a startcell just give a Bool to startcell otherwise the object startcell
+
+        cell_list.append(startcell)
+        for cells in cell_list:
+                
+            row, col, mass, kin_e = cells.calc_distribution()
+            if len(mass) > 0:
+                # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
+                kin_e, mass, row, col = list(zip(*sorted(zip(kin_e, mass, row, col), reverse=False)))
+                # Sort this lists by elh, to start with the highest cell
+
+            for i in range(len(cell_list)):  # Check if Cell already exists
+                k = 0
+                while k < len(row):
+                    if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
+                        cell_list[i].add_mass(mass[k])
+                        cell_list[i].add_parent(cells)
+                        cell_list[i].kin_e = max(cell_list[i].kin_e, kin_e[k])
+                        row = np.delete(row, k)
+                        col = np.delete(col, k)
+                        mass = np.delete(mass, k)
+                        kin_e = np.delete(kin_e, k)
+                    else:
+                        k += 1
+
+            for k in range(len(row)):
+                dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
+                if (nodata in dem_ng) or np.size(dem_ng) < 9:
+                    continue
+                cell_list.append(
+                    Cell(process, row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]],
+                         cells, startcell))
+
+            elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
+            mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
+            count_array[cells.rowindex, cells.colindex] += 1
+            elh_sum[cells.rowindex, cells.colindex] += cells.kin_e
+
+        startcell_idx += 1
+    end = datetime.now().replace(microsecond=0)        
+    print('\n Time needed: ' + str(end - start))
+    return elh, mass_array, count_array, elh_sum, backcalc

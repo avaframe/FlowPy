@@ -206,6 +206,7 @@ class GUI(QMainWindow, FORM_CLASS):
 
     def calculation(self):
         self.start = datetime.now().replace(microsecond=0)
+        calc_bool = False
 
         # Check if input is ok
         if self.wDir_lineEdit.text() == '':
@@ -272,14 +273,13 @@ class GUI(QMainWindow, FORM_CLASS):
             infra, infra_header = io.read_raster(self.infra_lineEdit.text())
             if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
                 print("Infra Layer ok!")
-                self.prot_for_bool = True
+                calc_bool = True
                 logging.info('Infrastructure File: {}'.format(self.infra_lineEdit.text()))
             else:
                 print("Error: Infra Layer doesn't match DEM!")
                 return
         except:
             infra = np.zeros_like(dem)
-            self.prot_for_bool = False
 
         try:
             forest, forest_header = io.read_raster(self.forest_lineEdit.text())
@@ -292,7 +292,7 @@ class GUI(QMainWindow, FORM_CLASS):
                 return
         except:
             forest = np.zeros_like(dem)
-            self.prot_for_bool = False
+
 
         logging.info('Files read in')
 
@@ -303,16 +303,15 @@ class GUI(QMainWindow, FORM_CLASS):
         self.cell_counts = np.zeros_like(dem)
         self.elh_sum = np.zeros_like(dem)
         self.backcalc = np.zeros_like(dem)
-        self.elh_multi = np.ones_like(dem)
 
         # Calculation
-        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, forest, process)
+        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, forest, process, calc_bool)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
         self.calc_class.start()
 
-    def thread_finished(self, elh, mass, count_array, elh_sum, backcalc, elh_multi):
+    def thread_finished(self, elh, mass, count_array, elh_sum, backcalc):
         logging.info('Calculation finished, getting results.')
         for i in range(len(elh)):
             self.elh = np.maximum(self.elh, elh[i])
@@ -320,8 +319,6 @@ class GUI(QMainWindow, FORM_CLASS):
             self.cell_counts += count_array[i]
             self.elh_sum += elh_sum[i]
             self.backcalc = np.maximum(self.backcalc, backcalc[i])
-            self.elh_multi *= elh_multi[i]
-            #self.elh_multi[self.elh_multi == 1] = 0
         self.output()
 
     def output(self):
@@ -348,18 +345,9 @@ class GUI(QMainWindow, FORM_CLASS):
         io.output_raster(self.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.outputBox.currentText()),
                          self.backcalc)
-        io.output_raster(self.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "elh_multi_{}{}".format(proc, self.outputBox.currentText()),
-                         self.elh_multi)
 
         # Output of Protection forest if Infra structure and forest layer are
         # provided
-        if self.prot_for_bool:
-            forest, forest_header = io.read_raster(self.forest_lineEdit.text())
-            prot_for = np.where(self.backcalc > 0, forest, 0)
-            io.output_raster(self.DEM_lineEdit.text(),
-                             self.directory + self.res_dir + "protectionforest_{}_{}".format(proc, self.outputBox.currentText()),
-                             prot_for)
 
         print("Calculation finished")
         end = datetime.now().replace(microsecond=0)
