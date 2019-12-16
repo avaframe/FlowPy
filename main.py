@@ -64,6 +64,14 @@ class GUI(QMainWindow, FORM_CLASS):
             self.thread_list.append(0)
             self.start_list.append(0)
             self.end_list.append(0)
+            
+    def set_gui_bool(self, bool):
+        self.calc_Button.setEnabled(bool)
+        self.wDir_lineEdit.setEnabled(bool)
+        self.DEM_lineEdit.setEnabled(bool)
+        self.release_lineEdit.setEnabled(bool)
+        self.infra_lineEdit.setEnabled(bool)
+        self.forest_lineEdit.setEnabled(bool)
 
     @pyqtSlot()
     def save(self):
@@ -219,12 +227,15 @@ class GUI(QMainWindow, FORM_CLASS):
             self.showdialog('Release Layer')
             return
         # Disable all input line Edits and Buttons
-        self.calc_Button.setEnabled(False)
-        self.wDir_lineEdit.setEnabled(False)
-        self.DEM_lineEdit.setEnabled(False)
-        self.release_lineEdit.setEnabled(False)
-        self.infra_lineEdit.setEnabled(False)
-        self.forest_lineEdit.setEnabled(False)
+        self.set_gui_bool(False)
+# =============================================================================
+#         self.calc_Button.setEnabled(False)
+#         self.wDir_lineEdit.setEnabled(False)
+#         self.DEM_lineEdit.setEnabled(False)
+#         self.release_lineEdit.setEnabled(False)
+#         self.infra_lineEdit.setEnabled(False)
+#         self.forest_lineEdit.setEnabled(False)
+# =============================================================================
         
                 # Create result directory
         time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -253,6 +264,7 @@ class GUI(QMainWindow, FORM_CLASS):
             logging.info('DEM File: {}'.format(self.DEM_lineEdit.text()))
         except FileNotFoundError:
             print("Wrong filepath or filename")
+            self.set_gui_bool(True)
             return
 
         try:
@@ -260,6 +272,7 @@ class GUI(QMainWindow, FORM_CLASS):
             logging.info('Release File: {}'.format(self.release_lineEdit.text()))
         except FileNotFoundError:
             print("Wrong filepath or filename")
+            self.set_gui_bool(True)
             return
 
         # Check if Layers have same size!!!
@@ -267,6 +280,7 @@ class GUI(QMainWindow, FORM_CLASS):
             print("DEM and Release Layer ok!")
         else:
             print("Error: Release Layer doesn't match DEM!")
+            self.set_gui_bool(True)
             return
 
         try:
@@ -277,6 +291,7 @@ class GUI(QMainWindow, FORM_CLASS):
                 logging.info('Infrastructure File: {}'.format(self.infra_lineEdit.text()))
             else:
                 print("Error: Infra Layer doesn't match DEM!")
+                self.set_gui_bool(True)
                 return
         except:
             infra = np.zeros_like(dem)
@@ -355,12 +370,15 @@ class GUI(QMainWindow, FORM_CLASS):
 
         # Handle GUI
         self.progressBar.setValue(100)
-        self.calc_Button.setEnabled(True)
-        self.wDir_lineEdit.setEnabled(True)
-        self.DEM_lineEdit.setEnabled(True)
-        self.release_lineEdit.setEnabled(True)
-        self.infra_lineEdit.setEnabled(True)
-        self.forest_lineEdit.setEnabled(True)
+        self.set_gui_bool(True)
+# =============================================================================
+#         self.calc_Button.setEnabled(True)
+#         self.wDir_lineEdit.setEnabled(True)
+#         self.DEM_lineEdit.setEnabled(True)
+#         self.release_lineEdit.setEnabled(True)
+#         self.infra_lineEdit.setEnabled(True)
+#         self.forest_lineEdit.setEnabled(True)
+# =============================================================================
 
 
 def main():
