@@ -304,6 +304,7 @@ class GUI(QMainWindow, FORM_CLASS):
                 logging.info('Forest File: {}'.format(self.forest_lineEdit.text()))
             else:
                 print("Error: Forest Layer doesn't match DEM!")
+                self.set_gui_bool(True)
                 return
         except:
             forest = np.zeros_like(dem)

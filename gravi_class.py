@@ -34,13 +34,13 @@ class Cell:
             self.max_elh = 270  # maximum velocity this process can reach
         if process == 'Rockfall':
             self.alpha = 32
-            self.alpha_forest = 10
+            self.alpha_forest = 0
             self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 50  # maximum velocity this process can reach
         if process == 'Soil Slides':
             self.alpha = 22
-            self.alpha_forest = 10
+            self.alpha_forest = 0
             self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 12  # maximum velocity this process can reach
