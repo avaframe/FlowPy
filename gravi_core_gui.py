@@ -7,7 +7,7 @@ Created on Mon Sep 16 15:15:37 2019
 This is the core function for Flow-Py, it handles: 
 - Sorting release pixels by altitude(get_start_idx)
 - Splitting function of the release layer for multiprocessing(split_release)
-- Back calculation if infrastructure is hit (still to check if it works)
+- Back calculation if infrastructure is hit
 - Calculation of run out, etc. (Creating the cell_list and iterating through
 the release pixels, erasing release pixels that were hit, stop at the border 
 of DEM, return arrays)

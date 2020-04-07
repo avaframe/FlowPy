@@ -13,6 +13,8 @@ import numpy as np
 class Cell:
     
     def __init__(self, process,  rowindex, colindex, dem_ng, cellsize, mass, elh, forest, parent, startcell):
+        '''This class handles the spreading over the DEM!
+        Depending on the process different alpha angles are used for energy dissipation.'''
         self.rowindex = rowindex
         self.colindex = colindex
         self.altitude = dem_ng[1, 1]
@@ -48,7 +50,7 @@ class Cell:
         if parent:
             self.parent.append(parent)
         
-        if startcell == True:  # check, if start cell exist (start cell is release point)
+        if startcell:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
         else:            
             self.startcell = startcell  # give startcell to cell
@@ -58,6 +60,13 @@ class Cell:
         self.calc_direction()
         self.calc_tanbeta()
 
+    def add_mass(self, mass):
+        self.mass += mass
+        
+    def add_parent(self, parent):
+        self.parent.append(parent)
+        self.calc_direction()
+    
     def calc_kinetic_energy(self):
 
         delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
@@ -74,12 +83,6 @@ class Cell:
         self.kin_energy_neighbour[self.kin_energy_neighbour < 0] = 0
         self.kin_energy_neighbour[self.kin_energy_neighbour > self.max_elh] = self.max_elh
                     
-    def add_mass(self, mass):
-        self.mass += mass
-        
-    def add_parent(self, parent):
-        self.parent.append(parent)
-        self.calc_direction()
            
     def calc_tanbeta(self):  
 
@@ -149,6 +152,8 @@ class Cell:
         # The mass of this cells will then be spreaded equally to all neighbour cells
         count = ((0 < self.dist) & (self.dist < threshold)).sum()
         mass_to_distribute = np.sum(self.dist[self.dist < threshold])
+        '''Checking if mass is distributed to a field that isnt taking in account, when then distribute it to the other 
+        fields'''
         if mass_to_distribute > 0 and count > 0:
             self.dist[self.dist > threshold] += mass_to_distribute / count
             self.dist[self.dist < threshold] = 0
