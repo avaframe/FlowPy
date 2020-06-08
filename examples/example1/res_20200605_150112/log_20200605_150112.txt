@@ -1,0 +1,10 @@
+2020-06-05 15:01:12 INFO     Start Calculation
+2020-06-05 15:01:12 INFO     DEM File: /home/neuhauser/git_rep/flow-py/examples/example1/dhm_mod.asc
+2020-06-05 15:01:12 INFO     Release File: /home/neuhauser/git_rep/flow-py/examples/example1/release.asc
+2020-06-05 15:01:12 INFO     Infrastructure File: /home/neuhauser/git_rep/flow-py/examples/example1/infra.asc
+2020-06-05 15:01:12 INFO     Files read in
+2020-06-05 15:01:12 INFO     Process: Avalanche
+2020-06-05 15:01:12 INFO     Multiprocessing starts, used cores: 16
+2020-06-05 15:20:48 INFO     Calculation finished, getting results.
+2020-06-05 15:20:48 INFO     Writing Output Files
+2020-06-05 15:20:48 INFO     Calculation needed: 0:19:36 seconds

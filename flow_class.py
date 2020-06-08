@@ -12,7 +12,7 @@ import numpy as np
 
 class Cell:
     
-    def __init__(self, process,  rowindex, colindex, dem_ng, cellsize, mass, elh, forest, parent, startcell):
+    def __init__(self, process,  rowindex, colindex, dem_ng, cellsize, mass, elh, forest, parent, alpha, exp, startcell):
         '''This class handles the spreading over the DEM!
         Depending on the process different alpha angles are used for energy dissipation.'''
         self.rowindex = rowindex
@@ -27,23 +27,25 @@ class Cell:
         self.forest = forest
         self.mass = mass
         self.kin_e = elh
+        self.alpha = float(alpha)
+        self.exp = int(exp)
 
         if process == 'Avalanche':
-            self.alpha = 25
+            #self.alpha = 25
             self.alpha_forest = 10
-            self.exp = 8
+            #self.exp = 8
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 270  # maximum velocity this process can reach
         if process == 'Rockfall':
-            self.alpha = 32
+            #self.alpha = 32
             self.alpha_forest = 0
-            self.exp = 75
+            #self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 50  # maximum velocity this process can reach
         if process == 'Soil Slides':
-            self.alpha = 22
+            #self.alpha = 22
             self.alpha_forest = 0
-            self.exp = 75
+            #self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 12  # maximum velocity this process can reach
         self.parent = []

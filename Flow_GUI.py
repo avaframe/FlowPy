@@ -12,6 +12,9 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(546, 352)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("logo.jpg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        MainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -30,7 +33,7 @@ class Ui_MainWindow(object):
         self.alpha_Edit = QtWidgets.QLineEdit(self.centralwidget)
         self.alpha_Edit.setEnabled(True)
         self.alpha_Edit.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.alpha_Edit.setReadOnly(True)
+        self.alpha_Edit.setReadOnly(False)
         self.alpha_Edit.setClearButtonEnabled(False)
         self.alpha_Edit.setObjectName("alpha_Edit")
         self.horizontalLayout.addWidget(self.alpha_Edit)
@@ -42,7 +45,7 @@ class Ui_MainWindow(object):
         self.exp_Edit = QtWidgets.QLineEdit(self.centralwidget)
         self.exp_Edit.setEnabled(True)
         self.exp_Edit.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.exp_Edit.setReadOnly(True)
+        self.exp_Edit.setReadOnly(False)
         self.exp_Edit.setObjectName("exp_Edit")
         self.horizontalLayout.addWidget(self.exp_Edit)
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -161,7 +164,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Flow-Py"))
         self.DEM_label.setText(_translate("MainWindow", "DEM Layer"))
         self.label_7.setText(_translate("MainWindow", "alpha"))
         self.label_6.setText(_translate("MainWindow", "exp"))

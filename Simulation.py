@@ -4,10 +4,11 @@
 Created on Fri Nov  8 10:41:45 2019
 
 @author: Neuhauser
+In this class the mutliprocessing is handled.
 """
 # Flow-Py libraries
 import multiprocessing as mp
-import gravi_core_gui as gc
+import flow_core_gui as fc
 
 # PyQt libraries
 from PyQt5.QtCore import QThread, pyqtSignal
@@ -17,7 +18,7 @@ class Simulation(QThread):
     value_changed = pyqtSignal(float)
     finished = pyqtSignal(list, list, list, list, list)
 
-    def __init__(self, dem, header, release, release_header, infra, forest, process, calc_bool):
+    def __init__(self, dem, header, release, release_header, infra, forest, process, calc_bool, alpha, exp):
         QThread.__init__(self)
         self.dem = dem
         self.header = header
@@ -28,6 +29,8 @@ class Simulation(QThread):
         self.process = process
         self.numberofprocesses = mp.cpu_count()
         self.calc_bool = calc_bool
+        self.alpha = alpha
+        self.exp = exp
 
     def run(self):
 
@@ -45,20 +48,20 @@ class Simulation(QThread):
         # This part will is for Calculation of the top release cells and erasing the lower ones
         #if __name__ != '__main__':  # needed that it runs on windows, but it doesnt!!! if __name__ == main: would it be.
         if self.calc_bool:    
-            release_list = gc.split_release(self.release, self.release_header, mp.cpu_count()*2)
+            release_list = fc.split_release(self.release, self.release_header, mp.cpu_count()*2)
     
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(len(release_list))
-            results = pool.map(gc.calculation, [[self.dem, self.header, self.infra, self.forest, self.process, release_pixel] for release_pixel in release_list])
+            results = pool.map(fc.calculation, [[self.dem, self.header, self.infra, self.forest, self.process, release_pixel, self.alpha, self.exp] for release_pixel in release_list])
             pool.close()
             pool.join()
         else:
-            release_list = gc.split_release(self.release, self.release_header, mp.cpu_count()*4)
+            release_list = fc.split_release(self.release, self.release_header, mp.cpu_count()*4)
     
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(mp.cpu_count())
             #results = pool.map(gc.calculation, iterable)
-            results = pool.map(gc.calculation_effect, [[self.dem, self.header, self.forest, self.process, release_pixel] for release_pixel in release_list])
+            results = pool.map(fc.calculation_effect, [[self.dem, self.header, self.forest, self.process, release_pixel, self.alpha, self.exp] for release_pixel in release_list])
             pool.close()
             pool.join()
 

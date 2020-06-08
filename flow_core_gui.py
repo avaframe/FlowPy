@@ -18,7 +18,7 @@ import multiprocessing as mp
 import numpy as np
 from datetime import datetime
 #import time
-from gravi_class import Cell
+from flow_class import Cell
 
 
 def get_start_idx(dem, release):
@@ -157,6 +157,8 @@ def calculation(args):
 #     col_list = args[5]
 # =============================================================================
     release = args[5]
+    alpha = args[6]
+    exp = args[7]
     
     elh = np.zeros_like(dem)
     elh_sum = np.zeros_like(dem)
@@ -187,7 +189,7 @@ def calculation(args):
             continue
 
         startcell = Cell(process, row_idx, col_idx, dem_ng, cellsize, 1, 0, forest[row_idx, col_idx], None,
-                         startcell=True)
+                         alpha, exp, startcell=True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)
@@ -234,7 +236,7 @@ def calculation(args):
                     continue
                 cell_list.append(
                     Cell(process, row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]],
-                         cells, startcell))
+                         cells, alpha, exp, startcell))
 
             elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
             mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
@@ -288,6 +290,8 @@ def calculation_effect(args):
 #     col_list = args[5]
 # =============================================================================
     release = args[4]
+    alpha = args[5]
+    exp = args[6]
     #number = args[6]
     #length = args[7]
     
@@ -320,7 +324,7 @@ def calculation_effect(args):
             continue
 
         startcell = Cell(process, row_idx, col_idx, dem_ng, cellsize, 1, 0, forest[row_idx, col_idx], None,
-                         startcell=True)
+                         alpha, exp, startcell=True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)
@@ -352,7 +356,7 @@ def calculation_effect(args):
                     continue
                 cell_list.append(
                     Cell(process, row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]],
-                         cells, startcell))
+                         cells, alpha, exp, startcell))
 
             elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
             mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
