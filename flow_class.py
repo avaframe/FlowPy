@@ -38,10 +38,10 @@ class Cell:
             self.max_elh = 270  # maximum velocity this process can reach
         if process == 'Rockfall':
             #self.alpha = 32
-            self.alpha_forest = 0
+            self.alpha_forest = 10 # this is based on lit value of 6 deg alpha reduction over full slope
             #self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
-            self.max_elh = 50  # maximum velocity this process can reach
+            self.max_elh = 50  # maximum velocity from dorren and seijmonsbergen 2002
         if process == 'Soil Slides':
             #self.alpha = 22
             self.alpha_forest = 0
