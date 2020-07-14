@@ -36,18 +36,21 @@ class Cell:
             #self.exp = 8
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 270  # maximum velocity this process can reach
+            self.no_effect_v = 45 #[m/s] this is the point where avalanches no longer are slowed by trees
         if process == 'Rockfall':
             #self.alpha = 32
-            self.alpha_forest = 10 # this is based on lit value of 6 deg alpha reduction over full slope
+            self.alpha_forest = 13 # this is based on lit value of 6 deg alpha reduction over full slope
             #self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 50  # maximum velocity from dorren and seijmonsbergen 2002
+            self.no_effect_v = 25 # [m/s] this is the point where rocks no longer are slowed by trees
         if process == 'Soil Slides':
             #self.alpha = 22
             self.alpha_forest = 0
             #self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 12  # maximum velocity this process can reach
+            self.no_effect_v = 0
         self.parent = []
         if parent:
             self.parent.append(parent)
@@ -74,10 +77,10 @@ class Cell:
         delta_e_kin_pot = (self.dem_ng - self.altitude) * (-1)
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         max_friction = self.alpha_forest * self.forest
-        if self.kin_e < 45:
-            alpha_calc = self.alpha + max(0, - self.kin_e * (max_friction / 45) + max_friction)
+        if self.kin_e <  self.no_effect_v:
+            alpha_calc = self.alpha + max(0, - self.kin_e * (max_friction /  self.no_effect_v) + max_friction)
         else:
-            alpha_calc = 25
+            alpha_calc = self.alpha
         # print(alpha_calc)
         tan_alpha = np.tan(np.deg2rad(alpha_calc))  # increased friction due to forest scaled with forest value (forest)
         e_friction = ds * self.cellsize * tan_alpha
