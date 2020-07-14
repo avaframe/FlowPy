@@ -38,7 +38,8 @@ def get_start_idx(dem, release):
         altitude_list = []
         for i in range(len(row_list)):
             altitude_list.append(dem[row_list[i], col_list[i]])    
-        altitude_list, row_list, col_list = list(zip(*sorted(zip(altitude_list, row_list, col_list), reverse=True)))  #Sort this lists by altitude
+        altitude_list, row_list, col_list = list(zip(*sorted(zip(altitude_list, row_list, col_list), reverse=True)))
+        # Sort this lists by altitude
     return row_list, col_list   
 
 
@@ -104,7 +105,7 @@ def split_release(release, header_release, pieces):
     release[release > 1] = 1
     summ = np.sum(release) # Count number of release pixels
     print("Number of release pixels: ", summ)
-    sum_per_split = summ/(pieces)  # Divide the number by avaible Cores
+    sum_per_split = summ/pieces  # Divide the number by avaiable Cores
     release_list = []
     breakpoint_x = 0
 
@@ -150,19 +151,14 @@ def calculation(args):
     dem = args[0]
     header = args[1]
     infra = args[2]
-    forest = args[3]
-    process = args[4]
-# =============================================================================
-#     row_list = args[4]
-#     col_list = args[5]
-# =============================================================================
-    release = args[5]
-    alpha = args[6]
-    exp = args[7]
+    process = args[3]
+    release = args[4]
+    alpha = args[5]
+    exp = args[6]
     
-    elh = np.zeros_like(dem)
+    elh_array = np.zeros_like(dem)
     elh_sum = np.zeros_like(dem)
-    mass_array = np.zeros_like(dem)
+    susc_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
 
@@ -188,7 +184,7 @@ def calculation(args):
             startcell_idx += 1
             continue
 
-        startcell = Cell(process, row_idx, col_idx, dem_ng, cellsize, 1, 0, forest[row_idx, col_idx], None,
+        startcell = Cell(process, row_idx, col_idx, dem_ng, cellsize, 1, 0, None,
                          alpha, exp, startcell=True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
@@ -201,32 +197,24 @@ def calculation(args):
 #                 # So the mass threshold starts later... 
 #                 # Works only for release areas not for release pixels!
 # =============================================================================
-            # First attempt to include back calculation, second try after all
-            # cells are created
-# =============================================================================
-#             if infra[cells.rowindex, cells.colindex] > 0:
-#                 back_list = back_calculation(cells) # would be cool if it gives already array back...
-#                 for cell in back_list:
-#                     backcalc[cell.rowindex, cell.colindex] = 1
-# =============================================================================
-                
-            row, col, mass, kin_e = cells.calc_distribution()
-            if len(mass) > 0:
+
+            row, col, susc, elh = cells.calc_distribution()
+            if len(susc) > 0:
                 # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
-                kin_e, mass, row, col = list(zip(*sorted(zip(kin_e, mass, row, col), reverse=False)))
+                elh, susc, row, col = list(zip(*sorted(zip(elh, susc, row, col), reverse=False)))
                 # Sort this lists by elh, to start with the highest cell
 
             for i in range(len(cell_list)):  # Check if Cell already exists
                 k = 0
                 while k < len(row):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
-                        cell_list[i].add_mass(mass[k])
+                        cell_list[i].add_os(susc[k])
                         cell_list[i].add_parent(cells)
-                        cell_list[i].kin_e = max(cell_list[i].kin_e, kin_e[k])
+                        cell_list[i].elh = max(cell_list[i].elh, elh[k])
                         row = np.delete(row, k)
                         col = np.delete(col, k)
-                        mass = np.delete(mass, k)
-                        kin_e = np.delete(kin_e, k)
+                        susc = np.delete(susc, k)
+                        elh = np.delete(elh, k)
                     else:
                         k += 1
 
@@ -235,13 +223,12 @@ def calculation(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(process, row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]],
-                         cells, alpha, exp, startcell))
+                    Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], elh[k], cells, alpha, exp, startcell))
 
-            elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
-            mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
+            elh_array[cells.rowindex, cells.colindex] = max(elh_array[cells.rowindex, cells.colindex], cells.elh)
+            susc_array[cells.rowindex, cells.colindex] = max(susc_array[cells.rowindex, cells.colindex], cells.susceptibility)
             count_array[cells.rowindex, cells.colindex] += 1
-            elh_sum[cells.rowindex, cells.colindex] += cells.kin_e
+            elh_sum[cells.rowindex, cells.colindex] += cells.elh
             
         #Backcalculation
         back_list = []
@@ -249,9 +236,10 @@ def calculation(args):
             if infra[cell.rowindex, cell.colindex] > 0:
                 back_list = back_calculation(cell)
             for back_cell in back_list:
-                backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex], infra[cell.rowindex, cell.colindex])
+                backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex],
+                                                                       infra[cell.rowindex, cell.colindex])
             
-        release[elh > 0] = 0
+        release[elh_array > 0] = 0
         # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
         row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
@@ -259,7 +247,7 @@ def calculation(args):
     #elh_multi[elh_multi == 1] = 0         
     print('\n Time needed: ' + str(end - start))
     # self.quit()
-    return elh, mass_array, count_array, elh_sum, backcalc
+    return elh_array, susc_array, count_array, elh_sum, backcalc
 
 def calculation_effect(args):
     """This is the core function where all the data handling and calculation is
@@ -268,7 +256,6 @@ def calculation_effect(args):
     Input parameters:
         dem         The digital elevation model
         header      The header of the elevation model
-        forest      The forest layer
         process     Which process to calculate (Avalanche, Rockfall, SoilSlides)     
         release     The list of release arrays
         
@@ -283,21 +270,14 @@ def calculation_effect(args):
     
     dem = args[0]
     header = args[1]
-    forest = args[2]
-    process = args[3]
-# =============================================================================
-#     row_list = args[4]
-#     col_list = args[5]
-# =============================================================================
-    release = args[4]
-    alpha = args[5]
-    exp = args[6]
-    #number = args[6]
-    #length = args[7]
-    
-    elh = np.zeros_like(dem)
+    process = args[2]
+    release = args[3]
+    alpha = args[4]
+    exp = args[5]
+
+    elh_array = np.zeros_like(dem)
     elh_sum = np.zeros_like(dem)
-    mass_array = np.zeros_like(dem)
+    susc_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
 
@@ -323,30 +303,30 @@ def calculation_effect(args):
             startcell_idx += 1
             continue
 
-        startcell = Cell(process, row_idx, col_idx, dem_ng, cellsize, 1, 0, forest[row_idx, col_idx], None,
+        startcell = Cell(process, row_idx, col_idx, dem_ng, cellsize, 1, 0, None,
                          alpha, exp, startcell=True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)
         for cells in cell_list:
                 
-            row, col, mass, kin_e = cells.calc_distribution()
-            if len(mass) > 0:
+            row, col, susc, elh = cells.calc_distribution()
+            if len(susc) > 0:
                 # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
-                kin_e, mass, row, col = list(zip(*sorted(zip(kin_e, mass, row, col), reverse=False)))
+                elh, susc, row, col = list(zip(*sorted(zip(elh, susc, row, col), reverse=False)))
                 # Sort this lists by elh, to start with the highest cell
 
             for i in range(len(cell_list)):  # Check if Cell already exists
                 k = 0
                 while k < len(row):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
-                        cell_list[i].add_mass(mass[k])
+                        cell_list[i].add_os(susc[k])
                         cell_list[i].add_parent(cells)
-                        cell_list[i].kin_e = max(cell_list[i].kin_e, kin_e[k])
+                        cell_list[i].elh = max(cell_list[i].elh, elh[k])
                         row = np.delete(row, k)
                         col = np.delete(col, k)
-                        mass = np.delete(mass, k)
-                        kin_e = np.delete(kin_e, k)
+                        susc = np.delete(susc, k)
+                        elh = np.delete(elh, k)
                     else:
                         k += 1
 
@@ -355,15 +335,14 @@ def calculation_effect(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(process, row[k], col[k], dem_ng, cellsize, mass[k], kin_e[k], forest[row[k], col[k]],
-                         cells, alpha, exp, startcell))
+                    Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], elh[k], cells, alpha, exp, startcell))
 
-            elh[cells.rowindex, cells.colindex] = max(elh[cells.rowindex, cells.colindex], cells.kin_e)
-            mass_array[cells.rowindex, cells.colindex] = max(mass_array[cells.rowindex, cells.colindex], cells.mass)
+            elh_array[cells.rowindex, cells.colindex] = max(elh_array[cells.rowindex, cells.colindex], cells.elh)
+            susc_array[cells.rowindex, cells.colindex] = max(susc_array[cells.rowindex, cells.colindex], cells.susceptibility)
             count_array[cells.rowindex, cells.colindex] += 1
-            elh_sum[cells.rowindex, cells.colindex] += cells.kin_e
+            elh_sum[cells.rowindex, cells.colindex] += cells.elh
 
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)        
     print('\n Time needed: ' + str(end - start))
-    return elh, mass_array, count_array, elh_sum, backcalc
+    return elh_array, susc_array, count_array, elh_sum, backcalc

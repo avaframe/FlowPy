@@ -3,7 +3,7 @@
 """
 Created on Mon May  7 14:23:00 2018
 
-@author: Neuhauser
+@author: Michael Neuhauser
 """
 # import standard libraries
 import os
@@ -180,16 +180,6 @@ class Flow_Py_EXEC():
         infra = infra_file[0]
         self.ui.infra_lineEdit.setText(infra[0])
 
-# =============================================================================
-#     def open_forest(self):
-#         """Open forest layer"""
-#         forest_file = QFileDialog.getOpenFileNames(self, 'Open Forest Layer',
-#                                                    self.directory,
-#                                                    "tif (*.tif);;raster (*.asc);;All Files (*.*)")
-#         forest = forest_file[0]
-#         self.forest_lineEdit.setText(forest[0])
-# =============================================================================
-
     def processChanged(self):
         if self.ui.process_Box.currentText() == 'Avalanche':
             self.ui.alpha_Edit.setText('25')
@@ -309,20 +299,6 @@ class Flow_Py_EXEC():
         except:
             infra = np.zeros_like(dem)
 
-        try:
-            forest, forest_header = io.read_raster(self.ui.forest_lineEdit.text())
-            if header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']:
-                print("Forest Layer ok!")
-                self.prot_for_bool = True
-                logging.info('Forest File: {}'.format(self.ui.forest_lineEdit.text()))
-            else:
-                print("Error: Forest Layer doesn't match DEM!")
-                self.set_gui_bool(True)
-                return
-        except:
-            forest = np.zeros_like(dem)
-
-
         logging.info('Files read in')
 
         process = self.ui.process_Box.currentText()
@@ -336,7 +312,7 @@ class Flow_Py_EXEC():
         self.backcalc = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, forest, process, calc_bool, alpha, exp)
+        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, process, calc_bool, alpha, exp)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
