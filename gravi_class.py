@@ -37,7 +37,7 @@ class Cell:
             self.no_effect_v = 45
         if process == 'Rockfall':
             self.alpha = 32
-            self.alpha_forest = 0
+            self.alpha_forest = 13
             self.exp = 75
             self.mass_threshold = 3 * 10 ** -4
             self.max_elh = 50  # maximum velocity this process can reach
