@@ -27,3 +27,5 @@ All Layers need the exact same extend. If not the Code will give you feedback wh
 - Cell Counts:
 
 ## Code
+
+./main.py 25 8 Avalanche ./examples/helix/ ./examples/helix/dhm.asc ./examples/helix/class_1.asc

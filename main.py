@@ -56,8 +56,6 @@ class Flow_Py_EXEC():
         self.ui.actionSave.triggered.connect(self.save)
         self.ui.actionLoad.triggered.connect(self.load)
         self.ui.actionQuit.triggered.connect(self.quit)
-        
-        
 
         self.calc_class = None
         self.prot_for_bool = False
@@ -160,7 +158,7 @@ class Flow_Py_EXEC():
         """Open digital elevation model"""
         dem_file = QFileDialog.getOpenFileNames(None, 'Open DEM',
                                                 self.directory,
-                                                "tif (*.tif);;raster (*.asc);;All Files (*.*)")
+                                                "ascii (*.asc);;tif (*.tif);;All Files (*.*)")
         dem = dem_file[0]
         self.ui.DEM_lineEdit.setText(dem[0])
 
@@ -168,7 +166,7 @@ class Flow_Py_EXEC():
         """Open release layer"""
         release_file = QFileDialog.getOpenFileNames(None, 'Open Release',
                                                     self.directory,
-                                                    "tif (*.tif);;raster (*.asc);;All Files (*.*)")
+                                                    "ascii (*.asc);;tif (*.tif);;All Files (*.*)")
         release = release_file[0]
         self.ui.release_lineEdit.setText(release[0])
 
@@ -176,7 +174,7 @@ class Flow_Py_EXEC():
         """Open infrastructure layer"""
         infra_file = QFileDialog.getOpenFileNames(None, 'Open Infrastructure Layer',
                                                   self.directory,
-                                                  "tif (*.tif);;raster (*.asc);;All Files (*.*)")
+                                                  "ascii (*.asc);;tif (*.tif);;All Files (*.*)")
         infra = infra_file[0]
         self.ui.infra_lineEdit.setText(infra[0])
 
@@ -371,8 +369,6 @@ class Flow_Py_EXEC():
 #         self.infra_lineEdit.setEnabled(True)
 #         self.forest_lineEdit.setEnabled(True)
 # =============================================================================
-
-
 
 
 if __name__ == '__main__':
