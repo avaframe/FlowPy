@@ -3,7 +3,7 @@
 """
 Created on Fri Nov  8 10:41:45 2019
 
-@author: Neuhauser
+@author: Michael Neuhauser
 In this class the mutliprocessing is handled.
 """
 # Flow-Py libraries

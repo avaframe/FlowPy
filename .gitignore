@@ -3,7 +3,7 @@
 /.idea/
 /__pycache__/
 /examples/helix/res*/
-/examples/example1/res*/
+/examples/*/res*/
 /examples/example2/res*/
 
 
