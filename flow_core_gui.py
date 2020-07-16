@@ -161,6 +161,7 @@ def calculation(args):
     susc_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
+    back_list = []
 
     cellsize = header["cellsize"]
     nodata = header["noDataValue"]
@@ -189,7 +190,7 @@ def calculation(args):
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)
-        for cells in cell_list:
+        for cell in cell_list:
 # =============================================================================
 #             if (release[cells.rowindex, cells.colindex] > 0 and cells.is_start != True and process == 'Avalanche'):
 #                 cells.add_mass(1)
@@ -198,7 +199,7 @@ def calculation(args):
 #                 # Works only for release areas not for release pixels!
 # =============================================================================
 
-            row, col, susc, elh = cells.calc_distribution()
+            row, col, susc, elh = cell.calc_distribution()
             if len(susc) > 0:
                 # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
                 elh, susc, row, col = list(zip(*sorted(zip(elh, susc, row, col), reverse=False)))
@@ -209,7 +210,7 @@ def calculation(args):
                 while k < len(row):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
                         cell_list[i].add_os(susc[k])
-                        cell_list[i].add_parent(cells)
+                        cell_list[i].add_parent(cell)
                         cell_list[i].elh = max(cell_list[i].elh, elh[k])
                         row = np.delete(row, k)
                         col = np.delete(col, k)
@@ -223,21 +224,22 @@ def calculation(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], elh[k], cells, alpha, exp, startcell))
+                    Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], elh[k], cell, alpha, exp, startcell))
 
-            elh_array[cells.rowindex, cells.colindex] = max(elh_array[cells.rowindex, cells.colindex], cells.elh)
-            susc_array[cells.rowindex, cells.colindex] = max(susc_array[cells.rowindex, cells.colindex], cells.susceptibility)
-            count_array[cells.rowindex, cells.colindex] += 1
-            elh_sum[cells.rowindex, cells.colindex] += cells.elh
+            elh_array[cell.rowindex, cell.colindex] = max(elh_array[cell.rowindex, cell.colindex], cell.elh)
+            susc_array[cell.rowindex, cell.colindex] = max(susc_array[cell.rowindex, cell.colindex], cell.susceptibility)
+            count_array[cell.rowindex, cell.colindex] += 1
+            elh_sum[cell.rowindex, cell.colindex] += cell.elh
             
         #Backcalculation
-        back_list = []
-        for cell in cell_list:
+        #for cell in cell_list:
             if infra[cell.rowindex, cell.colindex] > 0:
+                backlist = []
                 back_list = back_calculation(cell)
-            for back_cell in back_list:
-                backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex],
-                                                                       infra[cell.rowindex, cell.colindex])
+
+                for back_cell in back_list:
+                    backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex],
+                                                                           infra[cell.rowindex, cell.colindex])
             
         release[elh_array > 0] = 0
         # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
