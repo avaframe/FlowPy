@@ -304,7 +304,7 @@ class Flow_Py_EXEC():
         alpha = self.ui.alpha_Edit.text()
         exp = self.ui.exp_Edit.text()
         self.elh = np.zeros_like(dem)
-        self.mass = np.zeros_like(dem)
+        self.susc = np.zeros_like(dem)
         self.cell_counts = np.zeros_like(dem)
         self.elh_sum = np.zeros_like(dem)
         self.backcalc = np.zeros_like(dem)
@@ -316,11 +316,11 @@ class Flow_Py_EXEC():
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
         self.calc_class.start()
 
-    def thread_finished(self, elh, mass, count_array, elh_sum, backcalc):
+    def thread_finished(self, elh, susc, count_array, elh_sum, backcalc):
         logging.info('Calculation finished, getting results.')
         for i in range(len(elh)):
             self.elh = np.maximum(self.elh, elh[i])
-            self.mass = np.maximum(self.mass, mass[i])
+            self.susc = np.maximum(self.susc, susc[i])
             self.cell_counts += count_array[i]
             self.elh_sum += elh_sum[i]
             self.backcalc = np.maximum(self.backcalc, backcalc[i])
@@ -336,8 +336,8 @@ class Flow_Py_EXEC():
         # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
         logging.info('Writing Output Files')
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "mass_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.mass)
+                         self.directory + self.res_dir + "susceptibility_{}{}".format(proc, self.ui.outputBox.currentText()),
+                         self.susc)
         io.output_raster(self.ui.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "elh_{}{}".format(proc, self.ui.outputBox.currentText()),
                          self.elh)

@@ -67,7 +67,7 @@ class Simulation(QThread):
         print("Processes finished")
 
         elh_list = []
-        mass_list = []
+        susc_list = []
         cc_list = []
         elh_sum_list = []
         backcalc_list = []
@@ -75,10 +75,10 @@ class Simulation(QThread):
             res = results[i]
             res = list(res)
             elh_list.append(res[0])
-            mass_list.append(res[1])
+            susc_list.append(res[1])
             cc_list.append(res[2])
             elh_sum_list.append(res[3])
             backcalc_list.append(res[4])
 
-        self.finished.emit(elh_list, mass_list, cc_list, elh_sum_list, backcalc_list)
+        self.finished.emit(elh_list, susc_list, cc_list, elh_sum_list, backcalc_list)
         print("Results passed")
