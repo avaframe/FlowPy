@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>logo.jpg</normaloff>logo.jpg</iconset>
+    <normaloff>FlowPylogo.png</normaloff>FlowPylogo.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
