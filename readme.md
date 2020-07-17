@@ -1,5 +1,4 @@
-#Readme
-##Flow Py
+#Flow Py
 
 To define protective functions and to quantify the protective effects of forests, we created the Flow-Py model that 
 identifies process areas of gravitational hazards, including avalanches, rockfall and debris slides. The model is 
