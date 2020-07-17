@@ -1,11 +1,24 @@
 # Readme
+##Flow Py
 
+To define protective functions and to quantify the protective effects of forests, we created the Flow-Py model that 
+identifies process areas of gravitational hazards, including avalanches, rockfall and debris slides. The model is 
+written in Python to keep it easy adjustable. The run out routine of Flow-Py is based on the principles of energy 
+conservation including frictional dissipation assuming simple coulomb friction, leading to constant travel-angle. 
+Potential release areas and the corresponding travel angle have to be adapted for each type of gravitational mass movements. 
+A important improvement, compared to similar models, is that it can handle mass movement in flat and uphill terrain. 
+One major advantage of this model is its simplicity, resulting in a computationally inexpensive implementation, which 
+allows for an application on a regional scale, covering large simulation areas. The adaptivity of the model further 
+allows to consider existing infrastructure and to detect starting zones endangering the corresponding areas in a back-calculation step. 
+Additionally, by adding forest cover to the simulations we can identify which forest area has a protective function and, 
+based on information about forest structure, calculate the protective effect this forest provides to down slope infrastructure.
+
+## Running the Code
 Right now the Code only works on Linux Machines, due to the multiprocessing.\
-Terminal and Windows Version are in the making...
+Terminal Version and Windows compatibility Version are in the making...
 Run the Code via the main.py script. \
 Some PyQt libraries are needed and rasterio.\
-There is a .yml file in the repo that includes all needed libraries, you can import this file in anaconda.\
-Right now only GUI version is working, working on terminal version.
+There is a .yml file in the repo that includes all needed libraries, you can import the environment in anaconda.\
 
 ## Input Files
 
