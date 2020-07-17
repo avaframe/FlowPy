@@ -1,5 +1,7 @@
 # Readme
 
+Right now the Code only works on Linux Machines, due to the multiprocessing.\
+Terminal and Windows Version are in the making...
 Run the Code via the main.py script. \
 Some PyQt libraries are needed and rasterio.\
 There is a .yml file in the repo that includes all needed libraries, you can import this file in anaconda.\
