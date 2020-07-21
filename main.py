@@ -79,9 +79,7 @@ class Flow_Py_EXEC():
         self.ui.DEM_lineEdit.setEnabled(bool)
         self.ui.release_lineEdit.setEnabled(bool)
         self.ui.infra_lineEdit.setEnabled(bool)
-        #self.ui.forest_lineEdit.setEnabled(bool)
 
-    
     def save(self):
         """Save the input paths"""
         name = QFileDialog.getSaveFileName(None, 'Save File',
@@ -228,16 +226,8 @@ class Flow_Py_EXEC():
             return
         # Disable all input line Edits and Buttons
         self.set_gui_bool(False)
-# =============================================================================
-#         self.calc_Button.setEnabled(False)
-#         self.wDir_lineEdit.setEnabled(False)
-#         self.DEM_lineEdit.setEnabled(False)
-#         self.release_lineEdit.setEnabled(False)
-#         self.infra_lineEdit.setEnabled(False)
-#         self.forest_lineEdit.setEnabled(False)
-# =============================================================================
-        
-                # Create result directory
+
+        # Create result directory
         time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
         try:
             os.makedirs(self.ui.wDir_lineEdit.text() + '/res_{}/'.format(time_string))
@@ -360,14 +350,6 @@ class Flow_Py_EXEC():
         # Handle GUI
         #self.ui.progressBar.setValue(100)
         self.set_gui_bool(True)
-# =============================================================================
-#         self.calc_Button.setEnabled(True)
-#         self.wDir_lineEdit.setEnabled(True)
-#         self.DEM_lineEdit.setEnabled(True)
-#         self.release_lineEdit.setEnabled(True)
-#         self.infra_lineEdit.setEnabled(True)
-#         self.forest_lineEdit.setEnabled(True)
-# =============================================================================
 
 
 def main(argv):
@@ -375,7 +357,7 @@ def main(argv):
     alpha = int(argv[0])
     exp = int(argv[1])
     process = argv[2]
-    wdir = argv[3]
+    directory = argv[3]
     dem_path = argv[4]
     release_path = argv[5]
     if len(argv) == 7:
@@ -386,7 +368,6 @@ def main(argv):
 
     start = datetime.now().replace(microsecond=0)
     calc_bool = False
-    directory = wdir
     # Create result directory
     time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     try:
@@ -507,7 +488,7 @@ def main(argv):
         proc = 'ds'
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     logging.info('Writing Output Files')
-    output_format = 'tif'
+    output_format = '.tif'
     io.output_raster(dem_path,
                      directory + res_dir + "susceptibility_{}{}".format(proc, output_format),
                      susc)
@@ -533,10 +514,12 @@ def main(argv):
 
 
 if __name__ == '__main__':
+    #mp.set_start_method('spawn') # used in Windows
     argv = sys.argv[1:]
     if len(argv) == 1 and argv[0] == '--gui':
         Flow_Py_EXEC()
     else:
         main(argv)
     #example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/dhm.asc ./examples/helix/class_1.asc
+    # example dam: 25 8 Avalanche ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
 

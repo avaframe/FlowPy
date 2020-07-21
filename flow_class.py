@@ -93,7 +93,7 @@ class Cell:
             for parent in self.parent:
                 dx = (parent.colindex - self.colindex) * -1 + 1
                 dy = (parent.rowindex - self.rowindex) * -1 + 1
-                maxweight = 1 * parent.kin_e
+                maxweight = 1 * parent.elh
                 if dx == 0 and dy == 0:
                     self.persistence[0, 0] += maxweight
                     self.persistence[1, 0] += 0.707 * maxweight
@@ -131,7 +131,7 @@ class Cell:
                     
     def calc_distribution(self):
         threshold = self.p_threshold
-        if np.sum(self.p_fd > 0):
+        if np.sum(self.p_fd) > 0:
             self.dist = self.persistence * self.p_fd / np.sum(self.persistence * self.p_fd) * self.susceptibility
         # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
         # susceptibility.
