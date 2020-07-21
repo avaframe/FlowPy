@@ -11,19 +11,18 @@ import sys
 import numpy as np
 from datetime import datetime
 from multiprocessing import cpu_count
+import multiprocessing as mp
 import logging
 from xml.etree import ElementTree as ET
 
 # Flow-Py Libraries
 import raster_io as io
 import Simulation as Sim
+import flow_core_gui as fc
 
 # Libraries for GUI, PyQt5
-from PyQt5 import uic
-#from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QMainWindow, QApplication
-from PyQt5.QtGui import QIcon
 
 from Flow_GUI import Ui_MainWindow
 
@@ -371,5 +370,173 @@ class Flow_Py_EXEC():
 # =============================================================================
 
 
+def main(argv):
+
+    alpha = int(argv[0])
+    exp = int(argv[1])
+    process = argv[2]
+    wdir = argv[3]
+    dem_path = argv[4]
+    release_path = argv[5]
+    if len(argv) == 7:
+        infra_path = argv[6]
+    else:
+        infra_path = None
+
+
+    start = datetime.now().replace(microsecond=0)
+    calc_bool = False
+    directory = wdir
+    # Create result directory
+    time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
+    try:
+        os.makedirs(directory + '/res_{}/'.format(time_string))
+        res_dir = ('/res_{}/'.format(time_string))
+    except FileExistsError:
+        res_dir = ('/res_{}/'.format(time_string))
+
+    # Setup logger
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        filename=(directory + res_dir + 'log_{}.txt').format(time_string),
+                        filemode='w')
+
+    # Start of Calculation
+    logging.info('Start Calculation')
+    logging.info('Alpha Angle: {}'.format(alpha))
+    logging.info('Exponent: {}'.format(exp))
+    # Read in raster files
+    try:
+        dem, header = io.read_raster(dem_path)
+        logging.info('DEM File: {}'.format(dem_path))
+    except FileNotFoundError:
+        print("DEM: Wrong filepath or filename")
+        return
+
+    try:
+        release, release_header = io.read_raster(release_path)
+        logging.info('Release File: {}'.format(release_path))
+    except FileNotFoundError:
+        print("Wrong filepath or filename")
+        return
+
+    # Check if Layers have same size!!!
+    if header['ncols'] == release_header['ncols'] and header['nrows'] == release_header['nrows']:
+        print("DEM and Release Layer ok!")
+    else:
+        print("Error: Release Layer doesn't match DEM!")
+        return
+
+    try:
+        infra, infra_header = io.read_raster(infra_path)
+        if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
+            print("Infra Layer ok!")
+            calc_bool = True
+            logging.info('Infrastructure File: {}'.format(infra_path))
+        else:
+            print("Error: Infra Layer doesn't match DEM!")
+            return
+    except:
+        infra = np.zeros_like(dem)
+
+    logging.info('Files read in')
+
+    logging.info('Process: {}'.format(process))
+    elh = np.zeros_like(dem)
+    susc = np.zeros_like(dem)
+    cell_counts = np.zeros_like(dem)
+    elh_sum = np.zeros_like(dem)
+    backcalc = np.zeros_like(dem)
+
+    # Calculation
+    logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
+
+    if calc_bool:
+        release_list = fc.split_release(release, release_header, mp.cpu_count() * 2)
+
+        print("{} Processes started.".format(len(release_list)))
+        pool = mp.Pool(len(release_list))
+        results = pool.map(fc.calculation,
+                           [[dem, header, infra, process, release_pixel, alpha, exp]
+                            for release_pixel in release_list])
+        pool.close()
+        pool.join()
+    else:
+        release_list = fc.split_release(release, release_header, mp.cpu_count() * 4)
+
+        print("{} Processes started.".format(len(release_list)))
+        pool = mp.Pool(mp.cpu_count())
+        # results = pool.map(gc.calculation, iterable)
+        results = pool.map(fc.calculation_effect,
+                           [[dem, header, process, release_pixel, alpha, exp] for
+                            release_pixel in release_list])
+        pool.close()
+        pool.join()
+
+    elh_list = []
+    susc_list = []
+    cc_list = []
+    elh_sum_list = []
+    backcalc_list = []
+    for i in range(len(results)):
+        res = results[i]
+        res = list(res)
+        elh_list.append(res[0])
+        susc_list.append(res[1])
+        cc_list.append(res[2])
+        elh_sum_list.append(res[3])
+        backcalc_list.append(res[4])
+
+    logging.info('Calculation finished, getting results.')
+    for i in range(len(elh_list)):
+        elh = np.maximum(elh, elh_list[i])
+        susc = np.maximum(susc, susc_list[i])
+        cell_counts += cc_list[i]
+        elh_sum += elh_sum_list[i]
+        backcalc = np.maximum(backcalc, backcalc_list[i])
+
+    if process == 'Avalanche':
+        proc = 'ava'
+    if process == 'Rockfall':
+        proc = 'rf'
+    if process == 'Soil Slides':
+        proc = 'ds'
+    # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
+    logging.info('Writing Output Files')
+    output_format = 'tif'
+    io.output_raster(dem_path,
+                     directory + res_dir + "susceptibility_{}{}".format(proc, output_format),
+                     susc)
+    io.output_raster(dem_path,
+                     directory + res_dir + "elh_{}{}".format(proc, output_format),
+                     elh)
+    io.output_raster(dem_path,
+                     directory + res_dir + "cell_counts_{}{}".format(proc, output_format),
+                     cell_counts)
+    io.output_raster(dem_path,
+                     directory + res_dir + "elh_sum_{}{}".format(proc, output_format),
+                     elh_sum)
+    io.output_raster(dem_path,
+                     directory + res_dir + "backcalculation_{}{}".format(proc, output_format),
+                     backcalc)
+
+    # Output of Protection forest if Infra structure and forest layer are
+    # provided
+
+    print("Calculation finished")
+    end = datetime.now().replace(microsecond=0)
+    logging.info('Calculation needed: ' + str(end - start) + ' seconds')
+
+
 if __name__ == '__main__':
-    Flow_Py_EXEC()
+    argv = sys.argv[1:]
+    if len(argv) == 1 and argv[0] == '--gui':
+        Flow_Py_EXEC()
+    else:
+        main(argv)
+    #example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/dhm.asc ./examples/helix/class_1.asc
+

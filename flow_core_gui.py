@@ -14,10 +14,8 @@ of DEM, return arrays)
 """
 
 import sys
-import multiprocessing as mp
 import numpy as np
 from datetime import datetime
-#import time
 from flow_class import Cell
 
 
@@ -337,7 +335,7 @@ def calculation_effect(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], elh[k], cells, alpha, exp, startcell))
+                    Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], elh[k], cell, alpha, exp, startcell))
 
             elh_array[cell.rowindex, cell.colindex] = max(elh_array[cell.rowindex, cell.colindex], cell.elh)
             susc_array[cell.rowindex, cell.colindex] = max(susc_array[cell.rowindex, cell.colindex], cell.susceptibility)
