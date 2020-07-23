@@ -39,10 +39,10 @@ class Cell:
             self.p_threshold = 3 * 10 ** -4
             self.max_elh = 12  # maximum velocity this process can reach
         self.parent = []
-        if parent:
+        if type(parent) == Cell:
             self.parent.append(parent)
         
-        if startcell:  # check, if start cell exist (start cell is release point)
+        if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
         else:            
             self.startcell = startcell  # give startcell to cell
@@ -61,7 +61,7 @@ class Cell:
     
     def calc_elh(self):
 
-        delta_e_pot = (self.dem_ng - self.altitude) * (-1)
+        delta_e_pot = self.altitude - self.dem_ng
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         tan_alpha = np.tan(np.deg2rad(self.alpha))
         e_friction = ds * self.cellsize * tan_alpha
@@ -74,25 +74,27 @@ class Cell:
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 1, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         distance = ds * self.cellsize
         
-        beta = np.arctan(((self.dem_ng - self.altitude) * (-1)) / distance) + 90
+        beta = np.arctan((self.altitude - self.dem_ng) / distance) + 90
         self.tan_beta = np.tan(beta/2)
 
         self.tan_beta[self.elh_neighbour <= 0] = 0
         self.tan_beta[self.persistence <= 0] = 0
         self.tan_beta[1, 1] = 0
-        if np.sum(self.tan_beta > 0):
+        if np.sum(self.tan_beta) > 0:
             self.p_fd = self.tan_beta ** self.exp / np.sum(self.tan_beta ** self.exp)
 
     def calc_persistence(self):
         self.persistence = np.zeros_like(self.dem_ng)
         if self.is_start:
             self.persistence += 1
+            #print('Startcell')
         elif self.parent[0].is_start:
             self.persistence += 1
+            #print('nearly Startcell')
         else:
             for parent in self.parent:
-                dx = (parent.colindex - self.colindex) * -1 + 1
-                dy = (parent.rowindex - self.rowindex) * -1 + 1
+                dx = (self.colindex - parent.colindex) + 1 # plus 1 to bring it from range [-1,0,1] to [0,1,2] = index of neighbour array
+                dy = (self.rowindex - parent.rowindex) + 1
                 maxweight = 1 * parent.elh
                 if dx == 0 and dy == 0:
                     self.persistence[0, 0] += maxweight
@@ -126,8 +128,8 @@ class Cell:
                     self.persistence[2, 2] += maxweight
                     self.persistence[2, 1] += 0.707 * maxweight
                     self.persistence[1, 2] += 0.707 * maxweight
-
-            np.rot90(self.persistence, 2)
+            #print(self.persistence)
+            #np.rot90(self.persistence, 2)  #ToDo: self.persistence = np.rot90(self.persistence, 2)
                     
     def calc_distribution(self):
         threshold = self.p_threshold

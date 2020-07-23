@@ -221,6 +221,7 @@ def calculation(args):
                 dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
+                print(susc[k])
                 cell_list.append(
                     Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], elh[k], cell, alpha, exp, startcell))
 
@@ -238,15 +239,13 @@ def calculation(args):
                 for back_cell in back_list:
                     backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex],
                                                                            infra[cell.rowindex, cell.colindex])
-            
         release[elh_array > 0] = 0
-        # Check if i hited a release Cell, if so set it to zero and get again the indexes of release cells
+        # Check if i hit a release Cell, if so set it to zero and get again the indexes of release cells
         row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)
     #elh_multi[elh_multi == 1] = 0         
     print('\n Time needed: ' + str(end - start))
-    # self.quit()
     return elh_array, susc_array, count_array, elh_sum, backcalc
 
 def calculation_effect(args):
@@ -304,7 +303,7 @@ def calculation_effect(args):
             continue
 
         startcell = Cell(process, row_idx, col_idx, dem_ng, cellsize, 1, 0, None,
-                         alpha, exp, startcell=True)
+                         alpha, exp, True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)

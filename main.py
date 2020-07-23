@@ -520,6 +520,8 @@ if __name__ == '__main__':
         Flow_Py_EXEC()
     else:
         main(argv)
-    #example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/dhm.asc ./examples/helix/class_1.asc
+    # example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif
     # example dam: 25 8 Avalanche ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
+    # 25 8 Avalanche ./examples/tetraeder/ ./examples/tetraeder/tetraeder_010m.asc ./examples/tetraeder/release.tif
+    # 25 8 Avalanche ./examples/standard/ ./examples/standard/5m_standard_n10.asc ./examples/standard/release_standard_n10.tif
 
