@@ -21,6 +21,7 @@
 *.blg
 *.bbl
 *.aux
+*.aux.xml
 
 # Packages #
 ############
