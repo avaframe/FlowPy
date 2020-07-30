@@ -221,7 +221,6 @@ def calculation(args):
                 dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
-                print(susc[k])
                 cell_list.append(
                     Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], elh[k], cell, alpha, exp, startcell))
 

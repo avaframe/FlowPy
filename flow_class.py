@@ -87,10 +87,8 @@ class Cell:
         self.persistence = np.zeros_like(self.dem_ng)
         if self.is_start:
             self.persistence += 1
-            #print('Startcell')
         elif self.parent[0].is_start:
             self.persistence += 1
-            #print('nearly Startcell')
         else:
             for parent in self.parent:
                 dx = (self.colindex - parent.colindex) + 1 # plus 1 to bring it from range [-1,0,1] to [0,1,2] = index of neighbour array
@@ -128,8 +126,6 @@ class Cell:
                     self.persistence[2, 2] += maxweight
                     self.persistence[2, 1] += 0.707 * maxweight
                     self.persistence[1, 2] += 0.707 * maxweight
-            #print(self.persistence)
-            #np.rot90(self.persistence, 2)  #ToDo: self.persistence = np.rot90(self.persistence, 2)
                     
     def calc_distribution(self):
         threshold = self.p_threshold
