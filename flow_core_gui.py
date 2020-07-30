@@ -311,8 +311,9 @@ def calculation_effect(args):
                 
             row, col, susc, elh = cell.calc_distribution()
             if len(susc) > 0:
-                # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
-                elh, susc, row, col = list(zip(*sorted(zip(elh, susc, row, col), reverse=False)))
+                #alti, susc, elh, row, col = list(zip(*sorted(zip(dem[row, col], susc, elh, row, col), reverse=True)))
+                elh, susc, row, col = list(zip(*sorted(zip(elh, susc, row, col), reverse=False)))  # reverse = True == descending
+                #ToDo: Sort them to get nice results!!!
                 # Sort this lists by elh, to start with the highest cell
 
             for i in range(len(cell_list)):  # Check if Cell already exists
