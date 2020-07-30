@@ -14,7 +14,7 @@ based on information about forest structure, calculate the protective effect thi
 
 ## Running the Code
 
-./main.py --gui -> Gui Version<br/>
+./main.py --gui -> Gui Version <br/>
 ./main.py alpha_angle exponent process working_directory path_to_dem path_to_release path_to_infrastructure<br/>
 
 - alpha_angle: max. runout angle for the process: Austria -> Avalanche 25, Rockfall 35, Debris Slides 22 
