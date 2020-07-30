@@ -14,8 +14,8 @@ based on information about forest structure, calculate the protective effect thi
 
 ## Running the Code
 
-./main.py --gui -> Gui Version <br />
-./main.py alpha_angle exponent process working_directory path_to_dem path_to_release path_to_infrastructure <br/>
+./main.py --gui -> Gui Version  
+./main.py alpha_angle exponent process working_directory path_to_dem path_to_release path_to_infrastructure  
 
 - alpha_angle: max. runout angle for the process: Austria -> Avalanche 25, Rockfall 35, Debris Slides 22 
 - exponent: controls the lateral spreading, avalanches 8, rockfall and debris slides 75 (= single flow, except in flat terrain) 
@@ -25,15 +25,15 @@ based on information about forest structure, calculate the protective effect thi
 - path_to_release: well it's the path to the release layer 
 - path_to_infrastructure: well it's the path to the Infra layer, OPTIONAL!!! 
 
-Right now the Code only works on Linux Machines, due to the multiprocessing.<br/>
-Run the Code via the main.py script.<br/>
-Some PyQt libraries are needed and rasterio.<br/>
-There is a .yml file in the repo that includes all needed libraries, you can import the environment in anaconda.<br/>
+Right now the Code only works on Linux Machines, due to the multiprocessing.  
+Run the Code via the main.py script.  
+Some PyQt libraries are needed and rasterio.  
+There is a .yml file in the repo that includes all needed libraries, you can import the environment in anaconda.  
 
 ## Input Files
 
-All input files need to be .asc or .tif files.<br/>
-All files need the same raster resolution, normal sizes are 5x5 or 10x10 meters.<br/>
+All input files need to be .asc or .tif files.  
+All files need the same raster resolution, normal sizes are 5x5 or 10x10 meters.  
 All Layers need the exact same extend. If not, the Code will give you feedback which layer is not accurate.
 
 ### Input Files:
@@ -66,6 +66,6 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 
 ## Contact
 
-For Questions contact: <br/>
-Michael Neuhauser, Austrian Research Centre for Forest: Michael.Neuhauser@bfw.gv.at <br/>
+For Questions contact:  
+Michael Neuhauser, Austrian Research Centre for Forest: Michael.Neuhauser@bfw.gv.at  
 Christopher D'Amboise, Austrian Research Centre for Forest: Christopher.DAmboise@bfw.gv.at
