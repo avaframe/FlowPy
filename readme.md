@@ -13,20 +13,20 @@ Additionally, by adding forest cover to the simulations we can identify which fo
 based on information about forest structure, calculate the protective effect this forest provides to down slope infrastructure.
 
 ## Running the Code
-./main.py --gui -> Gui Version\
+./main.py --gui -> Gui Version \
 ./main.py alpha_angle exponent process working_directory path_to_dem path_to_release path_to_infrastructure \
 - alpha_angle: max. runout angle for the process: Austria -> Avalanche 25, Rockfall 35, Debris Slides 22 \
-- exponent: controls the lateral spreading, avalanches 8, rockfall and debris slides 75 (= single flow, except in flat terrain)\
-- process: can be -> Avalanche Rockfall or Soil Slides, controls max. energy line height\
-- working_directory: where to create and save result folder\
+- exponent: controls the lateral spreading, avalanches 8, rockfall and debris slides 75 (= single flow, except in flat terrain) \
+- process: can be -> Avalanche Rockfall or Soil Slides, controls max. energy line height \
+- working_directory: where to create and save result folder \
 - path_to_dem: well it's the path to the DEM (.asc or .tif)
-- path_to_release: well it's the path to the release layer\
-- path_to_infrastructure: well it's the path to the Infra layer, OPTIONAL!!!\
+- path_to_release: well it's the path to the release layer \
+- path_to_infrastructure: well it's the path to the Infra layer, OPTIONAL!!! \
 
-Right now the Code only works on Linux Machines, due to the multiprocessing.\
-Run the Code via the main.py script.\
-Some PyQt libraries are needed and rasterio.\
-There is a .yml file in the repo that includes all needed libraries, you can import the environment in anaconda.\
+Right now the Code only works on Linux Machines, due to the multiprocessing. \
+Run the Code via the main.py script. \
+Some PyQt libraries are needed and rasterio. \
+There is a .yml file in the repo that includes all needed libraries, you can import the environment in anaconda. \
 
 ## Input Files
 
