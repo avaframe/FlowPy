@@ -89,7 +89,6 @@ class Cell:
         dh = self.startcell.altitude - self.altitude
 
         ds = math.sqrt(dx ** 2 + dy ** 2) * self.cellsize
-        print('dh = {}, ds = {}'.format(dh, ds))
         self.sl_gamma = np.rad2deg(np.arctan(dh / ds))
 
     def calc_elh(self):
