@@ -297,6 +297,8 @@ class Flow_Py_EXEC():
         self.cell_counts = np.zeros_like(dem)
         self.elh_sum = np.zeros_like(dem)
         self.backcalc = np.zeros_like(dem)
+        self.fp_ta = np.zeros_like(dem)
+        self.sl_ta = np.ones_like(dem) * 90
 
         # Calculation
         self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, process, calc_bool, alpha, exp)
@@ -305,7 +307,7 @@ class Flow_Py_EXEC():
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
         self.calc_class.start()
 
-    def thread_finished(self, elh, susc, count_array, elh_sum, backcalc):
+    def thread_finished(self, elh, susc, count_array, elh_sum, backcalc, fp_ta, sl_ta):
         logging.info('Calculation finished, getting results.')
         for i in range(len(elh)):
             self.elh = np.maximum(self.elh, elh[i])
@@ -313,6 +315,8 @@ class Flow_Py_EXEC():
             self.cell_counts += count_array[i]
             self.elh_sum += elh_sum[i]
             self.backcalc = np.maximum(self.backcalc, backcalc[i])
+            self.fp_ta = np.maximum(self.fp_ta, fp_ta[i])
+            self.sl_ta = np.minimum(self.sl_ta, sl_ta[i])
         self.output()
 
     def output(self):
@@ -339,6 +343,14 @@ class Flow_Py_EXEC():
         io.output_raster(self.ui.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.ui.outputBox.currentText()),
                          self.backcalc)
+        io.output_raster(self.ui.DEM_lineEdit.text(),
+                         self.directory + self.res_dir + "FP_travel_angle_{}{}".format(proc,
+                                                                                       self.ui.outputBox.currentText()),
+                         self.fp_ta)
+        io.output_raster(self.ui.DEM_lineEdit.text(),
+                         self.directory + self.res_dir + "SL_travel_angle_{}{}".format(proc,
+                                                                                       self.ui.outputBox.currentText()),
+                         self.sl_ta)
 
         # Output of Protection forest if Infra structure and forest layer are
         # provided

@@ -8,6 +8,7 @@ This is the flow class
 """
 
 import numpy as np
+import math
 
 
 class Cell:
@@ -28,6 +29,11 @@ class Cell:
         self.elh = elh
         self.alpha = float(alpha)
         self.exp = int(exp)
+        self.min_distance = 0
+        self.max_distance = 0
+        self.min_gamma = 0
+        self.max_gamma = 0
+        self.sl_gamma = 0
 
         if process == 'Avalanche':
             self.p_threshold = 3 * 10 ** -4
@@ -38,15 +44,18 @@ class Cell:
         if process == 'Soil Slides':
             self.p_threshold = 3 * 10 ** -4
             self.max_elh = 12  # maximum velocity this process can reach
-        self.parent = []
-        if type(parent) == Cell:
-            self.parent.append(parent)
-        
+
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
         else:            
             self.startcell = startcell  # give startcell to cell
             self.is_start = False  # set is_start to False
+            self.calc_sl_travelangle()
+
+        self.parent = []
+        if type(parent) == Cell:
+            self.parent.append(parent)
+            self.calc_fp_travelangle()
         
         self.calc_elh()
         self.calc_persistence()
@@ -58,9 +67,32 @@ class Cell:
     def add_parent(self, parent):
         self.parent.append(parent)
         self.calc_persistence()
-    
-    def calc_elh(self):
+        self.calc_fp_travelangle()
 
+    def calc_fp_travelangle(self):
+        dist_min = []
+        #dist_max = []
+        dh = self.startcell.altitude - self.altitude
+        for parent in self.parent:
+            dx = abs(parent.colindex - self.colindex)
+            dy = abs(parent.rowindex - self.rowindex)
+            #dist_max.append(math.sqrt(dx ** 2 + dy ** 2) * self.cellsize + parent.max_distance)
+            dist_min.append(math.sqrt(dx ** 2 + dy ** 2) * self.cellsize + parent.min_distance)
+        self.min_distance = np.amin(dist_min)
+        #self.max_distance = np.amax(dist_max)
+        self.max_gamma = np.rad2deg(np.arctan(dh / self.min_distance))
+        #self.min_gamma = np.rad2deg(np.arctan(dh / self.max_distance))
+
+    def calc_sl_travelangle(self):
+        dx = abs(self.startcell.colindex - self.colindex)
+        dy = abs(self.startcell.rowindex - self.rowindex)
+        dh = self.startcell.altitude - self.altitude
+
+        ds = math.sqrt(dx ** 2 + dy ** 2) * self.cellsize
+        print('dh = {}, ds = {}'.format(dh, ds))
+        self.sl_gamma = np.rad2deg(np.arctan(dh / ds))
+
+    def calc_elh(self):
         delta_e_pot = self.altitude - self.dem_ng
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         tan_alpha = np.tan(np.deg2rad(self.alpha))
@@ -69,8 +101,7 @@ class Cell:
         self.elh_neighbour[self.elh_neighbour < 0] = 0
         self.elh_neighbour[self.elh_neighbour > self.max_elh] = self.max_elh
            
-    def calc_tanbeta(self):  
-
+    def calc_tanbeta(self):
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 1, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         distance = ds * self.cellsize
         

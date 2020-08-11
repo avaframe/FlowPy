@@ -16,7 +16,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 class Simulation(QThread):
     value_changed = pyqtSignal(float)
-    finished = pyqtSignal(list, list, list, list, list)
+    finished = pyqtSignal(list, list, list, list, list, list, list)
 
     def __init__(self, dem, header, release, release_header, infra, process, calc_bool, alpha, exp):
         QThread.__init__(self)
@@ -71,6 +71,8 @@ class Simulation(QThread):
         cc_list = []
         elh_sum_list = []
         backcalc_list = []
+        fp_ta_list = []
+        sl_ta_list = []
         for i in range(len(results)):
             res = results[i]
             res = list(res)
@@ -79,6 +81,8 @@ class Simulation(QThread):
             cc_list.append(res[2])
             elh_sum_list.append(res[3])
             backcalc_list.append(res[4])
+            fp_ta_list.append(res[5])
+            sl_ta_list.append(res[6])
 
-        self.finished.emit(elh_list, susc_list, cc_list, elh_sum_list, backcalc_list)
+        self.finished.emit(elh_list, susc_list, cc_list, elh_sum_list, backcalc_list, fp_ta_list, sl_ta_list)
         print("Results passed")

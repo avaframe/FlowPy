@@ -159,6 +159,8 @@ def calculation(args):
     susc_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
+    fp_travelangle_array = np.zeros_like(dem)
+    sl_travelangle_array = np.ones_like(dem) * 90
     back_list = []
 
     cellsize = header["cellsize"]
@@ -228,6 +230,8 @@ def calculation(args):
             susc_array[cell.rowindex, cell.colindex] = max(susc_array[cell.rowindex, cell.colindex], cell.susceptibility)
             count_array[cell.rowindex, cell.colindex] += 1
             elh_sum[cell.rowindex, cell.colindex] += cell.elh
+            fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex], cell.max_gamma)
+            sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex], cell.sl_gamma)
             
         #Backcalculation
         #for cell in cell_list:
@@ -245,7 +249,7 @@ def calculation(args):
     end = datetime.now().replace(microsecond=0)
     #elh_multi[elh_multi == 1] = 0         
     print('\n Time needed: ' + str(end - start))
-    return elh_array, susc_array, count_array, elh_sum, backcalc
+    return elh_array, susc_array, count_array, elh_sum, backcalc, fp_travelangle_array, sl_travelangle_array
 
 def calculation_effect(args):
     """This is the core function where all the data handling and calculation is
@@ -278,6 +282,8 @@ def calculation_effect(args):
     susc_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
+    fp_travelangle_array = np.zeros_like(dem)  # fp = Flow Path
+    sl_travelangle_array = np.zeros_like(dem)  # sl = Straight Line
 
     cellsize = header["cellsize"]
     nodata = header["noDataValue"]
@@ -340,8 +346,12 @@ def calculation_effect(args):
             susc_array[cell.rowindex, cell.colindex] = max(susc_array[cell.rowindex, cell.colindex], cell.susceptibility)
             count_array[cell.rowindex, cell.colindex] += 1
             elh_sum[cell.rowindex, cell.colindex] += cell.elh
+            fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex],
+                                                                     cell.max_gamma)
+            sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
+                                                                     cell.sl_gamma)
 
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)        
     print('\n Time needed: ' + str(end - start))
-    return elh_array, susc_array, count_array, elh_sum, backcalc
+    return elh_array, susc_array, count_array, elh_sum, backcalc, fp_travelangle_array, sl_travelangle_array
