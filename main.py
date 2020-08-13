@@ -292,13 +292,13 @@ class Flow_Py_EXEC():
         logging.info('Process: {}'.format(process))
         alpha = self.ui.alpha_Edit.text()
         exp = self.ui.exp_Edit.text()
-        self.elh = np.zeros_like(dem)
+        self.z_delta = np.zeros_like(dem)
         self.susc = np.zeros_like(dem)
         self.cell_counts = np.zeros_like(dem)
-        self.elh_sum = np.zeros_like(dem)
+        self.z_delta_sum = np.zeros_like(dem)
         self.backcalc = np.zeros_like(dem)
         self.fp_ta = np.zeros_like(dem)
-        self.sl_ta = np.ones_like(dem) * 90
+        self.sl_ta = np.zeros_like(dem)
 
         # Calculation
         self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, process, calc_bool, alpha, exp)
@@ -307,16 +307,16 @@ class Flow_Py_EXEC():
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
         self.calc_class.start()
 
-    def thread_finished(self, elh, susc, count_array, elh_sum, backcalc, fp_ta, sl_ta):
+    def thread_finished(self, z_delta, susc, count_array, z_delta_sum, backcalc, fp_ta, sl_ta):
         logging.info('Calculation finished, getting results.')
-        for i in range(len(elh)):
-            self.elh = np.maximum(self.elh, elh[i])
+        for i in range(len(z_delta)):
+            self.z_delta = np.maximum(self.z_delta, z_delta[i])
             self.susc = np.maximum(self.susc, susc[i])
             self.cell_counts += count_array[i]
-            self.elh_sum += elh_sum[i]
+            self.z_delta_sum += z_delta_sum[i]
             self.backcalc = np.maximum(self.backcalc, backcalc[i])
             self.fp_ta = np.maximum(self.fp_ta, fp_ta[i])
-            self.sl_ta = np.minimum(self.sl_ta, sl_ta[i])
+            self.sl_ta = np.maximum(self.sl_ta, sl_ta[i])
         self.output()
 
     def output(self):
@@ -332,14 +332,14 @@ class Flow_Py_EXEC():
                          self.directory + self.res_dir + "susceptibility_{}{}".format(proc, self.ui.outputBox.currentText()),
                          self.susc)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "elh_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.elh)
+                         self.directory + self.res_dir + "z_delta_{}{}".format(proc, self.ui.outputBox.currentText()),
+                         self.z_delta)
         io.output_raster(self.ui.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "cell_counts_{}{}".format(proc, self.ui.outputBox.currentText()),
                          self.cell_counts)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "elh_sum_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.elh_sum)
+                         self.directory + self.res_dir + "z_delta_sum_{}{}".format(proc, self.ui.outputBox.currentText()),
+                         self.z_delta_sum)
         io.output_raster(self.ui.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.ui.outputBox.currentText()),
                          self.backcalc)
@@ -439,11 +439,13 @@ def main(argv):
     logging.info('Files read in')
 
     logging.info('Process: {}'.format(process))
-    elh = np.zeros_like(dem)
+    z_delta = np.zeros_like(dem)
     susc = np.zeros_like(dem)
     cell_counts = np.zeros_like(dem)
-    elh_sum = np.zeros_like(dem)
+    z_delta_sum = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
+    fp_ta = np.zeros_like(dem)
+    sl_ta = np.zeros_like(dem)
 
     # Calculation
     logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
@@ -470,27 +472,33 @@ def main(argv):
         pool.close()
         pool.join()
 
-    elh_list = []
+    z_delta_list = []
     susc_list = []
     cc_list = []
-    elh_sum_list = []
+    z_delta_sum_list = []
     backcalc_list = []
+    fp_ta_list = []
+    sl_ta_list = []
     for i in range(len(results)):
         res = results[i]
         res = list(res)
-        elh_list.append(res[0])
+        z_delta_list.append(res[0])
         susc_list.append(res[1])
         cc_list.append(res[2])
-        elh_sum_list.append(res[3])
+        z_delta_sum_list.append(res[3])
         backcalc_list.append(res[4])
+        fp_ta_list.append(res[5])
+        sl_ta_list.append(res[6])
 
     logging.info('Calculation finished, getting results.')
-    for i in range(len(elh_list)):
-        elh = np.maximum(elh, elh_list[i])
+    for i in range(len(z_delta_list)):
+        z_delta = np.maximum(z_delta, z_delta_list[i])
         susc = np.maximum(susc, susc_list[i])
         cell_counts += cc_list[i]
-        elh_sum += elh_sum_list[i]
+        z_delta_sum += z_delta_sum_list[i]
         backcalc = np.maximum(backcalc, backcalc_list[i])
+        fp_ta = np.maximum(fp_ta, fp_ta_list[i])
+        sl_ta = np.maximum(sl_ta, sl_ta_list[i])
 
     if process == 'Avalanche':
         proc = 'ava'
@@ -505,17 +513,23 @@ def main(argv):
                      directory + res_dir + "susceptibility_{}{}".format(proc, output_format),
                      susc)
     io.output_raster(dem_path,
-                     directory + res_dir + "elh_{}{}".format(proc, output_format),
-                     elh)
+                     directory + res_dir + "z_delta_{}{}".format(proc, output_format),
+                     z_delta)
     io.output_raster(dem_path,
                      directory + res_dir + "cell_counts_{}{}".format(proc, output_format),
                      cell_counts)
     io.output_raster(dem_path,
-                     directory + res_dir + "elh_sum_{}{}".format(proc, output_format),
-                     elh_sum)
+                     directory + res_dir + "z_delta_sum_{}{}".format(proc, output_format),
+                     z_delta_sum)
     io.output_raster(dem_path,
                      directory + res_dir + "backcalculation_{}{}".format(proc, output_format),
                      backcalc)
+    io.output_raster(dem_path,
+                     directory + res_dir + "FP_travel_angle_{}{}".format(proc, output_format),
+                     fp_ta)
+    io.output_raster(dem_path,
+                     directory + res_dir + "SL_travel_angle_{}{}".format(proc, output_format),
+                     sl_ta)
 
     # Output of Protection forest if Infra structure and forest layer are
     # provided
