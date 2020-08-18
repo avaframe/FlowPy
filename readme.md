@@ -77,17 +77,17 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 
 ![tan_alpha](img/tan_alpha.png)
 
-![tan_alpha](img/tan_gamma.png)
+![tan_gamma](img/tan_gamma.png)
 
-![tan_alpha](img/z_alpha.png)
+![z_alpha](img/z_alpha.png)
 
-![tan_alpha](img/z_gamma.png)
+![z_gamma](img/z_gamma.png)
 
 ![z_delta](img/z_delta.png)
 	
 ![z_delta_i](img/z_delta_array.png)
 
-![tan_alpha](img/z_delta_max.png)
+![z_delta_max](img/z_delta_max.png)
 
 ### Flow direction algorithm
 
