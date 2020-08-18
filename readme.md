@@ -146,23 +146,20 @@ This aims at avoiding loss of susceptibility [2].
 
 [1] [Holmgren, P. (1994).](https://www.researchgate.net/publication/229484151_Multiple_flow_direction_algorithms_for_runoff_modelling_in_grid_based_elevation_models_An_empirical_evaluation) 
 Multiple flow direction algorithms for runoff modelling in
-grid based elevation models: an empirical evalu-
-ation. Hydrological Processes, 8:327–334.
+grid based elevation models: an empirical evaluation. Hydrological Processes, 8:327–334.
 
 
 [2] [Horton, P., Jaboyedoff, M.,
 Rudaz, B., and Zimmermann, M. (2013).](https://nhess.copernicus.org/articles/13/869/2013/nhess-13-869-2013.pdf) 
 Flow-R, a model for susceptibility mapping of debris
-flows and other gravitational hazards at a re-
-gional scale. Natural Hazards and Earth System
+flows and other gravitational hazards at a regional scale. Natural Hazards and Earth System
 Science, 13:869–885.
 
 [3] [Gamma, P. (1999).](https://www.researchgate.net/publication/34432465_dfwalk-Ein_Murgang-Simulationsprogramm_zur_Gefahrenzonierung) dfwalk - Ein
-Murgang-Simulationsprogramm zur Gefahren-
-zonierung. PhD thesis, Universität Bern.
+Murgang-Simulationsprogramm zur Gefahrenzonierung. PhD thesis, Universität Bern.
 
 ## Contact
 
 For Questions contact:  
-Michael Neuhauser, Austrian Research Centre for Forest: [Michael.Neuhauser@bfw.gv.at](Michael.Neuhauser@bfw.gv.at)  
-Christopher D'Amboise, Austrian Research Centre for Forest: [Christopher.DAmboise@bfw.gv.at](Christopher.DAmboise@bfw.gv.at)
+Michael Neuhauser, Austrian Research Centre for Forest: Michael.Neuhauser@bfw.gv.at  
+Christopher D'Amboise, Austrian Research Centre for Forest: Christopher.DAmboise@bfw.gv.at
