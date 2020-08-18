@@ -122,7 +122,7 @@ so the direction from a cell with higher z<sub>&delta;</sub> will have more affe
 
 ![](img/persistence.png)
 
-The weights are defined by the cosine of the direction angles: \
+The weights are defined by the cosine of the direction angles:  
 ![](img/persistence_cosinetable.png)
 
 ![](img/persistence_image.png)
