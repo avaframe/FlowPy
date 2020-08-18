@@ -68,38 +68,34 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 
 ### z_delta 
 
-![\Large x = \frac{-b \pm a}](https://latex.codecogs.com/svg.latex?x%3D%5Cfrac%7B-b%5Cpm%5Csqrt%7Bb%5E2-4ac%7D%7D%7B2a%7D)
+![Image](img/z_delta_description.png)
+
+![tan_alpha](img/tan_alpha.png)
+
+![z_delta](img/z_delta.png)
+	
+![z_delta_i](img/z_delta_i.png)
 
 
-![\tan(\alpha) = \frac{z(s_0) - z(s_{\alpha})}{s_{\alpha} - s_0}](https://latex.codecogs.com/gif.download?%5Ctan%28%5Cgamma%29%20%3D%20%5Cfrac%7Bz%28s_0%29%20-%20z%28s%29%7D%7Bs%20-%20s_0%7D)
-	
-	
+### Flow direction algorithm
 
-	
-	\begin{equation}
-	\tan(\gamma) = \frac{z(s_0) - z(s)}{s - s_0}
-	\end{equation}
-	
-	\begin{equation}
-	\begin{split}
-	z_{\alpha} & = \tan(\alpha) \cdot (s - s_0) \\
-	& =\frac{z(s_0) - z(s_{\alpha})}{s_{\alpha} - s_0} \cdot (s - s_0)
-	\end{split}	
-	\end{equation}
-	
-	\begin{equation}
-	\begin{split}
-	z_{\gamma} & = \tan(\gamma) \cdot (s - s_0) \\
-	& =\frac{z(s_0) - z(s)}{s - s_0} \cdot (s - s_0) = z(s_0) - z(s)
-	\end{split}
-	\end{equation}
-	
-	\begin{equation}
-	\begin{split}
-	z_{\delta} & = z_{\gamma} - z_{\alpha} \\
-	& = z(s_0) - z(s) - \frac{z(s_0) - z(s_{\alpha})}{s_{\alpha} - s_0} \cdot (s - s_0)
-	\end{split}
-	\end{equation}
+![Flow_direction](img/flow_direction.png)
+
+![Tan_Beta_Formula](img/tan_beta_formula.png)
+
+![tanBetaImage](img/tan_beta.png)
+
+### Persistencec Function
+
+![](img/persistence.png)
+
+![](img/persistence_cosinetable.png)
+
+![](img/persistence_image.png)
+
+### Overall Susceptibility 
+
+![](img/susceptibility.png)
 
 ## Contact
 
