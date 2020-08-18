@@ -68,7 +68,38 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 
 ### z_delta 
 
-![\Large x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}](https://latex.codecogs.com/svg.latex?x%3D%5Cfrac%7B-b%5Cpm%5Csqrt%7Bb%5E2-4ac%7D%7D%7B2a%7D)
+![\Large x = \frac{-b \pm a}](https://latex.codecogs.com/svg.latex?x%3D%5Cfrac%7B-b%5Cpm%5Csqrt%7Bb%5E2-4ac%7D%7D%7B2a%7D)
+
+
+![\tan(\alpha) = \frac{z(s_0) - z(s_{\alpha})}{s_{\alpha} - s_0}](https://latex.codecogs.com/gif.download?%5Ctan%28%5Cgamma%29%20%3D%20%5Cfrac%7Bz%28s_0%29%20-%20z%28s%29%7D%7Bs%20-%20s_0%7D)
+	
+	
+
+	
+	\begin{equation}
+	\tan(\gamma) = \frac{z(s_0) - z(s)}{s - s_0}
+	\end{equation}
+	
+	\begin{equation}
+	\begin{split}
+	z_{\alpha} & = \tan(\alpha) \cdot (s - s_0) \\
+	& =\frac{z(s_0) - z(s_{\alpha})}{s_{\alpha} - s_0} \cdot (s - s_0)
+	\end{split}	
+	\end{equation}
+	
+	\begin{equation}
+	\begin{split}
+	z_{\gamma} & = \tan(\gamma) \cdot (s - s_0) \\
+	& =\frac{z(s_0) - z(s)}{s - s_0} \cdot (s - s_0) = z(s_0) - z(s)
+	\end{split}
+	\end{equation}
+	
+	\begin{equation}
+	\begin{split}
+	z_{\delta} & = z_{\gamma} - z_{\alpha} \\
+	& = z(s_0) - z(s) - \frac{z(s_0) - z(s_{\alpha})}{s_{\alpha} - s_0} \cdot (s - s_0)
+	\end{split}
+	\end{equation}
 
 ## Contact
 
