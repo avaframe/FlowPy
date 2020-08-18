@@ -164,5 +164,5 @@ zonierung. PhD thesis, Universität Bern.
 ## Contact
 
 For Questions contact:  
-Michael Neuhauser, Austrian Research Centre for Forest: [Michael.Neuhauser@bfw.gv.at](Michael.Neuhauser@bfw.gv.at) \
+Michael Neuhauser, Austrian Research Centre for Forest: [Michael.Neuhauser@bfw.gv.at](Michael.Neuhauser@bfw.gv.at)  
 Christopher D'Amboise, Austrian Research Centre for Forest: [Christopher.DAmboise@bfw.gv.at](Christopher.DAmboise@bfw.gv.at)
