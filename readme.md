@@ -53,10 +53,10 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 	
 ## Output
 
-- z<sub>&delta;</sub>:
-    Includes the highest z<sub>&delta;</sub> for every pixel.
-- Sum of z<sub>&delta;</sub>:
-    z<sub>&delta;</sub> summed up on every pixel.
+- z_delta:
+    Includes the highest z_delta for every pixel.
+- Sum of z_delta:
+    z_delta summed up on every pixel.
 - Susceptibility:
     The result of the susceptibility calculation for every pixel.
 - Cell Counts:
@@ -73,7 +73,7 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 ### z_delta 
 
 ![Image](img/z_delta_description.png)
-*Fig. 1: Definition of angles and distances for the calculation of z<sub>&delta;</sub>*
+*Fig. 1: Definition of angles and distances for the calculation of z_delta*
 
 ![tan_alpha](img/tan_alpha.png)
 
@@ -99,13 +99,13 @@ To reach a single flow in step terrain, an exponent of 75 is considered.
 ![Holmgrem](img/flow_direction.png)
 *Holmgrem Algorithm from 1994 [1]*
 
-In this equation i, j are the flow directions, p<sub>i</sub><sup>fd</sup> the susceptibility proportion in direction i, 
-tan(&beta;<sub>i</sub>) the slope gradient between the central cell and the cell in direction i, and exp the variable exponent. 
+In this equation i, j are the flow directions, p_i^(fd) the susceptibility proportion in direction i, 
+tan(beta_i) the slope gradient between the central cell and the cell in direction i, and exp the variable exponent. 
 When the exponent increases, the divergence is reduced up to resulting into a single flow direction when 
 exp &rightarrow; &infin;. This parameter allows to control the spreading and to reproduce a wide range of other flow 
 accumulations.
-This approach works for tan(&beta;) > 0. To take in account flow in flat terrain and upwards, in this case 
-tan(&beta;) < 0, this approach was changed to the range for tangents from -90 degrees to 90 degrees, as seen in 
+This approach works for tan(beta) > 0. To take in account flow in flat terrain and upwards, in this case 
+tan(beta) < 0, this approach was changed to the range for tangents from -90 degrees to 90 degrees, as seen in 
 Fig. 2.
 
 ![Tan_Beta_Formula](img/tan_beta_formula.png)
@@ -115,10 +115,10 @@ Fig. 2.
 
 ### Persistencec Function
 
-The persistence function p<sub>i</sub><sup>p</sup> aims to reproduc the behavior of inertia, and weights the flow 
+The persistence function p_i^p aims to reproduce the behavior of inertia, and weights the flow 
 direction based on the change in direction with respect to the previous direction (see Fig. 3) [3].
-We introduced to scale the direction with z<sub>&delta;</sub> of the incoming direction (z<sub>&delta;,parent</sub>), 
-so the direction from a cell with higher z<sub>&delta;</sub> will have more affect to the directions where the center cell spreads.
+We introduced to scale the direction with z_delta of the incoming direction (z_delta,parent), 
+so the direction from a cell with higher z_delta will have more affect to the directions where the center cell spreads.
 
 ![](img/persistence.png)
 
@@ -134,12 +134,12 @@ The values given by the flow direction algorithm and the weighting of the persis
 
 ![](img/susceptibility.png)
 
-where i, j are the flow directions, p<sub>i</sub> is the susceptibility value in direction i, p<sub>i</sub><sup>fd</sup> 
-the flow proportion according ti the flow direction algorithm, p<sub>i</sub><sup>p</sup> the flow proportion according 
-to the persistence, and p<sub>0</sub> the previously determined susceptibility value of the central cell. 
-For a release cell p<sub>0</sub> equals one. \
+where i, j are the flow directions, p_i is the susceptibility value in direction i, p_i^(fd) 
+the flow proportion according to the flow direction algorithm, p_i^p the flow proportion according 
+to the persistence, and p_0 the previously determined susceptibility value of the central cell. 
+For a release cell p_0 equals one. \
 The result of Eq.(13) is a 3 x 3 array with assigned susceptibility values. A normalization stage is then 
-required to bring the sum of the cells to the value of p<sub>0</sub>. 
+required to bring the sum of the cells to the value of p_0. 
 This aims at avoiding loss of susceptibility [2].
 
 ### References
