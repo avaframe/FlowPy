@@ -105,7 +105,7 @@ class Cell:
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 1, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         distance = ds * self.cellsize
         
-        beta = np.arctan((self.altitude - self.dem_ng) / distance) + 90
+        beta = np.arctan((self.altitude - self.dem_ng) / distance) + np.deg2rad(90)
         self.tan_beta = np.tan(beta/2)
 
         self.tan_beta[self.z_delta_neighbour <= 0] = 0
