@@ -50,24 +50,26 @@ class Cell:
         else:            
             self.startcell = startcell  # give startcell to cell
             self.is_start = False  # set is_start to False
-            self.calc_sl_travelangle()
+            #self.calc_sl_travelangle()
 
         self.parent = []
         if type(parent) == Cell:
             self.parent.append(parent)
-            self.calc_fp_travelangle()
-        
-        self.calc_z_delta()
-        self.calc_persistence()
-        self.calc_tanbeta()
+            #self.calc_fp_travelangle()
+
+
 
     def add_os(self, susceptibility):
         self.susceptibility += susceptibility
-        
+
+    def set_z_delta(self, new_z):
+        self.z_delta = new_z
+
+    def get_z_delta(self):
+        return self.z_delta
+
     def add_parent(self, parent):
         self.parent.append(parent)
-        self.calc_persistence()
-        self.calc_fp_travelangle()
 
     def calc_fp_travelangle(self):
         dist_min = []
@@ -92,12 +94,16 @@ class Cell:
         self.sl_gamma = np.rad2deg(np.arctan(dh / ds))
 
     def calc_z_delta(self):
-        #delta_e_pot = self.altitude - self.dem_ng
-        z_gamma = self.altitude - self.dem_ng
+        self.z_delta_neighbour = np.zeros((3, 3))
+        #z_delta_array = np.ones((3, 3)) * self.z_delta
+        self.z_gamma = self.altitude - self.dem_ng
+        #print("Z_gamma = ", z_gamma)
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         tan_alpha = np.tan(np.deg2rad(self.alpha))
-        z_alpha = ds * self.cellsize * tan_alpha
-        self.z_delta_neighbour = self.z_delta + z_gamma - z_alpha
+        self.z_alpha = ds * self.cellsize * tan_alpha
+        #print(z_alpha)
+        self.z_delta_neighbour = self.z_delta + self.z_gamma - self.z_alpha
+        #print(self.z_delta_neighbour)
         self.z_delta_neighbour[self.z_delta_neighbour < 0] = 0
         self.z_delta_neighbour[self.z_delta_neighbour > self.max_z_delta] = self.max_z_delta
            
@@ -121,6 +127,7 @@ class Cell:
         elif self.parent[0].is_start:
             self.persistence += 1
         else:
+            #self.persistence += 1
             for parent in self.parent:
                 dx = (self.colindex - parent.colindex) + 1 # plus 1 to bring it from range [-1,0,1] to [0,1,2] = index of neighbour array
                 dy = (self.rowindex - parent.rowindex) + 1
@@ -157,11 +164,21 @@ class Cell:
                     self.persistence[2, 2] += maxweight
                     self.persistence[2, 1] += 0.707 * maxweight
                     self.persistence[1, 2] += 0.707 * maxweight
+            #print(self.persistence)
                     
     def calc_distribution(self):
+
+        self.calc_z_delta()
+        self.calc_persistence()
+        self.calc_tanbeta()
+
+        if not self.is_start:
+            self.calc_fp_travelangle()
+            self.calc_sl_travelangle()
+
         threshold = self.p_threshold
         if np.sum(self.p_fd) > 0:
-            self.dist = self.persistence * self.p_fd / np.sum(self.persistence * self.p_fd) * self.susceptibility
+            self.dist = (self.persistence * self.p_fd) / np.sum(self.persistence * self.p_fd) * self.susceptibility
         # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
         # susceptibility.
         # The susceptibility of this cells will then spread equally to all neighbour cells

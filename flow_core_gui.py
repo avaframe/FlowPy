@@ -313,21 +313,20 @@ def calculation_effect(args):
 
         cell_list.append(startcell)
         for cell in cell_list:
-                
-            row, col, susc, z_delta = cell.calc_distribution()
-            if len(susc) > 0:
-                #alti, susc, elh, row, col = list(zip(*sorted(zip(dem[row, col], susc, elh, row, col), reverse=True)))
-                z_delta, susc, row, col = list(zip(*sorted(zip(z_delta, susc, row, col), reverse=False)))  # reverse = True == descending
-                #ToDo: Sort them to get nice results!!!
-                # Sort this lists by elh, to start with the highest cell
 
+            row, col, susc, z_delta = cell.calc_distribution()
+
+            if len(susc) > 0:
+                z_delta, susc, row, col = list(zip(*sorted(zip(z_delta, susc, row, col), reverse=False)))  # reverse = True == descending
             for i in range(len(cell_list)):  # Check if Cell already exists
                 k = 0
                 while k < len(row):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
                         cell_list[i].add_os(susc[k])
                         cell_list[i].add_parent(cell)
-                        cell_list[i].z_delta = max(cell_list[i].z_delta, z_delta[k])
+                        if z_delta[k] > cell_list[i].z_delta:
+                            cell_list[i].z_delta = z_delta[k]
+
                         row = np.delete(row, k)
                         col = np.delete(col, k)
                         susc = np.delete(susc, k)
@@ -342,14 +341,17 @@ def calculation_effect(args):
                 cell_list.append(
                     Cell(process, row[k], col[k], dem_ng, cellsize, susc[k], z_delta[k], cell, alpha, exp, startcell))
 
+        for cell in cell_list:
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
-            susc_array[cell.rowindex, cell.colindex] = max(susc_array[cell.rowindex, cell.colindex], cell.susceptibility)
+            susc_array[cell.rowindex, cell.colindex] = max(susc_array[cell.rowindex, cell.colindex],
+                                                           cell.susceptibility)
             count_array[cell.rowindex, cell.colindex] += 1
             z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
             fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex],
                                                                      cell.max_gamma)
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
                                                                      cell.sl_gamma)
+
 
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)        

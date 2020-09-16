@@ -212,7 +212,7 @@ class Flow_Py_EXEC():
 
     def calculation(self):
         self.start = datetime.now().replace(microsecond=0)
-        calc_bool = False
+        self.calc_bool = False
 
         # Check if input is ok
         if self.ui.wDir_lineEdit.text() == '':
@@ -277,7 +277,7 @@ class Flow_Py_EXEC():
             infra, infra_header = io.read_raster(self.ui.infra_lineEdit.text())
             if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
                 print("Infra Layer ok!")
-                calc_bool = True
+                self.calc_bool = True
                 logging.info('Infrastructure File: {}'.format(self.ui.infra_lineEdit.text()))
             else:
                 print("Error: Infra Layer doesn't match DEM!")
@@ -301,7 +301,7 @@ class Flow_Py_EXEC():
         self.sl_ta = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, process, calc_bool, alpha, exp)
+        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, process, self.calc_bool, alpha, exp)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
@@ -335,15 +335,6 @@ class Flow_Py_EXEC():
                          self.directory + self.res_dir + "z_delta_{}{}".format(proc, self.ui.outputBox.currentText()),
                          self.z_delta)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "cell_counts_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.cell_counts)
-        io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "z_delta_sum_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.z_delta_sum)
-        io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.backcalc)
-        io.output_raster(self.ui.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "FP_travel_angle_{}{}".format(proc,
                                                                                        self.ui.outputBox.currentText()),
                          self.fp_ta)
@@ -351,9 +342,17 @@ class Flow_Py_EXEC():
                          self.directory + self.res_dir + "SL_travel_angle_{}{}".format(proc,
                                                                                        self.ui.outputBox.currentText()),
                          self.sl_ta)
-
-        # Output of Protection forest if Infra structure and forest layer are
-        # provided
+        if not self.calc_bool:
+            io.output_raster(self.ui.DEM_lineEdit.text(),
+                             self.directory + self.res_dir + "cell_counts_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.cell_counts)
+            io.output_raster(self.ui.DEM_lineEdit.text(),
+                             self.directory + self.res_dir + "z_delta_sum_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.z_delta_sum)
+        if self.calc_bool:
+            io.output_raster(self.ui.DEM_lineEdit.text(),
+                             self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.backcalc)
 
         print("Calculation finished")
         end = datetime.now().replace(microsecond=0)
@@ -516,23 +515,22 @@ def main(argv):
                      directory + res_dir + "z_delta_{}{}".format(proc, output_format),
                      z_delta)
     io.output_raster(dem_path,
-                     directory + res_dir + "cell_counts_{}{}".format(proc, output_format),
-                     cell_counts)
-    io.output_raster(dem_path,
-                     directory + res_dir + "z_delta_sum_{}{}".format(proc, output_format),
-                     z_delta_sum)
-    io.output_raster(dem_path,
-                     directory + res_dir + "backcalculation_{}{}".format(proc, output_format),
-                     backcalc)
-    io.output_raster(dem_path,
                      directory + res_dir + "FP_travel_angle_{}{}".format(proc, output_format),
                      fp_ta)
     io.output_raster(dem_path,
                      directory + res_dir + "SL_travel_angle_{}{}".format(proc, output_format),
                      sl_ta)
-
-    # Output of Protection forest if Infra structure and forest layer are
-    # provided
+    if not calc_bool:  # if no infra
+        io.output_raster(dem_path,
+                         directory + res_dir + "cell_counts_{}{}".format(proc, output_format),
+                         cell_counts)
+        io.output_raster(dem_path,
+                         directory + res_dir + "z_delta_sum_{}{}".format(proc, output_format),
+                         z_delta_sum)
+    if calc_bool:  # if infra
+        io.output_raster(dem_path,
+                         directory + res_dir + "backcalculation_{}{}".format(proc, output_format),
+                         backcalc)
 
     print("Calculation finished")
     end = datetime.now().replace(microsecond=0)
@@ -546,7 +544,7 @@ if __name__ == '__main__':
         Flow_Py_EXEC()
     else:
         main(argv)
-    # example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif
+    # example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif ./examples/helix/infra.tif
     # example dam: 25 8 Avalanche ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
     # 25 8 Avalanche ./examples/parabolic_chute/ ./examples/parabolic_chute/5m_standard_n10.asc ./examples/parabolic_chute/release_standard_n10.tif
 
