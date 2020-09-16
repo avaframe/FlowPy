@@ -190,22 +190,17 @@ def calculation(args):
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)
-        for cell in cell_list:
-# =============================================================================
-#             if (release[cells.rowindex, cells.colindex] > 0 and cells.is_start != True and process == 'Avalanche'):
-#                 cells.add_mass(1)
-#                 # Adds the mass of a release cell which is then erased on the way down
-#                 # So the mass threshold starts later... 
-#                 # Works only for release areas not for release pixels!
-# =============================================================================
 
+        for idx, cell in enumerate(cell_list):
             row, col, susc, z_delta = cell.calc_distribution()
+
             if len(susc) > 0:
                 # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
+                
                 z_delta, susc, row, col = list(zip(*sorted(zip(z_delta, susc, row, col), reverse=False)))
                 # Sort this lists by elh, to start with the highest cell
 
-            for i in range(len(cell_list)):  # Check if Cell already exists
+            for i in range(idx, len(cell_list)):  # Check if Cell already exists
                 k = 0
                 while k < len(row):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
@@ -234,9 +229,8 @@ def calculation(args):
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex], cell.sl_gamma)
             
         #Backcalculation
-        #for cell in cell_list:
             if infra[cell.rowindex, cell.colindex] > 0:
-                backlist = []
+                #backlist = []
                 back_list = back_calculation(cell)
 
                 for back_cell in back_list:
@@ -312,13 +306,14 @@ def calculation_effect(args):
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)
-        for cell in cell_list:
 
+        for idx, cell in enumerate(cell_list):
             row, col, susc, z_delta = cell.calc_distribution()
 
             if len(susc) > 0:
                 z_delta, susc, row, col = list(zip(*sorted(zip(z_delta, susc, row, col), reverse=False)))  # reverse = True == descending
-            for i in range(len(cell_list)):  # Check if Cell already exists
+
+            for i in range(idx, len(cell_list)):  # Check if Cell already exists
                 k = 0
                 while k < len(row):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
@@ -351,7 +346,6 @@ def calculation_effect(args):
                                                                      cell.max_gamma)
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
                                                                      cell.sl_gamma)
-
 
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)        
