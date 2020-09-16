@@ -206,7 +206,8 @@ def calculation(args):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
                         cell_list[i].add_os(susc[k])
                         cell_list[i].add_parent(cell)
-                        cell_list[i].z_delta = max(cell_list[i].z_delta, z_delta[k])
+                        if z_delta[k] > cell_list[i].z_delta:
+                            cell_list[i].z_delta = z_delta[k]
                         row = np.delete(row, k)
                         col = np.delete(col, k)
                         susc = np.delete(susc, k)
