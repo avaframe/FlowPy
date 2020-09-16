@@ -50,40 +50,26 @@ class Cell:
         else:            
             self.startcell = startcell  # give startcell to cell
             self.is_start = False  # set is_start to False
-            #self.calc_sl_travelangle()
 
         self.parent = []
         if type(parent) == Cell:
             self.parent.append(parent)
-            #self.calc_fp_travelangle()
-
-
 
     def add_os(self, susceptibility):
         self.susceptibility += susceptibility
-
-    def set_z_delta(self, new_z):
-        self.z_delta = new_z
-
-    def get_z_delta(self):
-        return self.z_delta
 
     def add_parent(self, parent):
         self.parent.append(parent)
 
     def calc_fp_travelangle(self):
         dist_min = []
-        #dist_max = []
         dh = self.startcell.altitude - self.altitude
         for parent in self.parent:
             dx = abs(parent.colindex - self.colindex)
             dy = abs(parent.rowindex - self.rowindex)
-            #dist_max.append(math.sqrt(dx ** 2 + dy ** 2) * self.cellsize + parent.max_distance)
             dist_min.append(math.sqrt(dx ** 2 + dy ** 2) * self.cellsize + parent.min_distance)
         self.min_distance = np.amin(dist_min)
-        #self.max_distance = np.amax(dist_max)
         self.max_gamma = np.rad2deg(np.arctan(dh / self.min_distance))
-        #self.min_gamma = np.rad2deg(np.arctan(dh / self.max_distance))
 
     def calc_sl_travelangle(self):
         dx = abs(self.startcell.colindex - self.colindex)
@@ -95,15 +81,11 @@ class Cell:
 
     def calc_z_delta(self):
         self.z_delta_neighbour = np.zeros((3, 3))
-        #z_delta_array = np.ones((3, 3)) * self.z_delta
         self.z_gamma = self.altitude - self.dem_ng
-        #print("Z_gamma = ", z_gamma)
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         tan_alpha = np.tan(np.deg2rad(self.alpha))
         self.z_alpha = ds * self.cellsize * tan_alpha
-        #print(z_alpha)
         self.z_delta_neighbour = self.z_delta + self.z_gamma - self.z_alpha
-        #print(self.z_delta_neighbour)
         self.z_delta_neighbour[self.z_delta_neighbour < 0] = 0
         self.z_delta_neighbour[self.z_delta_neighbour > self.max_z_delta] = self.max_z_delta
            
@@ -117,7 +99,7 @@ class Cell:
         self.tan_beta[self.z_delta_neighbour <= 0] = 0
         self.tan_beta[self.persistence <= 0] = 0
         self.tan_beta[1, 1] = 0
-        if np.sum(self.tan_beta) > 0:
+        if abs(np.sum(self.tan_beta)) > 0:
             self.p_fd = self.tan_beta ** self.exp / np.sum(self.tan_beta ** self.exp)
 
     def calc_persistence(self):
@@ -127,44 +109,47 @@ class Cell:
         elif self.parent[0].is_start:
             self.persistence += 1
         else:
-            #self.persistence += 1
             for parent in self.parent:
                 dx = (self.colindex - parent.colindex) + 1 # plus 1 to bring it from range [-1,0,1] to [0,1,2] = index of neighbour array
                 dy = (self.rowindex - parent.rowindex) + 1
-                maxweight = 1 * parent.z_delta
-                if dx == 0 and dy == 0:
-                    self.persistence[0, 0] += maxweight
-                    self.persistence[1, 0] += 0.707 * maxweight
-                    self.persistence[0, 1] += 0.707 * maxweight
-                elif dx == 1 and dy == 0:
-                    self.persistence[0, 1] += maxweight
-                    self.persistence[0, 0] += 0.707 * maxweight
-                    self.persistence[0, 2] += 0.707 * maxweight
-                elif dx == 2 and dy == 0:
-                    self.persistence[0, 2] += maxweight
-                    self.persistence[0, 1] += 0.707 * maxweight
-                    self.persistence[1, 2] += 0.707 * maxweight
-                elif dx == 0 and dy == 1:
-                    self.persistence[1, 0] += maxweight
-                    self.persistence[2, 0] += 0.707 * maxweight
-                    self.persistence[0, 0] += 0.707 * maxweight
-                elif dx == 2 and dy == 1:
-                    self.persistence[1, 2] += maxweight
-                    self.persistence[0, 2] += 0.707 * maxweight
-                    self.persistence[2, 2] += 0.707 * maxweight
-                elif dx == 0 and dy == 2:
-                    self.persistence[2, 0] += maxweight
-                    self.persistence[1, 0] += 0.707 * maxweight
-                    self.persistence[2, 1] += 0.707 * maxweight
-                elif dx == 1 and dy == 2:
-                    self.persistence[2, 1] += maxweight
-                    self.persistence[2, 0] += 0.707 * maxweight
-                    self.persistence[2, 2] += 0.707 * maxweight
-                elif dx == 2 and dy == 2:
-                    self.persistence[2, 2] += maxweight
-                    self.persistence[2, 1] += 0.707 * maxweight
-                    self.persistence[1, 2] += 0.707 * maxweight
-            #print(self.persistence)
+                maxweight = parent.z_delta
+                if dx == 0:
+                    if dy == 0:
+                        self.persistence[0, 0] += maxweight
+                        self.persistence[1, 0] += 0.707 * maxweight
+                        self.persistence[0, 1] += 0.707 * maxweight
+                    if dy == 1:
+                        self.persistence[1, 0] += maxweight
+                        self.persistence[2, 0] += 0.707 * maxweight
+                        self.persistence[0, 0] += 0.707 * maxweight
+                    if dy == 2:
+                        self.persistence[2, 0] += maxweight
+                        self.persistence[1, 0] += 0.707 * maxweight
+                        self.persistence[2, 1] += 0.707 * maxweight
+
+                if dx == 1:
+                    if dy == 0:
+                        self.persistence[0, 1] += maxweight
+                        self.persistence[0, 0] += 0.707 * maxweight
+                        self.persistence[0, 2] += 0.707 * maxweight
+                    if dy == 2:
+                        self.persistence[2, 1] += maxweight
+                        self.persistence[2, 0] += 0.707 * maxweight
+                        self.persistence[2, 2] += 0.707 * maxweight
+
+                if dx == 2:
+                    if dy == 0:
+                        self.persistence[0, 2] += maxweight
+                        self.persistence[0, 1] += 0.707 * maxweight
+                        self.persistence[1, 2] += 0.707 * maxweight
+                    if dy == 1:
+                        self.persistence[1, 2] += maxweight
+                        self.persistence[0, 2] += 0.707 * maxweight
+                        self.persistence[2, 2] += 0.707 * maxweight
+                    if dy == 2:
+                        self.persistence[2, 2] += maxweight
+                        self.persistence[2, 1] += 0.707 * maxweight
+                        self.persistence[1, 2] += 0.707 * maxweight
                     
     def calc_distribution(self):
 
@@ -193,5 +178,5 @@ class Cell:
             self.dist[self.dist > threshold] += (self.susceptibility - np.sum(self.dist))/count
 
         row_local, col_local = np.where(self.dist > threshold)
-        
+
         return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local]
