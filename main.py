@@ -8,6 +8,7 @@ Created on Mon May  7 14:23:00 2018
 # import standard libraries
 import os
 import sys
+import psutil
 import numpy as np
 from datetime import datetime
 from multiprocessing import cpu_count
@@ -446,11 +447,20 @@ def main(argv):
     fp_ta = np.zeros_like(dem)
     sl_ta = np.zeros_like(dem)
 
+    avaiable_memory = psutil.virtual_memory()[1]
+    needed_memory = sys.getsizeof(dem)
+
+    max_number_procces = int(avaiable_memory / (needed_memory * 10))
+
+    print(
+        "There are {} Bytes of Memory avaiable and {} Bytes needed per process. Max. Nr. of Processes = {}".format(
+            avaiable_memory, needed_memory*10, max_number_procces))
+
     # Calculation
     logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
 
     if calc_bool:
-        release_list = fc.split_release(release, release_header, mp.cpu_count() * 2)
+        release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 2, max_number_procces))
 
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(len(release_list))
@@ -460,7 +470,7 @@ def main(argv):
         pool.close()
         pool.join()
     else:
-        release_list = fc.split_release(release, release_header, mp.cpu_count() * 4)
+        release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 4, max_number_procces))
 
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(mp.cpu_count())
