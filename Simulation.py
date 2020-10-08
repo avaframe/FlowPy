@@ -71,7 +71,7 @@ class Simulation(QThread):
         # This part will is for Calculation of the top release cells and erasing the lower ones
         #if __name__ != '__main__':  # needed that it runs on windows, but it doesnt!!! if __name__ == main: would it be.
         if self.calc_bool:
-            release_list = fc.split_release(self.release, self.release_header, self.max_number_procces)  # mp.cpu_count() * 2,
+            release_list = fc.split_release(self.release, self.release_header, min(mp.cpu_count() * 2, self.max_number_procces))  # mp.cpu_count() * 2,
 
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(len(release_list))
@@ -79,7 +79,7 @@ class Simulation(QThread):
             pool.close()
             pool.join()
         else:
-            release_list = fc.split_release(self.release, self.release_header, self.max_number_procces)  # mp.cpu_count() * 4,
+            release_list = fc.split_release(self.release, self.release_header, min(mp.cpu_count() * 4, self.max_number_procces))  # mp.cpu_count() * 4,
 
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(mp.cpu_count())
