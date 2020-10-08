@@ -22,6 +22,7 @@ Created on Mon May  7 14:23:00 2018
 # import standard libraries
 import os
 import sys
+import psutil
 import numpy as np
 from datetime import datetime
 from multiprocessing import cpu_count
@@ -226,7 +227,7 @@ class Flow_Py_EXEC():
 
     def calculation(self):
         self.start = datetime.now().replace(microsecond=0)
-        calc_bool = False
+        self.calc_bool = False
 
         # Check if input is ok
         if self.ui.wDir_lineEdit.text() == '':
@@ -291,7 +292,7 @@ class Flow_Py_EXEC():
             infra, infra_header = io.read_raster(self.ui.infra_lineEdit.text())
             if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
                 print("Infra Layer ok!")
-                calc_bool = True
+                self.calc_bool = True
                 logging.info('Infrastructure File: {}'.format(self.ui.infra_lineEdit.text()))
             else:
                 print("Error: Infra Layer doesn't match DEM!")
@@ -306,27 +307,31 @@ class Flow_Py_EXEC():
         logging.info('Process: {}'.format(process))
         alpha = self.ui.alpha_Edit.text()
         exp = self.ui.exp_Edit.text()
-        self.elh = np.zeros_like(dem)
+        self.z_delta = np.zeros_like(dem)
         self.susc = np.zeros_like(dem)
         self.cell_counts = np.zeros_like(dem)
-        self.elh_sum = np.zeros_like(dem)
+        self.z_delta_sum = np.zeros_like(dem)
         self.backcalc = np.zeros_like(dem)
+        self.fp_ta = np.zeros_like(dem)
+        self.sl_ta = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, process, calc_bool, alpha, exp)
+        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, process, self.calc_bool, alpha, exp)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
         self.calc_class.start()
 
-    def thread_finished(self, elh, susc, count_array, elh_sum, backcalc):
+    def thread_finished(self, z_delta, susc, count_array, z_delta_sum, backcalc, fp_ta, sl_ta):
         logging.info('Calculation finished, getting results.')
-        for i in range(len(elh)):
-            self.elh = np.maximum(self.elh, elh[i])
+        for i in range(len(z_delta)):
+            self.z_delta = np.maximum(self.z_delta, z_delta[i])
             self.susc = np.maximum(self.susc, susc[i])
             self.cell_counts += count_array[i]
-            self.elh_sum += elh_sum[i]
+            self.z_delta_sum += z_delta_sum[i]
             self.backcalc = np.maximum(self.backcalc, backcalc[i])
+            self.fp_ta = np.maximum(self.fp_ta, fp_ta[i])
+            self.sl_ta = np.maximum(self.sl_ta, sl_ta[i])
         self.output()
 
     def output(self):
@@ -342,20 +347,27 @@ class Flow_Py_EXEC():
                          self.directory + self.res_dir + "susceptibility_{}{}".format(proc, self.ui.outputBox.currentText()),
                          self.susc)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "elh_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.elh)
+                         self.directory + self.res_dir + "z_delta_{}{}".format(proc, self.ui.outputBox.currentText()),
+                         self.z_delta)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "cell_counts_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.cell_counts)
+                         self.directory + self.res_dir + "FP_travel_angle_{}{}".format(proc,
+                                                                                       self.ui.outputBox.currentText()),
+                         self.fp_ta)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "elh_sum_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.elh_sum)
-        io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.backcalc)
-
-        # Output of Protection forest if Infra structure and forest layer are
-        # provided
+                         self.directory + self.res_dir + "SL_travel_angle_{}{}".format(proc,
+                                                                                       self.ui.outputBox.currentText()),
+                         self.sl_ta)
+        if not self.calc_bool:
+            io.output_raster(self.ui.DEM_lineEdit.text(),
+                             self.directory + self.res_dir + "cell_counts_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.cell_counts)
+            io.output_raster(self.ui.DEM_lineEdit.text(),
+                             self.directory + self.res_dir + "z_delta_sum_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.z_delta_sum)
+        if self.calc_bool:
+            io.output_raster(self.ui.DEM_lineEdit.text(),
+                             self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.backcalc)
 
         print("Calculation finished")
         end = datetime.now().replace(microsecond=0)
@@ -441,17 +453,28 @@ def main(argv):
     logging.info('Files read in')
 
     logging.info('Process: {}'.format(process))
-    elh = np.zeros_like(dem)
+    z_delta = np.zeros_like(dem)
     susc = np.zeros_like(dem)
     cell_counts = np.zeros_like(dem)
-    elh_sum = np.zeros_like(dem)
+    z_delta_sum = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
+    fp_ta = np.zeros_like(dem)
+    sl_ta = np.zeros_like(dem)
+
+    avaiable_memory = psutil.virtual_memory()[1]
+    needed_memory = sys.getsizeof(dem)
+
+    max_number_procces = int(avaiable_memory / (needed_memory * 10))
+
+    print(
+        "There are {} Bytes of Memory avaiable and {} Bytes needed per process. Max. Nr. of Processes = {}".format(
+            avaiable_memory, needed_memory*10, max_number_procces))
 
     # Calculation
     logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
 
     if calc_bool:
-        release_list = fc.split_release(release, release_header, mp.cpu_count() * 2)
+        release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 2, max_number_procces))
 
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(len(release_list))
@@ -461,7 +484,7 @@ def main(argv):
         pool.close()
         pool.join()
     else:
-        release_list = fc.split_release(release, release_header, mp.cpu_count() * 4)
+        release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 4, max_number_procces))
 
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(mp.cpu_count())
@@ -472,27 +495,33 @@ def main(argv):
         pool.close()
         pool.join()
 
-    elh_list = []
+    z_delta_list = []
     susc_list = []
     cc_list = []
-    elh_sum_list = []
+    z_delta_sum_list = []
     backcalc_list = []
+    fp_ta_list = []
+    sl_ta_list = []
     for i in range(len(results)):
         res = results[i]
         res = list(res)
-        elh_list.append(res[0])
+        z_delta_list.append(res[0])
         susc_list.append(res[1])
         cc_list.append(res[2])
-        elh_sum_list.append(res[3])
+        z_delta_sum_list.append(res[3])
         backcalc_list.append(res[4])
+        fp_ta_list.append(res[5])
+        sl_ta_list.append(res[6])
 
     logging.info('Calculation finished, getting results.')
-    for i in range(len(elh_list)):
-        elh = np.maximum(elh, elh_list[i])
+    for i in range(len(z_delta_list)):
+        z_delta = np.maximum(z_delta, z_delta_list[i])
         susc = np.maximum(susc, susc_list[i])
         cell_counts += cc_list[i]
-        elh_sum += elh_sum_list[i]
+        z_delta_sum += z_delta_sum_list[i]
         backcalc = np.maximum(backcalc, backcalc_list[i])
+        fp_ta = np.maximum(fp_ta, fp_ta_list[i])
+        sl_ta = np.maximum(sl_ta, sl_ta_list[i])
 
     if process == 'Avalanche':
         proc = 'ava'
@@ -507,20 +536,25 @@ def main(argv):
                      directory + res_dir + "susceptibility_{}{}".format(proc, output_format),
                      susc)
     io.output_raster(dem_path,
-                     directory + res_dir + "elh_{}{}".format(proc, output_format),
-                     elh)
+                     directory + res_dir + "z_delta_{}{}".format(proc, output_format),
+                     z_delta)
     io.output_raster(dem_path,
-                     directory + res_dir + "cell_counts_{}{}".format(proc, output_format),
-                     cell_counts)
+                     directory + res_dir + "FP_travel_angle_{}{}".format(proc, output_format),
+                     fp_ta)
     io.output_raster(dem_path,
-                     directory + res_dir + "elh_sum_{}{}".format(proc, output_format),
-                     elh_sum)
-    io.output_raster(dem_path,
-                     directory + res_dir + "backcalculation_{}{}".format(proc, output_format),
-                     backcalc)
-
-    # Output of Protection forest if Infra structure and forest layer are
-    # provided
+                     directory + res_dir + "SL_travel_angle_{}{}".format(proc, output_format),
+                     sl_ta)
+    if not calc_bool:  # if no infra
+        io.output_raster(dem_path,
+                         directory + res_dir + "cell_counts_{}{}".format(proc, output_format),
+                         cell_counts)
+        io.output_raster(dem_path,
+                         directory + res_dir + "z_delta_sum_{}{}".format(proc, output_format),
+                         z_delta_sum)
+    if calc_bool:  # if infra
+        io.output_raster(dem_path,
+                         directory + res_dir + "backcalculation_{}{}".format(proc, output_format),
+                         backcalc)
 
     print("Calculation finished")
     end = datetime.now().replace(microsecond=0)
@@ -534,7 +568,7 @@ if __name__ == '__main__':
         Flow_Py_EXEC()
     else:
         main(argv)
-    # example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif
+    # example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif ./examples/helix/infra.tif
     # example dam: 25 8 Avalanche ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
     # 25 8 Avalanche ./examples/parabolic_chute/ ./examples/parabolic_chute/5m_standard_n10.asc ./examples/parabolic_chute/release_standard_n10.tif
 
