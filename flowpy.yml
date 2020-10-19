@@ -155,5 +155,4 @@ dependencies:
     - numpy==1.19.0
     - rasterio==1.1.5
     - snuggs==1.4.7
-prefix: /home/neuhauser/anaconda3/envs/FlowPy
 
