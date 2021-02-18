@@ -564,6 +564,9 @@ def main(argv):
 if __name__ == '__main__':
     #mp.set_start_method('spawn') # used in Windows
     argv = sys.argv[1:]
+    if len(argv) < 1:
+    	print("Too few input arguments!!!")
+    	sys.exit(1)
     if len(argv) == 1 and argv[0] == '--gui':
         Flow_Py_EXEC()
     else:

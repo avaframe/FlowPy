@@ -52,13 +52,16 @@ class Cell:
 
         if process == 'Avalanche':
             self.p_threshold = 3 * 10 ** -4
-            self.max_z_delta = 270  # maximum velocity this process can reach
+            #self.max_z_delta = 270  # maximum velocity this process can reach
+            self.max_z_delta = 9000 # value to take this out, nothing should be higher then Mount Everst
         if process == 'Rockfall':
             self.p_threshold = 3 * 10 ** -4
-            self.max_z_delta = 50  # maximum velocity this process can reach
+            #self.max_z_delta = 50  # maximum velocity this process can reach
+            self.max_z_delta = 9000
         if process == 'Soil Slides':
             self.p_threshold = 3 * 10 ** -4
-            self.max_z_delta = 12  # maximum velocity this process can reach
+            #self.max_z_delta = 12  # maximum velocity this process can reach
+            self.max_z_delta = 9000
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
