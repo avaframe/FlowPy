@@ -40,6 +40,7 @@ class Cell:
         self.dist = np.zeros_like(self.dem_ng)
         self.persistence = np.zeros_like(self.dem_ng)
         self.p_fd = np.zeros_like(self.dem_ng)
+        self.no_flow = np.ones_like(self.dem_ng)
         self.susceptibility = susceptibility
         self.z_delta = z_delta
         self.alpha = float(alpha)
@@ -128,52 +129,57 @@ class Cell:
             self.persistence += 1
         else:
             for parent in self.parent:
-                dx = (self.colindex - parent.colindex) + 1 # plus 1 to bring it from range [-1,0,1] to [0,1,2] = index of neighbour array
-                dy = (self.rowindex - parent.rowindex) + 1
+                dx = (parent.colindex - self.colindex) 
+                dy = (parent.rowindex - self.rowindex)
+
+                self.no_flow[dy + 1,dx + 1] = 0  # 3x3 Matrix of ones, every parent gets a 0, so no flow to a parent field.
+
                 maxweight = parent.z_delta
-                if dx == 0:
-                    if dy == 0:
-                        self.persistence[0, 0] += maxweight
-                        self.persistence[1, 0] += 0.707 * maxweight
-                        self.persistence[0, 1] += 0.707 * maxweight
-                    if dy == 1:
-                        self.persistence[1, 0] += maxweight
-                        self.persistence[2, 0] += 0.707 * maxweight
-                        self.persistence[0, 0] += 0.707 * maxweight
-                    if dy == 2:
-                        self.persistence[2, 0] += maxweight
-                        self.persistence[1, 0] += 0.707 * maxweight
-                        self.persistence[2, 1] += 0.707 * maxweight
-
-                if dx == 1:
-                    if dy == 0:
-                        self.persistence[0, 1] += maxweight
-                        self.persistence[0, 0] += 0.707 * maxweight
-                        self.persistence[0, 2] += 0.707 * maxweight
-                    if dy == 2:
-                        self.persistence[2, 1] += maxweight
-                        self.persistence[2, 0] += 0.707 * maxweight
-                        self.persistence[2, 2] += 0.707 * maxweight
-
-                if dx == 2:
-                    if dy == 0:
-                        self.persistence[0, 2] += maxweight
-                        self.persistence[0, 1] += 0.707 * maxweight
-                        self.persistence[1, 2] += 0.707 * maxweight
-                    if dy == 1:
-                        self.persistence[1, 2] += maxweight
-                        self.persistence[0, 2] += 0.707 * maxweight
-                        self.persistence[2, 2] += 0.707 * maxweight
-                    if dy == 2:
+                if dx == -1:
+                    if dy == -1:
                         self.persistence[2, 2] += maxweight
                         self.persistence[2, 1] += 0.707 * maxweight
                         self.persistence[1, 2] += 0.707 * maxweight
+                    if dy == 0:
+                        self.persistence[1, 2] += maxweight
+                        self.persistence[2, 2] += 0.707 * maxweight
+                        self.persistence[0, 2] += 0.707 * maxweight
+                    if dy == 1:
+                        self.persistence[0, 2] += maxweight
+                        self.persistence[0, 1] += 0.707 * maxweight
+                        self.persistence[1, 2] += 0.707 * maxweight
+
+                if dx == 0:
+                    if dy == -1:
+                        self.persistence[2, 1] += maxweight
+                        self.persistence[2, 0] += 0.707 * maxweight
+                        self.persistence[2, 2] += 0.707 * maxweight
+                    if dy == 1:
+                        self.persistence[0, 1] += maxweight
+                        self.persistence[0, 0] += 0.707 * maxweight
+                        self.persistence[0, 2] += 0.707 * maxweight
+
+                if dx == 1:
+                    if dy == -1:
+                        self.persistence[2, 0] += maxweight
+                        self.persistence[1, 0] += 0.707 * maxweight
+                        self.persistence[2, 1] += 0.707 * maxweight
+                    if dy == 0:
+                        self.persistence[1, 0] += maxweight
+                        self.persistence[0, 0] += 0.707 * maxweight
+                        self.persistence[2, 0] += 0.707 * maxweight
+                    if dy == 1:
+                        self.persistence[0, 0] += maxweight
+                        self.persistence[0, 1] += 0.707 * maxweight
+                        self.persistence[1, 0] += 0.707 * maxweight
                     
     def calc_distribution(self):
 
         self.calc_z_delta()
         self.calc_persistence()
+        self.persistence *= self.no_flow
         self.calc_tanbeta()
+        #print(self.persistence)
 
         if not self.is_start:
             self.calc_fp_travelangle()

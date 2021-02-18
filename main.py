@@ -33,7 +33,7 @@ from xml.etree import ElementTree as ET
 # Flow-Py Libraries
 import raster_io as io
 import Simulation as Sim
-import flow_core_gui as fc
+import flow_core as fc
 
 # Libraries for GUI, PyQt5
 from PyQt5.QtCore import pyqtSlot, QCoreApplication

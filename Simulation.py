@@ -25,7 +25,7 @@ In this class the mutliprocessing is handled.
 """
 # Flow-Py libraries
 import multiprocessing as mp
-import flow_core_gui as fc
+import flow_core as fc
 import psutil
 import sys
 
