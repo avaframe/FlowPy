@@ -99,96 +99,103 @@ class Flow_Py_EXEC():
         """Save the input paths"""
         name = QFileDialog.getSaveFileName(None, 'Save File',
                                            ".xml")[0]
+        if len(name) != 0:
 
-        root = ET.Element('root')
-        wdir = ET.SubElement(root, 'wDir')
-        dhm = ET.SubElement(root, 'DHM')
-        release = ET.SubElement(root, 'Release')
-        infra = ET.SubElement(root, 'Infrastructure')
-        forest = ET.SubElement(root, 'Forest')
-
-        wdir.set('Directory', 'Working')
-        dhm.set('Directory', 'DHM')
-        release.set('Directory', 'Release')
-        infra.set('Directory', 'Infrastructure')
-        forest.set('Directory', 'Forest')
-
-        wdir.text = self.ui.wDir_lineEdit.text()
-        dhm.text = self.ui.DEM_lineEdit.text()
-        release.text = self.ui.release_lineEdit.text()
-        infra.text = self.ui.infra_lineEdit.text()
-        #forest.text = self.ui.forest_lineEdit.text()
-
-        tree = ET.ElementTree(root)
-        tree.write(name)
+            root = ET.Element('root')
+            wdir = ET.SubElement(root, 'wDir')
+            dhm = ET.SubElement(root, 'DHM')
+            release = ET.SubElement(root, 'Release')
+            infra = ET.SubElement(root, 'Infrastructure')
+            forest = ET.SubElement(root, 'Forest')
+    
+            wdir.set('Directory', 'Working')
+            dhm.set('Directory', 'DHM')
+            release.set('Directory', 'Release')
+            infra.set('Directory', 'Infrastructure')
+            forest.set('Directory', 'Forest')
+    
+            wdir.text = self.ui.wDir_lineEdit.text()
+            dhm.text = self.ui.DEM_lineEdit.text()
+            release.text = self.ui.release_lineEdit.text()
+            infra.text = self.ui.infra_lineEdit.text()
+            #forest.text = self.ui.forest_lineEdit.text()
+    
+            tree = ET.ElementTree(root)
+            tree.write(name)
 
     def load(self):
         xml_file = QFileDialog.getOpenFileNames(None, 'Open xml',
                                                 self.directory,
                                                 "xml (*.xml);;All Files (*.*)")[0]
 
-        tree = ET.parse(xml_file[0])
-        root = tree.getroot()
-
-        try:
-            self.ui.wDir_lineEdit.setText(root[0].text)
-            self.directory = root[0].text
-        except:
-            print("No Working Directory Path in File!")
-
-        try:
-            self.ui.DEM_lineEdit.setText(root[1].text)
-        except:
-            print("No DEM Path in File!")
-
-        try:
-            self.ui.release_lineEdit.setText(root[2].text)
-        except:
-            print("No Release Path in File!")
-
-        try:
-            self.ui.infra_lineEdit.setText(root[3].text)
-        except:
-            print("No Infrastructure Path in File!")
-
-        try:
-            self.ui.forest_lineEdit.setText(root[4].text)
-        except:
-            print("No Forest Path in File!")
+        if len(xml_file) != 0:
+            tree = ET.parse(xml_file[0])
+            root = tree.getroot()
+    
+            try:
+                self.ui.wDir_lineEdit.setText(root[0].text)
+                self.directory = root[0].text
+            except:
+                print("No Working Directory Path in File!")
+    
+            try:
+                self.ui.DEM_lineEdit.setText(root[1].text)
+            except:
+                print("No DEM Path in File!")
+    
+            try:
+                self.ui.release_lineEdit.setText(root[2].text)
+            except:
+                print("No Release Path in File!")
+    
+            try:
+                self.ui.infra_lineEdit.setText(root[3].text)
+            except:
+                print("No Infrastructure Path in File!")
+    
+            try:
+                self.ui.forest_lineEdit.setText(root[4].text)
+            except:
+                print("No Forest Path in File!")
 
     def quit(self):
         QCoreApplication.quit()
 
     def open_wDir(self):
         """Open the Working Directory, where results are stored"""
-        self.directory = QFileDialog.getExistingDirectory(None, 'Open Working Directory',
+        directory = QFileDialog.getExistingDirectory(None, 'Open Working Directory',
                                                           self.directory,
                                                           QFileDialog.ShowDirsOnly)
-        self.ui.wDir_lineEdit.setText(self.directory)
+        if len(directory) != 0:
+            self.directory = directory
+            self.ui.wDir_lineEdit.setText(self.directory)
 
     def open_dhm(self):
         """Open digital elevation model"""
         dem_file = QFileDialog.getOpenFileNames(None, 'Open DEM',
                                                 self.directory,
                                                 "ascii (*.asc);;tif (*.tif);;All Files (*.*)")
-        dem = dem_file[0]
-        self.ui.DEM_lineEdit.setText(dem[0])
+        if len(dem_file[0]) != 0:
+            dem = dem_file[0]
+            self.ui.DEM_lineEdit.setText(dem[0])
 
     def open_release(self):
         """Open release layer"""
         release_file = QFileDialog.getOpenFileNames(None, 'Open Release',
                                                     self.directory,
                                                     "ascii (*.asc);;tif (*.tif);;All Files (*.*)")
-        release = release_file[0]
-        self.ui.release_lineEdit.setText(release[0])
+        if len(release_file[0]) != 0:
+            release = release_file[0]
+            self.ui.release_lineEdit.setText(release[0])
 
     def open_infra(self):
         """Open infrastructure layer"""
         infra_file = QFileDialog.getOpenFileNames(None, 'Open Infrastructure Layer',
                                                   self.directory,
                                                   "ascii (*.asc);;tif (*.tif);;All Files (*.*)")
-        infra = infra_file[0]
-        self.ui.infra_lineEdit.setText(infra[0])
+        if len(infra_file[0]) != 0:
+            infra = infra_file[0]
+            self.ui.infra_lineEdit.setText(infra[0])
 
     def processChanged(self):
         if self.ui.process_Box.currentText() == 'Avalanche':
@@ -564,6 +571,7 @@ def main(argv):
 if __name__ == '__main__':
     #mp.set_start_method('spawn') # used in Windows
     argv = sys.argv[1:]
+    #argv = ['--gui']
     if len(argv) < 1:
     	print("Too few input arguments!!!")
     	sys.exit(1)
