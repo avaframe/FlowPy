@@ -385,18 +385,32 @@ class Flow_Py_EXEC():
         self.set_gui_bool(True)
 
 
-def main(argv):
+def main(args, kwargs):
+    
 
-    alpha = int(argv[0])
-    exp = int(argv[1])
-    process = argv[2]
-    directory = argv[3]
-    dem_path = argv[4]
-    release_path = argv[5]
-    if len(argv) == 7:
-        infra_path = argv[6]
+    alpha = args[0]
+    exp = args[1]
+    directory = args[2]
+    dem_path = args[3]
+    release_path = args[4]
+    if 'infra' in kwargs:
+        infra_path = kwargs.get('infra')
+        print(infra_path)
     else:
         infra_path = None
+        
+    if 'flux' in kwargs:
+        flux = float(kwargs.get('flux'))
+        print(flux)
+    else:
+        flux = None
+        
+    if 'max_z' in kwargs:
+        max_z = kwargs.get('max_z')
+        print(max_z)
+    else:
+        max_z = None
+
 
 
     start = datetime.now().replace(microsecond=0)
@@ -459,7 +473,6 @@ def main(argv):
 
     logging.info('Files read in')
 
-    logging.info('Process: {}'.format(process))
     z_delta = np.zeros_like(dem)
     susc = np.zeros_like(dem)
     cell_counts = np.zeros_like(dem)
@@ -486,7 +499,7 @@ def main(argv):
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(len(release_list))
         results = pool.map(fc.calculation,
-                           [[dem, header, infra, process, release_pixel, alpha, exp]
+                           [[dem, header, infra, release_pixel, alpha, exp, flux, max_z]
                             for release_pixel in release_list])
         pool.close()
         pool.join()
@@ -497,7 +510,7 @@ def main(argv):
         pool = mp.Pool(mp.cpu_count())
         # results = pool.map(gc.calculation, iterable)
         results = pool.map(fc.calculation_effect,
-                           [[dem, header, process, release_pixel, alpha, exp] for
+                           [[dem, header, release_pixel, alpha, exp, flux, max_z] for
                             release_pixel in release_list])
         pool.close()
         pool.join()
@@ -530,37 +543,32 @@ def main(argv):
         fp_ta = np.maximum(fp_ta, fp_ta_list[i])
         sl_ta = np.maximum(sl_ta, sl_ta_list[i])
 
-    if process == 'Avalanche':
-        proc = 'ava'
-    if process == 'Rockfall':
-        proc = 'rf'
-    if process == 'Soil Slides':
-        proc = 'ds'
+
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     logging.info('Writing Output Files')
     output_format = '.tif'
     io.output_raster(dem_path,
-                     directory + res_dir + "susceptibility_{}{}".format(proc, output_format),
+                     directory + res_dir + "susceptibility{}".format(output_format),
                      susc)
     io.output_raster(dem_path,
-                     directory + res_dir + "z_delta_{}{}".format(proc, output_format),
+                     directory + res_dir + "z_delta{}".format(output_format),
                      z_delta)
     io.output_raster(dem_path,
-                     directory + res_dir + "FP_travel_angle_{}{}".format(proc, output_format),
+                     directory + res_dir + "FP_travel_angle{}".format(output_format),
                      fp_ta)
     io.output_raster(dem_path,
-                     directory + res_dir + "SL_travel_angle_{}{}".format(proc, output_format),
+                     directory + res_dir + "SL_travel_angle{}".format(output_format),
                      sl_ta)
     if not calc_bool:  # if no infra
         io.output_raster(dem_path,
-                         directory + res_dir + "cell_counts_{}{}".format(proc, output_format),
+                         directory + res_dir + "cell_counts{}".format(output_format),
                          cell_counts)
         io.output_raster(dem_path,
-                         directory + res_dir + "z_delta_sum_{}{}".format(proc, output_format),
+                         directory + res_dir + "z_delta_sum{}".format( output_format),
                          z_delta_sum)
     if calc_bool:  # if infra
         io.output_raster(dem_path,
-                         directory + res_dir + "backcalculation_{}{}".format(proc, output_format),
+                         directory + res_dir + "backcalculation{}".format(output_format),
                          backcalc)
 
     print("Calculation finished")
@@ -578,8 +586,11 @@ if __name__ == '__main__':
     if len(argv) == 1 and argv[0] == '--gui':
         Flow_Py_EXEC()
     else:
-        main(argv)
-    # example input: 25 8 Avalanche ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif ./examples/helix/infra.tif
+        args=[arg for arg in argv if arg.find('=')<0]
+        kwargs={kw[0]:kw[1] for kw in [ar.split('=') for ar in argv if ar.find('=')>0]}
+
+        main(args, kwargs)
+    # example input: 25 8 ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif infra=./examples/helix/infra.tif flux=0.003 vel=270
     # example dam: 25 8 Avalanche ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
     # 25 8 Avalanche ./examples/parabolic_chute/ ./examples/parabolic_chute/5m_standard_n10.asc ./examples/parabolic_chute/release_standard_n10.tif
 

@@ -1,0 +1,11 @@
+2021-02-26 11:40:31 INFO     Start Calculation
+2021-02-26 11:40:31 INFO     Alpha Angle: 25
+2021-02-26 11:40:31 INFO     Exponent: 8
+2021-02-26 11:40:31 INFO     DEM File: .\examples\ValsGries\PAR6_Vals_Gries_dtm_10_utm32n_bil_.tif
+2021-02-26 11:40:31 INFO     Release File: .\examples\ValsGries\release.tif
+2021-02-26 11:40:31 INFO     Files read in
+2021-02-26 11:40:31 INFO     Process: Avalanche
+2021-02-26 11:40:31 INFO     Multiprocessing starts, used cores: 16
+2021-02-26 15:24:48 INFO     Calculation finished, getting results.
+2021-02-26 15:24:50 INFO     Writing Output Files
+2021-02-26 15:24:50 INFO     Calculation needed: 3:44:19 seconds

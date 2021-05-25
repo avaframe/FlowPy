@@ -28,7 +28,7 @@ import math
 
 class Cell:
     
-    def __init__(self, process,  rowindex, colindex, dem_ng, cellsize, susceptibility, z_delta, parent, alpha, exp, startcell):
+    def __init__(self, rowindex, colindex, dem_ng, cellsize, susceptibility, z_delta, parent, alpha, exp, flux_threshold, max_z_delta, startcell):
         '''This class handles the spreading over the DEM!
         Depending on the process different alpha angles are used for energy dissipation.'''
         self.rowindex = rowindex
@@ -51,18 +51,20 @@ class Cell:
         self.max_gamma = 0
         self.sl_gamma = 0
 
-        if process == 'Avalanche':
-            self.p_threshold = 3 * 10 ** -4
-            #self.max_z_delta = 270  # maximum velocity this process can reach
-            self.max_z_delta = 9000 # value to take this out, nothing should be higher then Mount Everst
-        if process == 'Rockfall':
-            self.p_threshold = 3 * 10 ** -4
-            #self.max_z_delta = 50  # maximum velocity this process can reach
+            
+        if max_z_delta == None:
             self.max_z_delta = 9000
-        if process == 'Soil Slides':
-            self.p_threshold = 3 * 10 ** -4
-            #self.max_z_delta = 12  # maximum velocity this process can reach
-            self.max_z_delta = 9000
+        else:
+            self.max_z_delta = max_z_delta
+            # Recomendet values:
+                # Avalanche = 270
+                # Rockfall = 50
+                # Soil Slide = 12
+                
+        if flux_threshold == None:
+            self.flux_threshold = 3 * 10 ** -4  # From flow_r
+        else:
+            self.flux_threshold = flux_threshold
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
@@ -133,8 +135,9 @@ class Cell:
                 dy = (parent.rowindex - self.rowindex)
 
                 self.no_flow[dy + 1,dx + 1] = 0  # 3x3 Matrix of ones, every parent gets a 0, so no flow to a parent field.
-
+                
                 maxweight = parent.z_delta
+                # Old Calculation
                 if dx == -1:
                     if dy == -1:
                         self.persistence[2, 2] += maxweight
@@ -172,6 +175,22 @@ class Cell:
                         self.persistence[0, 0] += maxweight
                         self.persistence[0, 1] += 0.707 * maxweight
                         self.persistence[1, 0] += 0.707 * maxweight
+                        
+# =============================================================================
+#                 # New Calculation:
+#                 theta_child = np.array([[np.pi*5/4, np.pi*3/2 , np.pi*7/4], [np.pi, 0, 0], [np.pi*3/4, np.pi/2 , np.pi/4]])
+#                 theta_parent = (np.arctan2(dy, dx))
+#                 
+#                 pers1 = theta_parent - theta_child - np.pi
+#                 pers = np.zeros((3,3))
+#                 
+#                 for idx, element in np.ndenumerate(pers1):
+#                     pers[idx] = max(0, np.cos(element))
+#                     if pers[idx] < 2*np.finfo(np.float64).eps:
+#                         pers[idx] = 0
+#                 pers[1, 1] = 0
+#                 self.persistence += pers * maxweight
+# =============================================================================
                     
     def calc_distribution(self):
 
@@ -185,7 +204,7 @@ class Cell:
             self.calc_fp_travelangle()
             self.calc_sl_travelangle()
 
-        threshold = self.p_threshold
+        threshold = self.flux_threshold
         if np.sum(self.p_fd) > 0:
             self.dist = (self.persistence * self.p_fd) / np.sum(self.persistence * self.p_fd) * self.susceptibility
         # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose

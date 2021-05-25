@@ -1,0 +1,4 @@
+2021-02-26 09:58:25 INFO     Start Calculation
+2021-02-26 09:58:25 INFO     Alpha Angle: 25
+2021-02-26 09:58:25 INFO     Exponent: 20
+2021-02-26 09:58:25 INFO     DEM File: ./examples/FlowPy_PF_PF_Topo.asc

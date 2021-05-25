@@ -1,0 +1,11 @@
+2021-02-26 11:14:51 INFO     Start Calculation
+2021-02-26 11:14:51 INFO     Alpha Angle: 25
+2021-02-26 11:14:51 INFO     Exponent: 20
+2021-02-26 11:14:51 INFO     DEM File: ./examples/FlowPy_PF_CHANNEL_DAM_PF_Topo.asc
+2021-02-26 11:14:51 INFO     Release File: ./examples/3cellrel.asc
+2021-02-26 11:14:51 INFO     Files read in
+2021-02-26 11:14:51 INFO     Process: Avalanche
+2021-02-26 11:14:51 INFO     Multiprocessing starts, used cores: 16
+2021-02-26 11:15:04 INFO     Calculation finished, getting results.
+2021-02-26 11:15:04 INFO     Writing Output Files
+2021-02-26 11:15:04 INFO     Calculation needed: 0:00:13 seconds
