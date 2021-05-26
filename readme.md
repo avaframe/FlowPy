@@ -15,20 +15,21 @@ based on information about forest structure, calculate the protective effect thi
 ## Running the Code
 
 python3 main.py --gui -> Gui Version  
-python3 main.py alpha_angle exponent process working_directory path_to_dem path_to_release path_to_infrastructure(Optional)  
+python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release infra=path_to_infrastructure(Optional) flux_threshold=pos.number(Optional) max_z_delta=pos.number(Optional)
 
 - alpha_angle: max. runout angle for the process: Austria -> Avalanche 25, Rockfall 35, Debris Slides 22 
 - exponent: controls the lateral spreading, avalanches 8, rockfall and debris slides 75 (= single flow, except in flat terrain) 
-- process: can be -> Avalanche Rockfall or Soil Slides, controls max. energy line height 
 - working_directory: where to create and save result folder 
 - path_to_dem: well it's the path to the DEM (.asc or .tif)
 - path_to_release: well it's the path to the release layer 
-- path_to_infrastructure: well it's the path to the Infra layer, OPTIONAL!!! 
+- path_to_infrastructure: well it's the path to the Infra layer, Optional!
+- flux_threshold: when Flow-Py stops the spreading, Standard = 0.0003, Optional!
+- max_z_delta: The max. z_delta your process can reach. Some hints: Avalanche = 270 /  Rockfall = 50 / Soil Slides = 12 / Standard = 8848 (no limitation), Optional!
 
-Right now the Code only works on Linux Machines, due to the multiprocessing.  
-Run the Code via the main.py script.  
+Right now the Code works on Linux and Windows Machines. Haven't tested it on OS, if you are able to run it there, please give us feedback.
+Run the Code via the main.py script: python3 main.py ...  
 Some PyQt libraries are needed and rasterio.  
-There is a .yml file in the repo that includes all needed libraries, you can import the environment in anaconda.  
+There is the requirements.txt file in the repo that includes all needed libraries.  
 
 ## Input Files
 
@@ -57,8 +58,8 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
     Includes the highest z_delta for every pixel.
 - Sum of z_delta:
     z_delta summed up on every pixel.
-- Susceptibility:
-    The result of the susceptibility calculation for every pixel.
+- Flux:
+    The result of the flux calculation for every pixel.
 - Cell Counts:
     Saves how often one pixel gets a hit from different release points.
 - Backcalculation:
@@ -99,7 +100,7 @@ To reach a single flow in step terrain, an exponent of 75 is considered.
 ![Holmgrem](img/flow_direction.png)
 *Holmgrem Algorithm from 1994 [1]*
 
-In this equation i, j are the flow directions, p_i^(fd) the susceptibility proportion in direction i, 
+In this equation i, j are the flow directions, p_i^(fd) the flux proportion in direction i, 
 tan(beta_i) the slope gradient between the central cell and the cell in direction i, and exp the variable exponent. 
 When the exponent increases, the divergence is reduced up to resulting into a single flow direction when 
 exp &rightarrow; &infin;. This parameter allows to control the spreading and to reproduce a wide range of other flow 
