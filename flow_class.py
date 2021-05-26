@@ -28,7 +28,7 @@ import math
 
 class Cell:
     
-    def __init__(self, rowindex, colindex, dem_ng, cellsize, susceptibility, z_delta, parent, alpha, exp, flux_threshold, max_z_delta, startcell):
+    def __init__(self, rowindex, colindex, dem_ng, cellsize, flux, z_delta, parent, alpha, exp, flux_threshold, max_z_delta, startcell):
         '''This class handles the spreading over the DEM!
         Depending on the process different alpha angles are used for energy dissipation.'''
         self.rowindex = rowindex
@@ -39,32 +39,19 @@ class Cell:
         self.tan_beta = np.zeros_like(self.dem_ng)
         self.dist = np.zeros_like(self.dem_ng)
         self.persistence = np.zeros_like(self.dem_ng)
-        self.p_fd = np.zeros_like(self.dem_ng)
+        self.r_t = np.zeros_like(self.dem_ng)
         self.no_flow = np.ones_like(self.dem_ng)
-        self.susceptibility = susceptibility
+        self.flux = flux
         self.z_delta = z_delta
         self.alpha = float(alpha)
         self.exp = int(exp)
+        self.max_z_delta = float(max_z_delta)
+        self.flux_threshold = float(flux_threshold)
         self.min_distance = 0
         self.max_distance = 0
         self.min_gamma = 0
         self.max_gamma = 0
-        self.sl_gamma = 0
-
-            
-        if max_z_delta == None:
-            self.max_z_delta = 9000
-        else:
-            self.max_z_delta = max_z_delta
-            # Recomendet values:
-                # Avalanche = 270
-                # Rockfall = 50
-                # Soil Slide = 12
-                
-        if flux_threshold == None:
-            self.flux_threshold = 3 * 10 ** -4  # From flow_r
-        else:
-            self.flux_threshold = flux_threshold
+        self.sl_gamma = 0             
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
@@ -76,8 +63,8 @@ class Cell:
         if type(parent) == Cell:
             self.parent.append(parent)
 
-    def add_os(self, susceptibility):
-        self.susceptibility += susceptibility
+    def add_os(self, flux):
+        self.flux += flux
 
     def add_parent(self, parent):
         self.parent.append(parent)
@@ -121,7 +108,7 @@ class Cell:
         self.tan_beta[self.persistence <= 0] = 0
         self.tan_beta[1, 1] = 0
         if abs(np.sum(self.tan_beta)) > 0:
-            self.p_fd = self.tan_beta ** self.exp / np.sum(self.tan_beta ** self.exp)
+            self.r_t = self.tan_beta ** self.exp / np.sum(self.tan_beta ** self.exp)
 
     def calc_persistence(self):
         self.persistence = np.zeros_like(self.dem_ng)
@@ -205,20 +192,20 @@ class Cell:
             self.calc_sl_travelangle()
 
         threshold = self.flux_threshold
-        if np.sum(self.p_fd) > 0:
-            self.dist = (self.persistence * self.p_fd) / np.sum(self.persistence * self.p_fd) * self.susceptibility
+        if np.sum(self.r_t) > 0:
+            self.dist = (self.persistence * self.r_t) / np.sum(self.persistence * self.r_t) * self.flux
         # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
-        # susceptibility.
-        # The susceptibility of this cells will then spread equally to all neighbour cells
+        # flux.
+        # The flux of this cells will then spread equally to all neighbour cells
         count = ((0 < self.dist) & (self.dist < threshold)).sum()
         mass_to_distribute = np.sum(self.dist[self.dist < threshold])
-        '''Checking if susceptibility is distributed to a field that isn't taking in account, when then distribute it to
+        '''Checking if flux is distributed to a field that isn't taking in account, when then distribute it to
          the other fields'''
         if mass_to_distribute > 0 and count > 0:
             self.dist[self.dist > threshold] += mass_to_distribute / count
             self.dist[self.dist < threshold] = 0
-        if np.sum(self.dist) < self.susceptibility and count > 0:
-            self.dist[self.dist > threshold] += (self.susceptibility - np.sum(self.dist))/count
+        if np.sum(self.dist) < self.flux and count > 0:
+            self.dist[self.dist > threshold] += (self.flux - np.sum(self.dist))/count
 
         row_local, col_local = np.where(self.dist > threshold)
 

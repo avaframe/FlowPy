@@ -174,11 +174,11 @@ def calculation(args):
     exp = args[5]
     flux_threshold = args[6]
     max_z_delta = args[7]
-    print(len(args), max_z_delta)
+    #print(len(args), max_z_delta)
     
     z_delta_array = np.zeros_like(dem)
     z_delta_sum = np.zeros_like(dem)
-    susc_array = np.zeros_like(dem)
+    flux_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
     fp_travelangle_array = np.zeros_like(dem)
@@ -214,25 +214,25 @@ def calculation(args):
         cell_list.append(startcell)
 
         for idx, cell in enumerate(cell_list):
-            row, col, susc, z_delta = cell.calc_distribution()
+            row, col, flux, z_delta = cell.calc_distribution()
 
-            if len(susc) > 0:
+            if len(flux) > 0:
                 # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
                 
-                z_delta, susc, row, col = list(zip(*sorted(zip(z_delta, susc, row, col), reverse=False)))
+                z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))
                 # Sort this lists by elh, to start with the highest cell
 
             for i in range(idx, len(cell_list)):  # Check if Cell already exists
                 k = 0
                 while k < len(row):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
-                        cell_list[i].add_os(susc[k])
+                        cell_list[i].add_os(flux[k])
                         cell_list[i].add_parent(cell)
                         if z_delta[k] > cell_list[i].z_delta:
                             cell_list[i].z_delta = z_delta[k]
                         row = np.delete(row, k)
                         col = np.delete(col, k)
-                        susc = np.delete(susc, k)
+                        flux = np.delete(flux, k)
                         z_delta = np.delete(z_delta, k)
                     else:
                         k += 1
@@ -242,10 +242,10 @@ def calculation(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(row[k], col[k], dem_ng, cellsize, susc[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
+                    Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
 
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
-            susc_array[cell.rowindex, cell.colindex] = max(susc_array[cell.rowindex, cell.colindex], cell.susceptibility)
+            flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex], cell.flux)
             count_array[cell.rowindex, cell.colindex] += 1
             z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
             fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex], cell.max_gamma)
@@ -266,7 +266,7 @@ def calculation(args):
     end = datetime.now().replace(microsecond=0)
     #elh_multi[elh_multi == 1] = 0         
     print('\n Time needed: ' + str(end - start))
-    return z_delta_array, susc_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array
+    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array
 
 def calculation_effect(args):
     """This is the core function where all the data handling and calculation is
@@ -297,7 +297,7 @@ def calculation_effect(args):
 
     z_delta_array = np.zeros_like(dem)
     z_delta_sum = np.zeros_like(dem)
-    susc_array = np.zeros_like(dem)
+    flux_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
     fp_travelangle_array = np.zeros_like(dem)  # fp = Flow Path
@@ -332,23 +332,23 @@ def calculation_effect(args):
         cell_list.append(startcell)
 
         for idx, cell in enumerate(cell_list):
-            row, col, susc, z_delta = cell.calc_distribution()
+            row, col, flux, z_delta = cell.calc_distribution()
 
-            if len(susc) > 0:
-                z_delta, susc, row, col = list(zip(*sorted(zip(z_delta, susc, row, col), reverse=False)))  # reverse = True == descending
+            if len(flux) > 0:
+                z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
 
             for i in range(idx, len(cell_list)):  # Check if Cell already exists
                 k = 0
                 while k < len(row):
                     if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
-                        cell_list[i].add_os(susc[k])
+                        cell_list[i].add_os(flux[k])
                         cell_list[i].add_parent(cell)
                         if z_delta[k] > cell_list[i].z_delta:
                             cell_list[i].z_delta = z_delta[k]
 
                         row = np.delete(row, k)
                         col = np.delete(col, k)
-                        susc = np.delete(susc, k)
+                        flux = np.delete(flux, k)
                         z_delta = np.delete(z_delta, k)
                     else:
                         k += 1
@@ -358,12 +358,12 @@ def calculation_effect(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(row[k], col[k], dem_ng, cellsize, susc[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
+                    Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
 
         for cell in cell_list:
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
-            susc_array[cell.rowindex, cell.colindex] = max(susc_array[cell.rowindex, cell.colindex],
-                                                           cell.susceptibility)
+            flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
+                                                           cell.flux)
             count_array[cell.rowindex, cell.colindex] += 1
             z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
             fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex],
@@ -374,4 +374,4 @@ def calculation_effect(args):
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)        
     print('\n Time needed: ' + str(end - start))
-    return z_delta_array, susc_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array
+    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array

@@ -37,24 +37,25 @@ class Simulation(QThread):
     value_changed = pyqtSignal(float)
     finished = pyqtSignal(list, list, list, list, list, list, list)
 
-    def __init__(self, dem, header, release, release_header, infra, process, calc_bool, alpha, exp):
+    def __init__(self, dem, header, release, release_header, infra, calc_bool, alpha, exp, flux, max_z):
         QThread.__init__(self)
         self.dem = dem
         self.header = header
         self.release = release
         self.release_header = release_header
         self.infra = infra
-        self.process = process
         self.numberofprocesses = mp.cpu_count()
         self.calc_bool = calc_bool
         self.alpha = alpha
         self.exp = exp
+        self.flux = flux
+        self.max_z = max_z
 
         avaiable_memory = psutil.virtual_memory()[1]
         dem_memory = sys.getsizeof(self.dem)
         release_memory = sys.getsizeof(self.release)
         infra_memory = sys.getsizeof(self.infra)
-        puffer = avaiable_memory * 0.2  # = 5GB
+        puffer = avaiable_memory * 0.2  # ~ 5GB
         needed_memory = dem_memory * 7 + dem_memory + release_memory + infra_memory
         self.max_number_procces = int((avaiable_memory - puffer) / (needed_memory))
         print(avaiable_memory)
@@ -75,7 +76,7 @@ class Simulation(QThread):
 
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(len(release_list))
-            results = pool.map(fc.calculation, [[self.dem, self.header, self.infra, self.process, release_pixel, self.alpha, self.exp] for release_pixel in release_list])
+            results = pool.map(fc.calculation, [[self.dem, self.header, self.infra, release_pixel, self.alpha, self.exp, self.flux, self.max_z] for release_pixel in release_list])
             pool.close()
             pool.join()
         else:
@@ -84,14 +85,17 @@ class Simulation(QThread):
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(mp.cpu_count())
             #results = pool.map(gc.calculation, iterable)
-            results = pool.map(fc.calculation_effect, [[self.dem, self.header, self.process, release_pixel, self.alpha, self.exp] for release_pixel in release_list])
+            results = pool.map(fc.calculation_effect,
+                               [[self.dem, self.header, release_pixel,
+                                 self.alpha, self.exp, self.flux, self.max_z] 
+                                for release_pixel in release_list])
             pool.close()
             pool.join()
 
         print("Processes finished")
 
         z_delta_list = []
-        susc_list = []
+        flux_list = []
         cc_list = []
         z_delta_sum_list = []
         backcalc_list = []
@@ -101,12 +105,12 @@ class Simulation(QThread):
             res = results[i]
             res = list(res)
             z_delta_list.append(res[0])
-            susc_list.append(res[1])
+            flux_list.append(res[1])
             cc_list.append(res[2])
             z_delta_sum_list.append(res[3])
             backcalc_list.append(res[4])
             fp_ta_list.append(res[5])
             sl_ta_list.append(res[6])
 
-        self.finished.emit(z_delta_list, susc_list, cc_list, z_delta_sum_list, backcalc_list, fp_ta_list, sl_ta_list)
+        self.finished.emit(z_delta_list, flux_list, cc_list, z_delta_sum_list, backcalc_list, fp_ta_list, sl_ta_list)
         print("Results passed")

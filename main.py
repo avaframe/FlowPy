@@ -59,13 +59,15 @@ class Flow_Py_EXEC():
 
         self.ui.alpha_Edit.setText('25')
         self.ui.exp_Edit.setText('8')
+        self.ui.flux_Edit.setText('0.003')
+        self.ui.z_Edit.setText('8848')
 
         self.ui.wDir_Button.clicked.connect(self.open_wDir)
         self.ui.DEM_Button.clicked.connect(self.open_dhm)
         self.ui.Release_Button.clicked.connect(self.open_release)
         self.ui.infra_Button.clicked.connect(self.open_infra)
         #self.ui.forest_Button.clicked.connect(self.open_forest)
-        self.ui.process_Box.currentIndexChanged.connect(self.processChanged)
+        #self.ui.process_Box.currentIndexChanged.connect(self.processChanged)
         self.ui.calc_Button.clicked.connect(self.calculation)
         self.ui.actionSave.triggered.connect(self.save)
         self.ui.actionLoad.triggered.connect(self.load)
@@ -197,17 +199,6 @@ class Flow_Py_EXEC():
             infra = infra_file[0]
             self.ui.infra_lineEdit.setText(infra[0])
 
-    def processChanged(self):
-        if self.ui.process_Box.currentText() == 'Avalanche':
-            self.ui.alpha_Edit.setText('25')
-            self.ui.exp_Edit.setText('8')
-        if self.ui.process_Box.currentText() == 'Rockfall':
-            self.ui.alpha_Edit.setText('32')
-            self.ui.exp_Edit.setText('75')
-        if self.ui.process_Box.currentText() == 'Soil Slides':
-            self.ui.alpha_Edit.setText('22')
-            self.ui.exp_Edit.setText('75')
-
     def update_progressBar(self, float, thread, start, end):
         self.thread_list[thread] = float
         self.start_list[thread] = start
@@ -310,12 +301,19 @@ class Flow_Py_EXEC():
 
         logging.info('Files read in')
 
-        process = self.ui.process_Box.currentText()
-        logging.info('Process: {}'.format(process))
         alpha = self.ui.alpha_Edit.text()
         exp = self.ui.exp_Edit.text()
+        flux_threshold = self.ui.flux_Edit.text()
+        max_z = self.ui.z_Edit.text()
+        
+        logging.info('Alpha Angle: {}'.format(alpha))
+        logging.info('Exponent: {}'.format(exp))
+        logging.info('Flux Threshold: {}'.format(flux_threshold))
+        logging.info('Max Z_delta: {}'.format(max_z))
+        logging.info
+        
         self.z_delta = np.zeros_like(dem)
-        self.susc = np.zeros_like(dem)
+        self.flux = np.zeros_like(dem)
         self.cell_counts = np.zeros_like(dem)
         self.z_delta_sum = np.zeros_like(dem)
         self.backcalc = np.zeros_like(dem)
@@ -323,17 +321,17 @@ class Flow_Py_EXEC():
         self.sl_ta = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, process, self.calc_bool, alpha, exp)
+        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, self.calc_bool, alpha, exp, flux_threshold, max_z)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
         self.calc_class.start()
 
-    def thread_finished(self, z_delta, susc, count_array, z_delta_sum, backcalc, fp_ta, sl_ta):
+    def thread_finished(self, z_delta, flux, count_array, z_delta_sum, backcalc, fp_ta, sl_ta):
         logging.info('Calculation finished, getting results.')
         for i in range(len(z_delta)):
             self.z_delta = np.maximum(self.z_delta, z_delta[i])
-            self.susc = np.maximum(self.susc, susc[i])
+            self.flux = np.maximum(self.flux, flux[i])
             self.cell_counts += count_array[i]
             self.z_delta_sum += z_delta_sum[i]
             self.backcalc = np.maximum(self.backcalc, backcalc[i])
@@ -342,38 +340,30 @@ class Flow_Py_EXEC():
         self.output()
 
     def output(self):
-        if self.ui.process_Box.currentText() == 'Avalanche':
-            proc = 'ava'
-        if self.ui.process_Box.currentText() == 'Rockfall':
-            proc = 'rf'
-        if self.ui.process_Box.currentText() == 'Soil Slides':
-            proc = 'ds'
         # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
         logging.info('Writing Output Files')
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "susceptibility_{}{}".format(proc, self.ui.outputBox.currentText()),
-                         self.susc)
+                         self.directory + self.res_dir + "flux{}".format(self.ui.outputBox.currentText()),
+                         self.flux)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "z_delta_{}{}".format(proc, self.ui.outputBox.currentText()),
+                         self.directory + self.res_dir + "z_delta{}".format(self.ui.outputBox.currentText()),
                          self.z_delta)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "FP_travel_angle_{}{}".format(proc,
-                                                                                       self.ui.outputBox.currentText()),
+                         self.directory + self.res_dir + "FP_travel_angle{}".format(self.ui.outputBox.currentText()),
                          self.fp_ta)
         io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "SL_travel_angle_{}{}".format(proc,
-                                                                                       self.ui.outputBox.currentText()),
+                         self.directory + self.res_dir + "SL_travel_angle{}".format(self.ui.outputBox.currentText()),
                          self.sl_ta)
         if not self.calc_bool:
             io.output_raster(self.ui.DEM_lineEdit.text(),
-                             self.directory + self.res_dir + "cell_counts_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.directory + self.res_dir + "cell_counts{}".format(self.ui.outputBox.currentText()),
                              self.cell_counts)
             io.output_raster(self.ui.DEM_lineEdit.text(),
-                             self.directory + self.res_dir + "z_delta_sum_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.directory + self.res_dir + "z_delta_sum{}".format(self.ui.outputBox.currentText()),
                              self.z_delta_sum)
         if self.calc_bool:
             io.output_raster(self.ui.DEM_lineEdit.text(),
-                             self.directory + self.res_dir + "backcalculation_{}{}".format(proc, self.ui.outputBox.currentText()),
+                             self.directory + self.res_dir + "backcalculation{}".format(self.ui.outputBox.currentText()),
                              self.backcalc)
 
         print("Calculation finished")
@@ -395,23 +385,28 @@ def main(args, kwargs):
     release_path = args[4]
     if 'infra' in kwargs:
         infra_path = kwargs.get('infra')
-        print(infra_path)
+        #print(infra_path)
     else:
         infra_path = None
         
     if 'flux' in kwargs:
-        flux = float(kwargs.get('flux'))
-        print(flux)
+        flux_threshold = float(kwargs.get('flux'))
+        #print(flux_threshold)
     else:
-        flux = None
+        flux_threshold = 3 * 10 ** -4
         
     if 'max_z' in kwargs:
         max_z = kwargs.get('max_z')
-        print(max_z)
+        #print(max_z)
     else:
-        max_z = None
+        max_z = 8848
+        # Recomendet values:
+                # Avalanche = 270
+                # Rockfall = 50
+                # Soil Slide = 12
 
-
+    print("Starting...")
+    print("...")
 
     start = datetime.now().replace(microsecond=0)
     calc_bool = False
@@ -437,6 +432,9 @@ def main(args, kwargs):
     logging.info('Start Calculation')
     logging.info('Alpha Angle: {}'.format(alpha))
     logging.info('Exponent: {}'.format(exp))
+    logging.info('Flux Threshold: {}'.format(flux_threshold))
+    logging.info('Max Z_delta: {}'.format(max_z))
+    logging.info
     # Read in raster files
     try:
         dem, header = io.read_raster(dem_path)
@@ -474,7 +472,7 @@ def main(args, kwargs):
     logging.info('Files read in')
 
     z_delta = np.zeros_like(dem)
-    susc = np.zeros_like(dem)
+    flux = np.zeros_like(dem)
     cell_counts = np.zeros_like(dem)
     z_delta_sum = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
@@ -487,7 +485,7 @@ def main(args, kwargs):
     max_number_procces = int(avaiable_memory / (needed_memory * 10))
 
     print(
-        "There are {} Bytes of Memory avaiable and {} Bytes needed per process. Max. Nr. of Processes = {}".format(
+        "There are {} Bytes of Memory avaiable and {} Bytes needed per process. \nMax. Nr. of Processes = {}".format(
             avaiable_memory, needed_memory*10, max_number_procces))
 
     # Calculation
@@ -499,7 +497,7 @@ def main(args, kwargs):
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(len(release_list))
         results = pool.map(fc.calculation,
-                           [[dem, header, infra, release_pixel, alpha, exp, flux, max_z]
+                           [[dem, header, infra, release_pixel, alpha, exp, flux_threshold, max_z]
                             for release_pixel in release_list])
         pool.close()
         pool.join()
@@ -510,13 +508,13 @@ def main(args, kwargs):
         pool = mp.Pool(mp.cpu_count())
         # results = pool.map(gc.calculation, iterable)
         results = pool.map(fc.calculation_effect,
-                           [[dem, header, release_pixel, alpha, exp, flux, max_z] for
+                           [[dem, header, release_pixel, alpha, exp, flux_threshold, max_z] for
                             release_pixel in release_list])
         pool.close()
         pool.join()
 
     z_delta_list = []
-    susc_list = []
+    flux_list = []
     cc_list = []
     z_delta_sum_list = []
     backcalc_list = []
@@ -526,7 +524,7 @@ def main(args, kwargs):
         res = results[i]
         res = list(res)
         z_delta_list.append(res[0])
-        susc_list.append(res[1])
+        flux_list.append(res[1])
         cc_list.append(res[2])
         z_delta_sum_list.append(res[3])
         backcalc_list.append(res[4])
@@ -536,7 +534,7 @@ def main(args, kwargs):
     logging.info('Calculation finished, getting results.')
     for i in range(len(z_delta_list)):
         z_delta = np.maximum(z_delta, z_delta_list[i])
-        susc = np.maximum(susc, susc_list[i])
+        flux = np.maximum(flux, flux_list[i])
         cell_counts += cc_list[i]
         z_delta_sum += z_delta_sum_list[i]
         backcalc = np.maximum(backcalc, backcalc_list[i])
@@ -548,8 +546,8 @@ def main(args, kwargs):
     logging.info('Writing Output Files')
     output_format = '.tif'
     io.output_raster(dem_path,
-                     directory + res_dir + "susceptibility{}".format(output_format),
-                     susc)
+                     directory + res_dir + "flux{}".format(output_format),
+                     flux)
     io.output_raster(dem_path,
                      directory + res_dir + "z_delta{}".format(output_format),
                      z_delta)
@@ -572,6 +570,7 @@ def main(args, kwargs):
                          backcalc)
 
     print("Calculation finished")
+    print("...")
     end = datetime.now().replace(microsecond=0)
     logging.info('Calculation needed: ' + str(end - start) + ' seconds')
 
@@ -590,7 +589,7 @@ if __name__ == '__main__':
         kwargs={kw[0]:kw[1] for kw in [ar.split('=') for ar in argv if ar.find('=')>0]}
 
         main(args, kwargs)
-    # example input: 25 8 ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif infra=./examples/helix/infra.tif flux=0.003 vel=270
+    # example input: 25 8 ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif infra=./examples/helix/infra.tif flux=0.003 max_z=270
     # example dam: 25 8 Avalanche ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
     # 25 8 Avalanche ./examples/parabolic_chute/ ./examples/parabolic_chute/5m_standard_n10.asc ./examples/parabolic_chute/release_standard_n10.tif
 
