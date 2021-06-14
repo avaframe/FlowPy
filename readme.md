@@ -15,7 +15,7 @@ based on information about forest structure, calculate the protective effect thi
 ## Running the Code
 
 python3 main.py --gui -> Gui Version  
-python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release infra=path_to_infrastructure(Optional) flux_threshold=pos.number(Optional) max_z_delta=pos.number(Optional)
+python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release infra=path_to_infrastructure(Optional) flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional)
 
 - alpha_angle: max. runout angle for the process: Austria -> Avalanche 25, Rockfall 35, Debris Slides 22 
 - exponent: controls the lateral spreading, avalanches 8, rockfall and debris slides 75 (= single flow, except in flat terrain) 
@@ -26,10 +26,10 @@ python3 main.py alpha_angle exponent working_directory path_to_dem path_to_relea
 - flux_threshold: when Flow-Py stops the spreading, Standard = 0.0003, Optional!
 - max_z_delta: The max. z_delta your process can reach. Some hints: Avalanche = 270 /  Rockfall = 50 / Soil Slides = 12 / Standard = 8848 (no limitation), Optional!
 
-Right now the Code works on Linux and Windows Machines. Haven't tested it on OS, if you are able to run it there, please give us feedback.
+Right now the Code works on Linux and Windows Machines. Haven't tested it on MacOS, if you are able to run it there, please give us feedback.
 Run the Code via the main.py script: python3 main.py ...  
 Some PyQt libraries are needed and rasterio.  
-There is the requirements.txt file in the repo that includes all needed libraries.  
+There is the requirements.txt file in the repo that includes all needed libraries. (Work in progress...)
 
 ## Input Files
 
@@ -73,7 +73,7 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 
 ### z_delta 
 
-![Image](img/z_delta_description.png)
+![Image](img/Motivation_2d.png)
 *Fig. 1: Definition of angles and distances for the calculation of z_delta*
 
 ![tan_alpha](img/tan_alpha.png)
@@ -90,9 +90,9 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 
 ![z_delta_max](img/z_delta_max.png)
 
-### Flow direction algorithm
+### Terrain based routing
 
-The flow direction algorithm is dependent on the terrain. The Holmgren (1994) algorithm [1] is used in 
+Teh terrain based routing is dependend on the slope angle. The Holmgren (1994) algorithm [1] is used in 
 different kind of models and works well for avalanches but also rockfall or soil slides.
 The exponent exp allows to control the divergence of the spreading. For avalanches a exponent of 8 shows good results.
 To reach a single flow in step terrain, an exponent of 75 is considered.
@@ -100,8 +100,8 @@ To reach a single flow in step terrain, an exponent of 75 is considered.
 ![Holmgrem](img/flow_direction.png)
 *Holmgrem Algorithm from 1994 [1]*
 
-In this equation i, j are the flow directions, p_i^(fd) the flux proportion in direction i, 
-tan(beta_i) the slope gradient between the central cell and the cell in direction i, and exp the variable exponent. 
+In this equation i, j are the flow directions, T_i the flux proportion in direction i, 
+tan(beta_i) the slope gradient between the base cell and the cell in direction i, and exp the variable exponent. 
 When the exponent increases, the divergence is reduced up to resulting into a single flow direction when 
 exp &rightarrow; &infin;. This parameter allows to control the spreading and to reproduce a wide range of other flow 
 accumulations.
@@ -111,15 +111,15 @@ Fig. 2.
 
 ![Tan_Beta_Formula](img/tan_beta_formula.png)
 
-![tanBetaImage](img/tan_beta.png)
-*Fig. 2: Distribution Function for Flow Direction*
+![tanBetaImage](img/holmgren_vs_new.png)
+*Fig. 2: Distribution functions for terrain based routing, in red the standard Holmgrem, in blue our modification*
 
 ### Persistencec Function
 
-The persistence function p_i^p aims to reproduce the behavior of inertia, and weights the flow 
+The persistence function P_i aims to reproduce the behavior of inertia, and weights the flow 
 direction based on the change in direction with respect to the previous direction (see Fig. 3) [3].
 We introduced to scale the direction with z_delta of the incoming direction (z_delta,parent), 
-so the direction from a cell with higher z_delta will have more affect to the directions where the center cell spreads.
+so the direction from a cell with higher z_delta will have more affect to the directions where the base cell spreads.
 
 ![](img/persistence.png)
 
@@ -127,7 +127,7 @@ The weights are defined by the cosine of the direction angles:
 ![](img/persistence_cosinetable.png)
 
 ![](img/persistence_image.png)
-*Fig. 3: *
+*Fig. 3: jkh*
 
 ### Overall Susceptibility 
 
