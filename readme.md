@@ -1,16 +1,16 @@
 # Flow-Py
 
-To define protective functions and to quantify the protective effects of forests, we created the Flow-Py model that 
-identifies process areas of gravitational hazards, including avalanches, rockfall and debris slides. The model is 
-written in Python to keep it easy adjustable. The run out routine of Flow-Py is based on the principles of energy 
+Flow-Py is an adaptable open source implementation of existing approaches to GMM (gravitational mass movements) run out models. The main objective of this tool is to compute the spatial run out distribution (routing and stopping) for GMMs in three dimensional terrain. This model has been designed to be computationally light, allowing it application on a regional scale. 
+
+The data based (empirical) modeling approach Flow-Py combining routing and stopping run out in three dimensional terrain allowing to identify process areas and corresponding magnitudes. The model is motivated by a combination of existing process and data based approaches, requiring a minimum of input data, providing valuable output. By considering the spatial evolution (no temporal evolution equations are solved in the model) the resulting run out is mainly dependent by the terrain and the location of the starting point
+
+The model is written in Python to keep it easy adjustable. The run out routine of Flow-Py is based on the principles of energy 
 conservation including frictional dissipation assuming simple coulomb friction, leading to constant travel-angle. 
 Potential release areas and the corresponding travel angle have to be adapted for each type of gravitational mass movements. 
 A important improvement, compared to similar models, is that it can handle mass movement in flat and uphill terrain. 
 One major advantage of this model is its simplicity, resulting in a computationally inexpensive implementation, which 
 allows for an application on a regional scale, covering large simulation areas. The adaptivity of the model further 
 allows to consider existing infrastructure and to detect starting zones endangering the corresponding areas in a back-calculation step. 
-Additionally, by adding forest cover to the simulations we can identify which forest area has a protective function and, 
-based on information about forest structure, calculate the protective effect this forest provides to down slope infrastructure.
 
 ## Running the Code
 
@@ -44,14 +44,12 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 	
 - Release Zones:
 	- The release layer needs values higher then zero for the release pixels. NoData < 0, or -9999
-	
 ### Optional Input Files:
 
 - Infrastructure:
 	- The infrastructure layer needs values higher then zero for infrastructure. Different values can be used for 
 	different infrastructures classes and will be saved in the backcalculation.
 	- The backcalculation layer has the information of the infrastructure that was hit. Higher values win over lower ones.
-	
 ## Output
 
 - z_delta:
@@ -68,13 +66,16 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
     Saves the &gamma; angle along the flow path
 - Straight Line Travel Angle, SL_TA:
     Saves the &gamma; angle, while the distances are calculated via a straight line from the release cell to the current cell
-    
 ## Calculation Steps
 
 ### z_delta 
 
 ![Image](img/Motivation_2d.png)
 *Fig. 1: Definition of angles and distances for the calculation of z_delta*
+
+The model equations that control the avalanche run out in three dimensional terrain are mostly motivated with respect to simple two dimensional concepts, that control the main routing and final stopping of the flow.
+
+Figure 1 summarizes the basic concept of a constant run out angle with the corresponding geometric relations in two dimensions along a possible process path.
 
 ![tan_alpha](img/tan_alpha.png)
 
@@ -85,15 +86,21 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 ![z_gamma](img/z_gamma.png)
 
 ![z_delta](img/z_delta.png)
-	
+	To bring this equations into the 3 dimensionsal world we have to extend ... 
+
+
+
+![Declaration of Base, Neighbour and Parent](img/Neighbours.png)
+
+*Fig. 2: Definition of base, neighbor and parent*
+
 ![z_delta_i](img/z_delta_array.png)
 
 ![z_delta_max](img/z_delta_max.png)
 
 ### Terrain based routing
 
-Teh terrain based routing is dependend on the slope angle. The Holmgren (1994) algorithm [1] is used in 
-different kind of models and works well for avalanches but also rockfall or soil slides.
+The terrain based routing is dependent on the slope angle. The Holmgren (1994) algorithm [1] is used in different kind of models and works well for avalanches but also rockfall or soil slides.
 The exponent exp allows to control the divergence of the spreading. For avalanches a exponent of 8 shows good results.
 To reach a single flow in step terrain, an exponent of 75 is considered.
 
@@ -114,7 +121,7 @@ Fig. 2.
 ![tanBetaImage](img/holmgren_vs_new.png)
 *Fig. 2: Distribution functions for terrain based routing, in red the standard Holmgrem, in blue our modification*
 
-### Persistencec Function
+### Persistence Function
 
 The persistence function P_i aims to reproduce the behavior of inertia, and weights the flow 
 direction based on the change in direction with respect to the previous direction (see Fig. 3) [3].
@@ -129,7 +136,7 @@ The weights are defined by the cosine of the direction angles:
 ![](img/persistence_image.png)
 *Fig. 3: jkh*
 
-### Overall Susceptibility 
+### Flux 
 
 The values given by the flow direction algorithm and the weighting of the persistence are combined according to Eq.(13)
 
