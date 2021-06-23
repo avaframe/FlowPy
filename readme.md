@@ -2,15 +2,10 @@
 
 Flow-Py is an adaptable open source implementation of existing approaches to GMM (gravitational mass movements) run out models. The main objective of this tool is to compute the spatial run out distribution (routing and stopping) for GMMs in three dimensional terrain. This model has been designed to be computationally light, allowing it application on a regional scale. 
 
-The data based (empirical) modeling approach Flow-Py combining routing and stopping run out in three dimensional terrain allowing to identify process areas and corresponding magnitudes. The model is motivated by a combination of existing process and data based approaches, requiring a minimum of input data, providing valuable output. By considering the spatial evolution (no temporal evolution equations are solved in the model) the resulting run out is mainly dependent by the terrain and the location of the starting point
+The data based (empirical) modeling approach of Flow-Py, combining routing and stopping run out in three dimensional terrain, allows to identify process areas and corresponding magnitudes. The model is motivated by a combination of existing process and data based approaches, requiring a minimum of input data, providing valuable output. By considering the spatial evolution (no temporal evolution equations are solved in the model) the resulting run out is mainly dependent by the terrain and the location of the starting point
 
-The model is written in Python to keep it easy adjustable. The run out routine of Flow-Py is based on the principles of energy 
-conservation including frictional dissipation assuming simple coulomb friction, leading to constant travel-angle. 
-Potential release areas and the corresponding travel angle have to be adapted for each type of gravitational mass movements. 
-A important improvement, compared to similar models, is that it can handle mass movement in flat and uphill terrain. 
-One major advantage of this model is its simplicity, resulting in a computationally inexpensive implementation, which 
-allows for an application on a regional scale, covering large simulation areas. The adaptivity of the model further 
-allows to consider existing infrastructure and to detect starting zones endangering the corresponding areas in a back-calculation step. 
+The model is written in Python to keep it easy adjustable. The run out routine of Flow-Py is based on the principles of energy conservation including frictional dissipation assuming simple coulomb friction, leading to constant travel-angle. Potential release areas and the corresponding travel angle have to be adapted for each type of gravitational mass movements. 
+A important improvement, compared to similar models, is that it can handle mass movement in flat and uphill terrain. One major advantage of this model is its simplicity, resulting in a computationally inexpensive implementation, which allows for an application on a regional scale, covering large simulation areas. The adaptivity of the model further allows to consider existing infrastructure and to detect starting zones endangering the corresponding areas in a back-calculation step. 
 
 ## Running the Code
 
@@ -68,16 +63,16 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
     Saves the &gamma; angle, while the distances are calculated via a straight line from the release cell to the current cell
 ## Calculation Steps
 
+Here we will go through all calculation steps as they are in the code under: flow_class.calc_distribution()
+
 ### z_delta 
 
 ![Image](img/Motivation_2d.png)
 *Fig. 1: Definition of angles and distances for the calculation of z_delta, where s is the distance along the path and z(s) the corresponding altitude.*
 
-The model equations that control the avalanche run out in three dimensional terrain are mostly motivated with respect to simple two dimensional concepts, that control the main routing and final stopping of the flow.
+The model equations that control the run out in three dimensional terrain are mostly motivated with respect to simple two dimensional concepts, that control the main routing and final stopping of the flow.
 
-Figure 1 summarizes the basic concept of a constant run out angle with the corresponding geometric relations in two dimensions along a possible process path.
-
-The Motivation for the equations that are solved to calculate the runout distance, comes from a simple 2D model with a defined maximum runout angle alpha.
+Figure 1 summarizes the basic concept of a constant run out angle (alpha) with the corresponding geometric relations in two dimensions along a possible process path.
 
 ![tan_alpha](img/tan_alpha.png)
 
@@ -85,15 +80,17 @@ The angle gamma is defined by the height and distance difference from the releas
 
 ![tan_gamma](img/tan_gamma.png)
 
-The angle delta is the difference between gamma and alpha, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached and the calculation stops.
+The angle delta is the difference between gamma and alpha and can be interpreted as the energy left in the process, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached and the calculation stops.
 
 ![z_alpha](img/z_alpha.png)
 
-... energy in the process... z_alpha can be interpreted as dissipation energy
+Z_alpha can be interpreted as dissipation energy.
 
 ![z_gamma](img/z_gamma.png)
 
-Z_gamma can be interpreted as the energy left in the system and Z_delta is again the difference between Z_gamma and Z_alpha, so when Z_delta is lower or equal zero the calculation stops.
+Z_gamma is the height difference between the starting point and the current calculation step at s. 
+
+Z_delta is the difference between Z_gamma and Z_alpha, so when Z_delta is lower or equal zero the calculation stops. Z_delta can also be interpreted as the energy left in the process.
 
 ![z_delta](img/z_delta.png)
 
@@ -103,71 +100,80 @@ To bring this thoughts now from the 2D model to a 3D grid we must implement a fe
 
 First we need to bring in the definition for base. This is the current raster cell we are looking at, and from which we do our calculations. This would be at distance s along the path in Fig. 1. 
 
-Every base can have one or more parents, except the starting cell, where we start our calculation, this would be s = s_0 in Fig. 1.
+Every base can have one or more parents, except the starting cell, where we start our calculation, this would be at s = s_0 in Fig. 1.
 
-From the base we solve now the equations ... for every neighbor n, if Z_bn^{delta} is higher then zero, this neighbor is defined as a child of this base, and spreading is allowed in this direction.
+From the base we solve now the equations (6,7 and 8) for every neighbor n, if Z_bn^{delta} is higher then zero, this neighbor is defined as a child of this base, and spreading is allowed in this direction.
 
 ![z_delta_i](img/z_delta_array.png)
+
+Here S_bn is the path between the base and the neighbour.
 
 As Z_bn^{delta} can be interpreted as (kinectic energy? or velocity) we implemented a maximum value for this. Regarding physical models this would correspond to a turbulent friction. 
 
 ![z_delta_max](img/z_delta_max.png)
 
-Equations for S_n...
+The path to one of the neighbors (S_n) equals the path to the base (S_b) plus the path from base to the neighbor (S_bn) (Eq. 9). 
 
-With this equations we determine the maximum distance for the process, in the next steps we will explain how we handle and calculate the spreading on the 3D grid.
+![S_n_eq1](img/S_n_eq1.png)
+
+As there are many possibilities for the path from the starting point to our current base, we just take into account the shortest path, which corresponds to the highest Z_delta in the base. If Z_delta,max is set to infinity, or as in the code to 8898 m (= Mount Everest), we can calculate the shortest path from the starting point to our base with Eq. 10. 
+
+![S_b](img/S_b.png)
+
+![S_bn](img/S_bn.png)
+
+![S_n_eq2](img/S_n_eq2.png)
+
+With this equations we determine the maximum run out distance for the process, in the next steps we will explain how we handle and calculate the spreading on the 3D grid.
+
+
+
+### Persistence Function
+
+The persistence function P_i aims to reproduce the behavior of inertia, and weights the flow 
+direction based on the change in direction with respect to the previous direction [3].
+We introduced to scale the direction with Z_delta of the incoming direction (Z_delta,parent), 
+so the direction from a cell with higher Z_delta will have more affect to the directions where the base cell spreads.
+
+![](img/persistence.png)
+
+The weights are defined by the cosine of the angle between parent, base and child/neighbor minus pi:  
+![](img/persistence_cos_function.png)
+
+So there are max. 3 childs that get input via the persistence function from one parent.
+
+What if I'm a startcell???
+
+
 
 ### Terrain based routing
 
 The terrain based routing is dependent on the slope angle. The Holmgren (1994) algorithm [1] is used in different kind of models and works well for avalanches but also rockfall or soil slides.
 The exponent exp allows to control the divergence of the spreading. For avalanches a exponent of 8 shows good results.
-To reach a single flow in step terrain, an exponent of 75 is considered.
+To reach a single flow in step terrain (rockfall, soil slides, steepest descend), an exponent of 75 is considered.
 
 ![Holmgrem](img/flow_direction.png)
 *Holmgrem Algorithm from 1994 [1]*
 
-In this equation i, j are the flow directions, T_i the flux proportion in direction i, 
-tan(beta_i) the slope gradient between the base cell and the cell in direction i, and exp the variable exponent. 
-When the exponent increases, the divergence is reduced up to resulting into a single flow direction when 
-exp &rightarrow; &infin;. This parameter allows to control the spreading and to reproduce a wide range of other flow 
-accumulations.
-This approach works for tan(beta) > 0. To take in account flow in flat terrain and upwards, in this case 
-tan(beta) < 0, this approach was changed to the range for tangents from -90 degrees to 90 degrees, as seen in 
-Fig. 2.
 
-![Tan_Beta_Formula](img/tan_beta_formula.png)
 
-![tanBetaImage](img/holmgren_vs_new.png)
+![Phi_Formula](img/Phi.png)
+
+![Phi_diss](img/Phi_diss.png)
 *Fig. 2: Distribution functions for terrain based routing, in red the standard Holmgrem, in blue our modification*
 
-### Persistence Function
 
-The persistence function P_i aims to reproduce the behavior of inertia, and weights the flow 
-direction based on the change in direction with respect to the previous direction (see Fig. 3) [3].
-We introduced to scale the direction with z_delta of the incoming direction (z_delta,parent), 
-so the direction from a cell with higher z_delta will have more affect to the directions where the base cell spreads.
-
-![](img/persistence.png)
-
-The weights are defined by the cosine of the direction angles:  
-![](img/persistence_cosinetable.png)
-
-![](img/persistence_image.png)
-*Fig. 3: jkh*
 
 ### Flux 
 
-The values given by the flow direction algorithm and the weighting of the persistence are combined according to Eq.(13)
+The values given by the terrain based routing and the persistence function are combined according to Eq.(16).
 
-![](img/susceptibility.png)
+![](img/flux.png)
 
-where i, j are the flow directions, p_i is the susceptibility value in direction i, p_i^(fd) 
-the flow proportion according to the flow direction algorithm, p_i^p the flow proportion according 
-to the persistence, and p_0 the previously determined susceptibility value of the central cell. 
-For a release cell p_0 equals one. \
-The result of Eq.(13) is a 3 x 3 array with assigned susceptibility values. A normalization stage is then 
-required to bring the sum of the cells to the value of p_0. 
-This aims at avoiding loss of susceptibility [2].
+, where i is the direction and n are the neighbors from 1 to 8. R_i is then the flux that flows in direction i.
+R_b is the flux in the base, for a release cell or starting cell the flux of the base equals one. \
+The result of Eq. (16) is a 3 x 3 array with assigned flux values. A normalization stage is then 
+required to bring the sum of the R_i's to the value of R_b. This aims at avoiding loss of flux [2].
 
 ### References
 
