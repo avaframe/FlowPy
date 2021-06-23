@@ -71,32 +71,51 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 ### z_delta 
 
 ![Image](img/Motivation_2d.png)
-*Fig. 1: Definition of angles and distances for the calculation of z_delta*
+*Fig. 1: Definition of angles and distances for the calculation of z_delta, where s is the distance along the path and z(s) the corresponding altitude.*
 
 The model equations that control the avalanche run out in three dimensional terrain are mostly motivated with respect to simple two dimensional concepts, that control the main routing and final stopping of the flow.
 
 Figure 1 summarizes the basic concept of a constant run out angle with the corresponding geometric relations in two dimensions along a possible process path.
 
+The Motivation for the equations that are solved to calculate the runout distance, comes from a simple 2D model with a defined maximum runout angle alpha.
+
 ![tan_alpha](img/tan_alpha.png)
+
+The angle gamma is defined by the height and distance difference from the release point to the current calculation step.
 
 ![tan_gamma](img/tan_gamma.png)
 
+The angle delta is the difference between gamma and alpha, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached and the calculation stops.
+
 ![z_alpha](img/z_alpha.png)
+
+... energy in the process... z_alpha can be interpreted as dissipation energy
 
 ![z_gamma](img/z_gamma.png)
 
+Z_gamma can be interpreted as the energy left in the system and Z_delta is again the difference between Z_gamma and Z_alpha, so when Z_delta is lower or equal zero the calculation stops.
+
 ![z_delta](img/z_delta.png)
-	To bring this equations into the 3 dimensionsal world we have to extend ... 
 
+To bring this thoughts now from the 2D model to a 3D grid we must implement a few new definitions.
 
+​	![grid_overview](img/Neighbours.png)
 
-![Declaration of Base, Neighbour and Parent](img/Neighbours.png)
+First we need to bring in the definition for base. This is the current raster cell we are looking at, and from which we do our calculations. This would be at distance s along the path in Fig. 1. 
 
-*Fig. 2: Definition of base, neighbor and parent*
+Every base can have one or more parents, except the starting cell, where we start our calculation, this would be s = s_0 in Fig. 1.
+
+From the base we solve now the equations ... for every neighbor n, if Z_bn^{delta} is higher then zero, this neighbor is defined as a child of this base, and spreading is allowed in this direction.
 
 ![z_delta_i](img/z_delta_array.png)
 
+As Z_bn^{delta} can be interpreted as (kinectic energy? or velocity) we implemented a maximum value for this. Regarding physical models this would correspond to a turbulent friction. 
+
 ![z_delta_max](img/z_delta_max.png)
+
+Equations for S_n...
+
+With this equations we determine the maximum distance for the process, in the next steps we will explain how we handle and calculate the spreading on the 3D grid.
 
 ### Terrain based routing
 
