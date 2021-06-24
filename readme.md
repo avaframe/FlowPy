@@ -21,10 +21,16 @@ python3 main.py alpha_angle exponent working_directory path_to_dem path_to_relea
 - flux_threshold: when Flow-Py stops the spreading, Standard = 0.0003, Optional!
 - max_z_delta: The max. z_delta your process can reach. Some hints: Avalanche = 270 /  Rockfall = 50 / Soil Slides = 12 / Standard = 8848 (no limitation), Optional!
 
-Right now the Code works on Linux and Windows Machines. Haven't tested it on MacOS, if you are able to run it there, please give us feedback.
+Right now the code works on Linux and Windows machines. Haven't tested it on MacOS, if you are able to run it there, please give us feedback.
 Run the Code via the main.py script: python3 main.py ...  
 Some PyQt libraries are needed and rasterio.  
 There is the requirements.txt file in the repo that includes all needed libraries. (Work in progress...)
+
+If you have trouble with GDAL or rasterio on Windows use this links to get the needed version directly from their website, first install GDAL and then rasterio.
+
+GDAL: https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
+
+rasterio: https://www.lfd.uci.edu/~gohlke/pythonlibs/#rasterio
 
 ## Input Files
 
