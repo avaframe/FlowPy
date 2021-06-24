@@ -13,7 +13,7 @@ python3 main.py --gui -> Gui Version
 python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release infra=path_to_infrastructure(Optional) flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional)
 
 - alpha_angle: max. runout angle for the process: Austria -> Avalanche 25, Rockfall 35, Debris Slides 22 
-- exponent: controls the lateral spreading, avalanches 8, rockfall and debris slides 75 (= single flow, except in flat terrain) 
+- exponent: controls the lateral spreading, avalanches 8, rockfall and debris slides 75 (= single flow, except in flat terrain) , an exponent of 1 delivers wide spreading while when we increase it towards infinity we get a single flow
 - working_directory: where to create and save result folder 
 - path_to_dem: well it's the path to the DEM (.asc or .tif)
 - path_to_release: well it's the path to the release layer 
@@ -28,7 +28,7 @@ There is the requirements.txt file in the repo that includes all needed librarie
 
 ## Input Files
 
-All input files need to be .asc or .tif files.  
+All input raster files are required to be .asc or .tif files.  
 All files need the same raster resolution, normal sizes are 5x5 or 10x10 meters.  
 All Layers need the exact same extend. If not, the Code will give you feedback which layer is not accurate.
 
@@ -48,39 +48,38 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 ## Output
 
 - z_delta:
-    Includes the highest z_delta for every pixel.
+    Includes the highest z_delta for every cell.
 - Sum of z_delta:
-    z_delta summed up on every pixel.
+    z_delta summed up on every cell.
 - Flux:
-    The result of the flux calculation for every pixel.
+    The result of the flux calculation for every cell.
 - Cell Counts:
     Saves how often one pixel gets a hit from different release points.
-- Backcalculation:
-    Saves the backcalculation from Infrastructure to release point
+- Backtracking:
+    Saves the backtracking from Infrastructure to release point
 - Flow Path Travel Angle, FP_TA:
     Saves the &gamma; angle along the flow path
 - Straight Line Travel Angle, SL_TA:
     Saves the &gamma; angle, while the distances are calculated via a straight line from the release cell to the current cell
-## Calculation Steps
 
-Here we will go through all calculation steps as they are in the code under: flow_class.calc_distribution()
+## Motivation 2D
 
-### z_delta 
+
 
 ![Image](img/Motivation_2d.png)
 *Fig. 1: Definition of angles and distances for the calculation of z_delta, where s is the distance along the path and z(s) the corresponding altitude.*
 
-The model equations that control the run out in three dimensional terrain are mostly motivated with respect to simple two dimensional concepts, that control the main routing and final stopping of the flow.
+The model equations that control the run out in three dimensional terrain are mostly motivated with respect to geometric two dimensional concepts, that control the main routing and final stopping of the flow.
 
 Figure 1 summarizes the basic concept of a constant run out angle (alpha) with the corresponding geometric relations in two dimensions along a possible process path.
 
 ![tan_alpha](img/tan_alpha.png)
 
-The angle gamma is defined by the height and distance difference from the release point to the current calculation step.
+The local travel angle gamma is defined by the height and distance difference from the release point to the current location.
 
 ![tan_gamma](img/tan_gamma.png)
 
-The angle delta is the difference between gamma and alpha and can be interpreted as the energy left in the process, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached and the calculation stops.
+The angle delta is the difference between gamma and alpha and is associated to the energy left in the process, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached.
 
 ![z_alpha](img/z_alpha.png)
 
@@ -94,7 +93,26 @@ Z_delta is the difference between Z_gamma and Z_alpha, so when Z_delta is lower 
 
 ![z_delta](img/z_delta.png)
 
-To bring this thoughts now from the 2D model to a 3D grid we must implement a few new definitions.
+## Handling the Spatial Input
+
+To run the model at least 2 main raster inputs are needed. First the digital elevation model on which we solve the equations, and second the release raster, which defines were the starting points or release cells are on the raster. 
+
+For every release cell we start the calculation. The goal is to determine potential children via 2 stopping criteria. 
+
+- Z_delta has to be greater then zero: Z_delta > 0
+- Routing Flux has to be greater then the Routing cut off: R_i > R_Stop
+
+If the criteria are fulfilled the child is saved in the path and for every cell/child in the path we search for new potential children.
+
+If we reach the end of the path and no new children fulfill the criteria we close the calculation and save the needed information from the path to our output raster files. Then the calculation starts again for the next release cell. The spatial extend and magnitude for all release cells are summarized in the output raster files, which represent the overlay of all paths.
+
+Every path is independent from the other, but depending on the information we want to extract, we save the highest values (Z_delta) or sums (Cell Counts) of different paths to the output raster file.
+
+## Calculation Steps on the Path
+
+Here we will go through all calculation steps as they are in the code under: flow_class.calc_distribution()
+
+To bring the thoughts from the motivation from 2D model to a 3D grid we must implement a few new definitions.
 
 ​	![grid_overview](img/Neighbours.png)
 
@@ -102,13 +120,15 @@ First we need to bring in the definition for base. This is the current raster ce
 
 Every base can have one or more parents, except the starting cell, where we start our calculation, this would be at s = s_0 in Fig. 1.
 
-From the base we solve now the equations (6,7 and 8) for every neighbor n, if Z_bn^{delta} is higher then zero, this neighbor is defined as a child of this base, and spreading is allowed in this direction.
+### z_delta
+
+From the base we solve now the equations (6,7 and 8) for every neighbor n, if Z_bn^{delta} is higher then zero, this neighbor is defined as a potential child of this base, and spreading is allowed in this direction.
 
 ![z_delta_i](img/z_delta_array.png)
 
-Here S_bn is the path between the base and the neighbour.
+Here S_bn is the projected distance between the base and the neighbor.
 
-As Z_bn^{delta} can be interpreted as (kinectic energy? or velocity) we implemented a maximum value for this. Regarding physical models this would correspond to a turbulent friction. 
+As Z_bn^{delta} can be interpreted as  kinetic energy it is possible to limit this value to a maximum. Regarding physical models this would correspond to a turbulent friction. 
 
 ![z_delta_max](img/z_delta_max.png)
 
@@ -118,11 +138,7 @@ The path to one of the neighbors (S_n) equals the path to the base (S_b) plus th
 
 As there are many possibilities for the path from the starting point to our current base, we just take into account the shortest path, which corresponds to the highest Z_delta in the base. If Z_delta,max is set to infinity, or as in the code to 8898 m (= Mount Everest), we can calculate the shortest path from the starting point to our base with Eq. 10. 
 
-![S_b](img/S_b.png)
-
 ![S_bn](img/S_bn.png)
-
-![S_n_eq2](img/S_n_eq2.png)
 
 With this equations we determine the maximum run out distance for the process, in the next steps we will explain how we handle and calculate the spreading on the 3D grid.
 
@@ -142,9 +158,7 @@ The weights are defined by the cosine of the angle between parent, base and chil
 
 So there are max. 3 childs that get input via the persistence function from one parent.
 
-What if I'm a startcell???
-
-
+In the first calculation step, at the release or start cell, the persistence is set to one, because there exists no parent. So the first calculation step is totally dependent on the terrain.
 
 ### Terrain based routing
 
@@ -158,9 +172,6 @@ To reach a single flow in step terrain (rockfall, soil slides, steepest descend)
 
 
 ![Phi_Formula](img/Phi.png)
-
-![Phi_diss](img/Phi_diss.png)
-*Fig. 2: Distribution functions for terrain based routing, in red the standard Holmgrem, in blue our modification*
 
 
 
