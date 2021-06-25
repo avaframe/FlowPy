@@ -4,36 +4,69 @@ Flow-Py is an open source gravitational mass flows (GMFs) run out model. The mai
 
 This tool has been designed to be computationally light, allowing it application on a regional scale. This tool is written in python and takes advantage of pythons object oriented class structure. The organization of the tool allows users to address specific GMF research questions by keeping the parameterization flexible and the ability to include custom model extensions/ad-ons.
 
+## Setting up Python3 environment
+
+Flow-py works on Linux and Windows computers in a Python3 environment. 
+
+#### Linux, Windows 
+
+run the following command in the terminal to install the required packages:
+
+```markup
+pip install -r requirements.txt
+```
+
+If you have trouble installing GDAL or rasterio on Windows use these links to get the needed version directly from their website, first install GDAL and then rasterio.
+
+GDAL:https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
+
+rasterio:https://www.lfd.uci.edu/~gohlke/pythonlibs/#rasterio
+
+#### MacOS 
+
+Haven't tested it on MacOS, if you are able to run it there, please give us feedback.
+
 ## Running the Code
 
-python3 main.py --gui -> Gui Version  
-python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release infra=path_to_infrastructure(Optional) flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional)
+Once necessary libraries are installed the model will run via the main.py script. Flow-Py can be run in the terminal or with a simple GUI which helps organize the input date/parameterizations.
 
-- alpha_angle: max. runout angle for the process: Austria -> Avalanche 25, Rockfall 35, Debris Slides 22 
-- exponent: controls the lateral spreading, avalanches 8, rockfall and debris slides 75 (= single flow, except in flat terrain) , an exponent of 1 delivers wide spreading while when we increase it towards infinity we get a single flow
-- working_directory: where to create and save result folder 
-- path_to_dem: well it's the path to the DEM (.asc or .tif)
-- path_to_release: well it's the path to the release layer 
-- path_to_infrastructure: well it's the path to the Infra layer, Optional!
-- flux_threshold: when Flow-Py stops the spreading, Standard = 0.0003, Optional!
-- max_z_delta: The max. z_delta your process can reach. Some hints: Avalanche = 270 /  Rockfall = 50 / Soil Slides = 12 / Standard = 8848 (no limitation), Optional!
+#### Graphical user interface version 
 
-Right now the code works on Linux and Windows machines. Haven't tested it on MacOS, if you are able to run it there, please give us feedback.
-Run the Code via the main.py script: python3 main.py ...  
-Some PyQt libraries are needed and rasterio.  
-There is the requirements.txt file in the repo that includes all needed libraries. (Work in progress...)
+```markup
+python3 main.py --gui 
+```
 
-If you have trouble with GDAL or rasterio on Windows use this links to get the needed version directly from their website, first install GDAL and then rasterio.
+#### Terminal version
 
-GDAL: https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
+The terminal version needs the following arguments which are explained .
 
-rasterio: https://www.lfd.uci.edu/~gohlke/pythonlibs/#rasterio
+- alpha_angle (controls run out distance)
+- exponent (controls concentration of routing flux)
+- working directory path
+- path to DEM raster (.tiff or .asc)
+- path to release raster (.tiff or .asc)  
+- (Optional) flux threshold (positive number) flux_threshold=xx (limits spreading with the exponent)
+- (Optional) Max z_{\delta} (positive number) max_z_delta=xx (max kinetic energy height, turbulent friction)
+
+Here is an example for running Flow-Py over a simple parabolic slope with a channelized path and a small bump/hill in the run out area. Input data can be found in example directory
+
+```markup
+python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional
+```
+
+##### Example:
+
+```markup
+python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif flux=0.003 max_z=270
+```
 
 ## Input Files
 
-All input raster files are required to be .asc or .tif files.  
-All files need the same raster resolution, normal sizes are 5x5 or 10x10 meters.  
-All Layers need the exact same extend. If not, the Code will give you feedback which layer is not accurate.
+All  GIS raster files must be in the .asc or .tif format.
+
+All rasters need the same  resolution (normal sizes are 5x5 or 10x10 meters).
+
+All Layers need the same spatial extend, with no data values > 0 (standard no data values = -9999).
 
 ### Input Files:
 
@@ -46,24 +79,46 @@ All Layers need the exact same extend. If not, the Code will give you feedback w
 
 - Infrastructure:
 	- The infrastructure layer needs values higher then zero for infrastructure. Different values can be used for 
-	different infrastructures classes and will be saved in the backcalculation.
-	- The backcalculation layer has the information of the infrastructure that was hit. Higher values win over lower ones.
+	different infrastructures classes and will be saved in the backtracking.
+	- The backtracking layer has the information of the infrastructure that was hit. Higher values win over lower ones.
 ## Output
 
-- z_delta:
-    Includes the highest z_delta for every cell.
-- Sum of z_delta:
-    z_delta summed up on every cell.
-- Flux:
-    The result of the flux calculation for every cell.
-- Cell Counts:
-    Saves how often one pixel gets a hit from different release points.
-- Backtracking:
-    Saves the backtracking from Infrastructure to release point
-- Flow Path Travel Angle, FP_TA:
-    Saves the &gamma; angle along the flow path
-- Straight Line Travel Angle, SL_TA:
-    Saves the &gamma; angle, while the distances are calculated via a straight line from the release cell to the current cell
+All outputs are in the .tiff raster format in the same resolution and extent as the input GIS layers.
+
+- z_delta: the maximum z_delta for every raster cell.
+- sum_z_delta: z_delta summed up on every raster cell.
+- Flux: The maximum routing flux for every raster cell.
+- Cell_Counts: number of release cells that route flux through a raster cell.
+- Flow Path Travel Angle, FP_TA: the γ angle along the flow path
+- Straight Line Travel Angle, SL_TA: Saves the γ angle, while the distances are calculated via a straight line from the release cell to the current cell
+
+### Back-tracking extension
+
+The back-tracking extension is an example of a custom built model extension used to identify the release areas, tracks/paths and deposition areas of GMFs that endanger infrastructure. 
+
+To activate the back-tracking extension an additional GIS input layer that describes the spatial extent of the infrastructure must be called into the model. The GUI version of the model has a field where an infrastructure layer can be uploaded. For the terminal version the “infra= path_to_infrastructure_raster” must be included as an argument (see command below).
+
+```markup
+python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release infra=path_to_infrastructure(Optional) flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional)
+```
+
+##### Example:
+
+```markup
+python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.003 max_z=270
+```
+
+The infrastructure layer must be in the same extent and resolution as the other input GIS layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder).  Different values can be used to differentiate types infrastructure. When a raster cell is associated with endangering >1 infrastructure types the larger values is saved.
+
+##### Back-tracking output:
+
+- z_delta: the maximum z_delta for every raster cell.
+- Flux: The maximum routing flux for every raster cell.
+- Flow Path Travel Angle, FP_TA: the γ angle along the flow path
+- Straight Line Travel Angle, SL_TA: Saves the γ angle, while the distances are calculated via a straight line from the release cell to the current cell
+- Back-tracking: Areas identified as endangering infrastructure. 
+
+
 
 ## Motivation 2D
 
