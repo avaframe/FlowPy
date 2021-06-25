@@ -1,11 +1,8 @@
 # Flow-Py
 
-Flow-Py is an adaptable open source implementation of existing approaches to GMM (gravitational mass movements) run out models. The main objective of this tool is to compute the spatial run out distribution (routing and stopping) for GMMs in three dimensional terrain. This model has been designed to be computationally light, allowing it application on a regional scale. 
+Flow-Py is an open source gravitational mass flows (GMFs) run out model. The main objective of this tool is to compute the spatial extent of GMFs, which consists of the track/path and deposition areas of GMFs in three dimensional terrain. The resulting run out is mainly dependent by the terrain and the location of the starting/release point. No temporal equations are solved in the model. Flow-py uses existing statistical-data-based approaches for solving the routing and stopping of GMFs. 
 
-The data based (empirical) modeling approach of Flow-Py, combining routing and stopping run out in three dimensional terrain, allows to identify process areas and corresponding magnitudes. The model is motivated by a combination of existing process and data based approaches, requiring a minimum of input data, providing valuable output. By considering the spatial evolution (no temporal evolution equations are solved in the model) the resulting run out is mainly dependent by the terrain and the location of the starting point
-
-The model is written in Python to keep it easy adjustable. The run out routine of Flow-Py is based on the principles of energy conservation including frictional dissipation assuming simple coulomb friction, leading to constant travel-angle. Potential release areas and the corresponding travel angle have to be adapted for each type of gravitational mass movements. 
-A important improvement, compared to similar models, is that it can handle mass movement in flat and uphill terrain. One major advantage of this model is its simplicity, resulting in a computationally inexpensive implementation, which allows for an application on a regional scale, covering large simulation areas. The adaptivity of the model further allows to consider existing infrastructure and to detect starting zones endangering the corresponding areas in a back-calculation step. 
+This tool has been designed to be computationally light, allowing it application on a regional scale. This tool is written in python and takes advantage of pythons object oriented class structure. The organization of the tool allows users to address specific GMF research questions by keeping the parameterization flexible and the ability to include custom model extensions/ad-ons.
 
 ## Running the Code
 
@@ -114,13 +111,15 @@ If we reach the end of the path and no new children fulfill the criteria we clos
 
 Every path is independent from the other, but depending on the information we want to extract, we save the highest values (Z_delta) or sums (Cell Counts) of different paths to the output raster file.
 
-## Calculation Steps on the Path
+## Iterative Calculation Steps on the Path
 
 Here we will go through all calculation steps as they are in the code under: flow_class.calc_distribution()
 
 To bring the thoughts from the motivation from 2D model to a 3D grid we must implement a few new definitions.
 
 ​	![grid_overview](img/Neighbours.png)
+
+*Fig. 2: Definition of parent, base, child and neighbors, as well as the indexing around the base.*
 
 First we need to bring in the definition for base. This is the current raster cell we are looking at, and from which we do our calculations. This would be at distance s along the path in Fig. 1. 
 
@@ -192,12 +191,23 @@ R_b is the flux in the base, for a release cell or starting cell the flux of the
 The result of Eq. (16) is a 3 x 3 array with assigned flux values. A normalization stage is then 
 required to bring the sum of the R_i's to the value of R_b. This aims at avoiding loss of flux [2].
 
+### Flow Chart / Overview
+
+In Fig. 3 the whole computational process is shown, and which files handles which computation. 
+
+The main.py file handles the input for the model and splits the release layer in tiles and saves them in a release list. Then the main.py starts one process per tile, which calls the flow_core.py and starts the calculation for one path. The number of processes is depending on the used Hardware setting (CPU and RAM).  Whenever a new Cell is created flow_core.py calls flow_class.py and makes a new instance of this class, which is saved in the path. When the calculation in flow_core.py is finished it returns the path to main.py which saves the result to the output rasters. 
+
+![Flow_Chart](img/Flow-Py_chart.png)
+
+*Fig.3: Flow Chart of the whole computational process of Flow-Py, and an overview of the files and what they manage.*
+
+
+
 ### References
 
 [1] [Holmgren, P. (1994).](https://www.researchgate.net/publication/229484151_Multiple_flow_direction_algorithms_for_runoff_modelling_in_grid_based_elevation_models_An_empirical_evaluation) 
 Multiple flow direction algorithms for runoff modelling in
 grid based elevation models: an empirical evaluation. Hydrological Processes, 8:327–334.
-
 
 [2] [Horton, P., Jaboyedoff, M.,
 Rudaz, B., and Zimmermann, M. (2013).](https://nhess.copernicus.org/articles/13/869/2013/nhess-13-869-2013.pdf) 
@@ -208,8 +218,16 @@ Science, 13:869–885.
 [3] [Gamma, P. (1999).](https://www.researchgate.net/publication/34432465_dfwalk-Ein_Murgang-Simulationsprogramm_zur_Gefahrenzonierung) dfwalk - Ein
 Murgang-Simulationsprogramm zur Gefahrenzonierung. PhD thesis, Universität Bern.
 
+[4] Huber, A., Fischer, J. T., Kofler, A., and Kleemayr, K. (2016). Using spatially
+distributed statistical models for avalanche runout estimation. In International Snow Science Workshop, Breckenridge, Colorado, USA - 2016.  
+
 ## Contact
 
 For Questions contact:  
 Michael Neuhauser, Austrian Research Centre for Forest: Michael.Neuhauser@bfw.gv.at  
 Christopher D'Amboise, Austrian Research Centre for Forest: Christopher.DAmboise@bfw.gv.at
+
+
+
+This study was carried out in the framework of the GreenRisk4Alps project
+ASP635, funded by the European Regional Development Fund through the Interreg Apline Space programme  

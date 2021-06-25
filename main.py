@@ -589,7 +589,6 @@ if __name__ == '__main__':
         kwargs={kw[0]:kw[1] for kw in [ar.split('=') for ar in argv if ar.find('=')>0]}
 
         main(args, kwargs)
-    # example input: 25 8 ./examples/helix/ ./examples/helix/helix_010m_cr100_sw250_f2500.20.6_n0.asc ./examples/helix/release.tif infra=./examples/helix/infra.tif flux=0.003 max_z=270
-    # example dam: 25 8 Avalanche ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
-    # 25 8 Avalanche ./examples/parabolic_chute/ ./examples/parabolic_chute/5m_standard_n10.asc ./examples/parabolic_chute/release_standard_n10.tif
-
+    
+# example dam: python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
+# example dam: python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.003 max_z=270
