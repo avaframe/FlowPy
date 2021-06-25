@@ -64,23 +64,12 @@ python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw25
 
 All  GIS raster files must be in the .asc or .tif format.
 
-All rasters need the same  resolution (normal sizes are 5x5 or 10x10 meters).
+All rasters need the same resolution (normal sizes are 5x5 or 10x10 meters).
 
-All Layers need the same spatial extend, with no data values > 0 (standard no data values = -9999).
+All Layers need the same spatial extend, with no data values < 0 (standard no data values = -9999).
 
-### Input Files:
+The locations identified as release areas need values > 0. (See release.tif in examples)
 
-- DEM:
-	- The DEM Raster file needs a no data value lower then zero. standard = -9999
-	
-- Release Zones:
-	- The release layer needs values higher then zero for the release pixels. NoData < 0, or -9999
-### Optional Input Files:
-
-- Infrastructure:
-	- The infrastructure layer needs values higher then zero for infrastructure. Different values can be used for 
-	different infrastructures classes and will be saved in the backtracking.
-	- The backtracking layer has the information of the infrastructure that was hit. Higher values win over lower ones.
 ## Output
 
 All outputs are in the .tiff raster format in the same resolution and extent as the input GIS layers.
