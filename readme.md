@@ -28,7 +28,7 @@ Haven't tested it on MacOS, if you are able to run it there, please give us feed
 
 ## Running the Code
 
-Once necessary libraries are installed the model will run via the main.py script. Flow-Py can be run in the terminal or with a simple GUI which helps organize the input date/parameterizations.
+Once the necessary libraries are installed the model will run via the main.py script. Flow-Py can be run in the terminal or with a simple GUI which helps organize the input date/parameterizations.
 
 #### Graphical user interface version 
 
@@ -54,7 +54,7 @@ Here is an example for running Flow-Py over a simple parabolic slope with a chan
 python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional
 ```
 
-##### Example:
+#### Example:
 
 ```markup
 python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif flux=0.003 max_z=270
@@ -81,7 +81,7 @@ All outputs are in the .tiff raster format in the same resolution and extent as 
 - Flow Path Travel Angle, FP_TA: the γ angle along the flow path
 - Straight Line Travel Angle, SL_TA: Saves the γ angle, while the distances are calculated via a straight line from the release cell to the current cell
 
-### Back-tracking extension
+## Back-tracking extension
 
 The back-tracking extension is an example of a custom built model extension used to identify the release areas, tracks/paths and deposition areas of GMFs that endanger infrastructure. 
 
@@ -91,7 +91,7 @@ To activate the back-tracking extension an additional GIS input layer that descr
 python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release infra=path_to_infrastructure(Optional) flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional)
 ```
 
-##### Example:
+#### Example:
 
 ```markup
 python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.003 max_z=270
@@ -99,7 +99,7 @@ python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw25
 
 The infrastructure layer must be in the same extent and resolution as the other input GIS layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder).  Different values can be used to differentiate types infrastructure. When a raster cell is associated with endangering >1 infrastructure types the larger values is saved.
 
-##### Back-tracking output:
+### Back-tracking output:
 
 - z_delta: the maximum z_delta for every raster cell.
 - Flux: The maximum routing flux for every raster cell.
