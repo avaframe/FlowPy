@@ -165,8 +165,6 @@ If we reach the end of the path and all potential new children fulfill the stopp
 
 Every path is independent from the other, but depending on the information we want to extract, we save the highest values (e.g. Z_delta) or sums (e.g.Cell Counts) of different paths to the output raster file.
 
-## Iterative Calculation Steps on the Path
-
 ### z_delta
 
 For each base cell in a path we solve the equations (6,7 and 8) for every neighbor n, if Z_bn^{delta} is higher then zero, this neighbor is defined as a potential child of this base, and routing  in this direction is possible.
