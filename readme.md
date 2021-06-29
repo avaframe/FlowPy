@@ -1,8 +1,8 @@
 # Flow-Py
 
-Flow-Py is an open source gravitational mass flows (GMFs) run out model. The main objective of this tool is to compute the spatial extent of GMFs, which consists of the track/path and deposition areas of GMFs in three dimensional terrain. The resulting run out is mainly dependent by the terrain and the location of the starting/release point. No temporal equations are solved in the model. Flow-py uses existing statistical-data-based approaches for solving the routing and stopping of GMFs. 
+Flow-Py is an open source tool to compute gravitational mass flows (GMF) run out. The main objective of this tool is to compute the spatial extent of GMF, which consists of the track/path and deposition areas of GMF in three dimensional terrain. The resulting run out is mainly dependent on the terrain and the location of the starting/release point. No temporal evolution equations are solved in the model. Flow-Py uses existing statistical-data-based approaches for solving the routing and stopping of GMF. 
 
-This tool has been designed to be computationally light, allowing it application on a regional scale. This tool is written in python and takes advantage of pythons object oriented class structure. The organization of the tool allows users to address specific GMF research questions by keeping the parameterization flexible and the ability to include custom model extensions/ad-ons.
+The tool has been designed to be computationally light, allowing the application on a regional scale including a large number of GMF paths. The Flow-Py code is written in python and takes advantage of pythons object oriented class structure. The well structured model implementation allows users to address specific GMF research questions by keeping the parameterization flexible and the ability to include custom model extensions and ad-ons.
 
 ## Setting up Python3 environment
 
@@ -16,19 +16,19 @@ run the following command in the terminal to install the required packages:
 pip install -r requirements.txt
 ```
 
-If you have trouble installing GDAL or rasterio on Windows use these links to get the needed version directly from their website, first install GDAL and then rasterio.
+If you have trouble installing GDAL or rasterio on Windows use these links to get the required version directly from their website, first install *GDAL* and then *rasterio*.
 
-GDAL:https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
+*GDAL*: https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
 
-rasterio:https://www.lfd.uci.edu/~gohlke/pythonlibs/#rasterio
+*rasterio*: https://www.lfd.uci.edu/~gohlke/pythonlibs/#rasterio
 
 #### MacOS 
 
-Haven't tested it on MacOS, if you are able to run it there, please give us feedback.
+Flow-Py has not been tested it on MacOS. If you are able to run it there, please give us feedback.
 
 ## Running the Code
 
-Once the necessary libraries are installed the model will run via the main.py script. Flow-Py can be run in the terminal or with a simple GUI which helps organize the input date/parameterizations.
+Once the required libraries are installed the model will run via the main.py script. Flow-Py can be run in the terminal or with a simple GUI which helps to organize the input date/parameterizations.
 
 #### Graphical user interface version 
 
@@ -38,17 +38,17 @@ python3 main.py --gui
 
 #### Terminal version
 
-The terminal version needs the following arguments which are explained .
+The terminal version runs with the following arguments:
 
-- alpha_angle (controls run out distance)
-- exponent (controls concentration of routing flux)
+- alpha_angle (controls the run out angle induced stopping and routing)
+- exponent (controls concentration of routing flux and therefore the lateral spread)
 - working directory path
 - path to DEM raster (.tiff or .asc)
 - path to release raster (.tiff or .asc)  
 - (Optional) flux threshold (positive number) flux_threshold=xx (limits spreading with the exponent)
 - (Optional) Max z_{\delta} (positive number) max_z_delta=xx (max kinetic energy height, turbulent friction)
 
-Here is an example for running Flow-Py over a simple parabolic slope with a channelized path and a small bump/hill in the run out area. Input data can be found in example directory
+Here is an example for running Flow-Py over a simple parabolic slope with a channelized path and a small dam between the transit and run out area. Input data can be found in example directory
 
 ```markup
 python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional
@@ -62,30 +62,30 @@ python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw25
 
 ## Input Files
 
-All  GIS raster files must be in the .asc or .tif format.
+All raster files (DEM, release, ...) must be in the .asc or .tif format.
 
-All rasters need the same resolution (normal sizes are 5x5 or 10x10 meters).
+All rasters need the same resolution (normal sizes are e.g. 5x5 or 10x10 meters).
 
 All Layers need the same spatial extend, with no data values < 0 (standard no data values = -9999).
 
-The locations identified as release areas need values > 0. (See release.tif in examples)
+The locations identified as release areas need values > 0. (see release.tif in examples)
 
 ## Output
 
-All outputs are in the .tiff raster format in the same resolution and extent as the input GIS layers.
+All outputs are in the .tiff raster format in the same resolution and extent as the input raster layers.
 
-- z_delta: the maximum z_delta for every raster cell.
-- sum_z_delta: z_delta summed up on every raster cell.
-- Flux: The maximum routing flux for every raster cell.
-- Cell_Counts: number of release cells that route flux through a raster cell.
-- Flow Path Travel Angle, FP_TA: the γ angle along the flow path
-- Straight Line Travel Angle, SL_TA: Saves the γ angle, while the distances are calculated via a straight line from the release cell to the current cell
+- z_delta: the maximum of z_delta all paths for every raster cell (geometric measure of process magnitude, can be associated to kinetic energy/velocity)
+- Flux: The maximum routing flux of all paths for every raster cell
+- sum_z_delta: z_delta summed up over all paths on every raster cell
+- Cell_Counts: number of paths that route flux through a raster cell
+- Flow Path Travel Angle, FP_TA: the gamma angle along the flow path
+- Straight Line Travel Angle, SL_TA: Saves the gamma angle, while the distances are calculated via a straight line from the release cell to the current cell
 
 ## Back-tracking extension
 
-The back-tracking extension is an example of a custom built model extension used to identify the release areas, tracks/paths and deposition areas of GMFs that endanger infrastructure. 
+The back-tracking extension is an example of a custom built model extension used to identify the release areas, paths and deposition areas of GMF directly endangering infrastructure.
 
-To activate the back-tracking extension an additional GIS input layer that describes the spatial extent of the infrastructure must be called into the model. The GUI version of the model has a field where an infrastructure layer can be uploaded. For the terminal version the “infra= path_to_infrastructure_raster” must be included as an argument (see command below).
+To activate the back-tracking extension an additional raster layer describing the spatial extent of the infrastructure must be called into the model. The GUI version of the model has a field where an infrastructure layer can be inserted. For the terminal version the “infra= path_to_infrastructure_raster” must be included as an additional argument (see command below).
 
 ```markup
 python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release infra=path_to_infrastructure(Optional) flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional)
@@ -97,7 +97,7 @@ python3 main.py alpha_angle exponent working_directory path_to_dem path_to_relea
 python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.003 max_z=270
 ```
 
-The infrastructure layer must be in the same extent and resolution as the other input GIS layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder).  Different values can be used to differentiate types infrastructure. When a raster cell is associated with endangering >1 infrastructure types the larger values is saved.
+The infrastructure layer must be in the same extent and resolution as the other input raster layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder). Different values can be used to differentiate types infrastructure. When a raster cell is associated with endangering >1 infrastructure types the larger values is saved.
 
 ### Back-tracking output:
 
@@ -107,26 +107,22 @@ The infrastructure layer must be in the same extent and resolution as the other 
 - Straight Line Travel Angle, SL_TA: Saves the γ angle, while the distances are calculated via a straight line from the release cell to the current cell
 - Back-tracking: Areas identified as endangering infrastructure. 
 
-
-
 ## Motivation 2D
 
-
-
 ![Image](img/Motivation_2d.png)
-*Fig. 1: Definition of angles and distances for the calculation of z_delta, where s is the distance along the path and z(s) the corresponding altitude.*
+*Fig. 1: Definition of angles and geometric measures for the calculation of z_delta, where s is the projected distance along the path and z(s) the corresponding altitude.*
 
-The model equations that control the run out in three dimensional terrain are mostly motivated with respect to geometric two dimensional concepts, that control the main routing and final stopping of the flow.
+The model equations that determine the run out in three dimensional terrain are mainly motivated with respect to simple, geometric, two dimensional concepts [3,4] in conjunction with ideas existing algorithms for flow routing in three dimensional terrain [1,2], controlling the main routing and final stopping of the flow.
 
 Figure 1 summarizes the basic concept of a constant run out angle (alpha) with the corresponding geometric relations in two dimensions along a possible process path.
 
 ![tan_alpha](img/tan_alpha.png)
 
-The local travel angle gamma is defined by the height and distance difference from the release point to the current location.
+The local travel angle gamma is defined by the altitude difference and projected distance along the path, from the release point to the current location.
 
 ![tan_gamma](img/tan_gamma.png)
 
-The angle delta is the difference between gamma and alpha and is associated to the energy left in the process, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached.
+The angle delta is the difference between the local travel angle gamma and the runout angle alpha and is related to Z_delta, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached.
 
 ![z_alpha](img/z_alpha.png)
 
@@ -134,118 +130,110 @@ Z_alpha can be interpreted as dissipation energy.
 
 ![z_gamma](img/z_gamma.png)
 
-Z_gamma is the height difference between the starting point and the current calculation step at s. 
+Z_gamma is the altitude difference between the starting point and the current calculation step at the projected distance s.
 
-Z_delta is the difference between Z_gamma and Z_alpha, so when Z_delta is lower or equal zero the calculation stops. Z_delta can also be interpreted as the energy left in the process.
+Z_delta is the difference between Z_gamma and Z_alpha, so when Z_delta is lower or equal zero the stopping criterion is met and the flow stops. Z_delta is associated to the process magnitude and can be interpreted as the kinetic energy or velocity of the process.
 
 ![z_delta](img/z_delta.png)
 
-## Handling the Spatial Input
+The major drawback of implementing the geometric runout angle concepts is that they require a predefined flow path in two dimensional terrain. To allow for an enhanced routing in three dimensional terrain without prior knowledge of the flow path we combine these concepts [4] with extensions of existing algorithms [1,2,3] that are described in the following sections.
 
-To run the model at least 2 main raster inputs are needed. First the digital elevation model on which we solve the equations, and second the release raster, which defines were the starting points or release cells are on the raster. 
+## Spatial Input and Iterative Calculation Steps on the Path
 
-For every release cell we start the calculation. The goal is to determine potential children via 2 stopping criteria. 
+To run the model at least two raster inputs are needed. First the digital elevation model on which we solve the equations, and second the release raster, which defines where the starting points or release cells are on the raster.
 
-- Z_delta has to be greater then zero: Z_delta > 0
-- Routing Flux has to be greater then the Routing cut off: R_i > R_Stop
+For every release cell we start an iterative path calculation. The corresponding functions are implemented in the code in the flow_class.calc_distribution() function.
 
-If the criteria are fulfilled the child is saved in the path and for every cell/child in the path we search for new potential children.
-
-If we reach the end of the path and no new children fulfill the criteria we close the calculation and save the needed information from the path to our output raster files. Then the calculation starts again for the next release cell. The spatial extend and magnitude for all release cells are summarized in the output raster files, which represent the overlay of all paths.
-
-Every path is independent from the other, but depending on the information we want to extract, we save the highest values (Z_delta) or sums (Cell Counts) of different paths to the output raster file.
-
-## Iterative Calculation Steps on the Path
-
-Here we will go through all calculation steps as they are in the code under: flow_class.calc_distribution()
-
-To bring the thoughts from the motivation from 2D model to a 3D grid we must implement a few new definitions.
+To route in three dimensional terrain, operating on a quadrilateral grid, we implement the geometric concepts that have been sketched in the model motivation utilizing the following cell definitions:
 
 ​	![grid_overview](img/Neighbours.png)
 
 *Fig. 2: Definition of parent, base, child and neighbors, as well as the indexing around the base.*
 
-First we need to bring in the definition for base. This is the current raster cell we are looking at, and from which we do our calculations. This would be at distance s along the path in Fig. 1. 
+Each path calculation starts with a release cell and operates on the raster, requiring the definition of parent, base, child and neighbour cells (see Fig. 2). The base cell is the current raster cell of the path that we are looking at, and from which we perform our calculations. In 2d this would correspond to the cell at the distance s along the path in Fig. 1.
 
-Every base can have one or more parents, except the starting cell, where we start our calculation, this would be at s = s_0 in Fig. 1.
+Every base has at least one parent cell, except in the first calculation step from the release cell, where we start our calculation, this would be at s = s_0 in Fig. 1.
+
+The goal is to compute the path by iteratively determining potential children cells via the two stopping criteria (if stopping criteria are met the calculation stops, if not new children (or corresponding subsequent path cells) are defined):
+
+- Z_delta has to be smaller then zero: Z_delta < 0
+- Routing Flux has to be smaller then the flux cut off: R_i < R_Stop
+
+If the stopping criteria are not met the child(ren) is/are saved in the path and assigned as base cell for the next calculation step. Analogously the current base cell is assigned as parent cell for the next step, and the current parent cells are added to the respective path. Therefore the flow path subsequently grows adding children, that become base cells and potentially parents, which are finally added to the path.
+
+If we reach the end of the path and all potential new children fulfill the stopping criteria, closing the current path calculation and saving the required information from the path to our summarizing output raster files. Then the calculation starts again for the next release cell and respective flow path. The spatial extend and magnitude for all release cells are summarized in the output raster files, which represent the overlay of all paths.
+
+Every path is independent from the other, but depending on the information we want to extract, we save the highest values (e.g. Z_delta) or sums (e.g.Cell Counts) of different paths to the output raster file.
+
+## Iterative Calculation Steps on the Path
 
 ### z_delta
 
-From the base we solve now the equations (6,7 and 8) for every neighbor n, if Z_bn^{delta} is higher then zero, this neighbor is defined as a potential child of this base, and spreading is allowed in this direction.
+For each base cell in a path we solve the equations (6,7 and 8) for every neighbor n, if Z_bn^{delta} is higher then zero, this neighbor is defined as a potential child of this base, and routing  in this direction is possible.
 
 ![z_delta_i](img/z_delta_array.png)
 
 Here S_bn is the projected distance between the base and the neighbor.
 
-As Z_bn^{delta} can be interpreted as  kinetic energy it is possible to limit this value to a maximum. Regarding physical models this would correspond to a turbulent friction. 
+As Z_bn^{delta} can be interpreted as process magnitude (and kinetic energy or velocity respectively) it is possible to limit this value to a maximum. In comparison to process based modeling approaches this would correspond to maximum velocity induced by a velocity dependent turbulent friction term.
 
 ![z_delta_max](img/z_delta_max.png)
 
-The path to one of the neighbors (S_n) equals the path to the base (S_b) plus the path from base to the neighbor (S_bn) (Eq. 9). 
-
-![S_n_eq1](img/S_n_eq1.png)
-
-As there are many possibilities for the path from the starting point to our current base, we just take into account the shortest path, which corresponds to the highest Z_delta in the base. If Z_delta,max is set to infinity, or as in the code to 8898 m (= Mount Everest), we can calculate the shortest path from the starting point to our base with Eq. 10. 
+The projected path lengths, or total travel distance to one of the neighbors (S_n) equals the path length to the base (S_b) plus the path from base to the neighbor (S_bn), which reads:
 
 ![S_bn](img/S_bn.png)
 
-With this equations we determine the maximum run out distance for the process, in the next steps we will explain how we handle and calculate the spreading on the 3D grid.
+As there are many possibilities for the path from the starting point to our current base, the shortest path is taken into account, corresponding to the highest Z_delta in the base. If Z_delta,max is set to infinity, or as in the code to 8898 m (= Mount Everest), we can calculate the shortest path from the starting point to our base and yields the total projected travel distance:
 
+![S_n_eq1](img/S_n_eq1.png)
 
+With this equations we determine the routing and corresponding run out distance for the process, in the next steps we will explain how we handle and calculate the spreading in three dimensional terrain.
 
-### Persistence Function
+### Persistence based routing
 
-The persistence function P_i aims to reproduce the behavior of inertia, and weights the flow 
-direction based on the change in direction with respect to the previous direction [3].
-We introduced to scale the direction with Z_delta of the incoming direction (Z_delta,parent), 
-so the direction from a cell with higher Z_delta will have more affect to the directions where the base cell spreads.
+The persistence contribution P_i aims to reproduce the behavior of inertia, and takes the flow the change in flow direction into account [3].
+The direction contribution is scaled with the process magnitude Z_delta,parent, such that the direction from a parent cell with higher process magnitude has more effect on the path routing and direction.
 
 ![](img/persistence.png)
 
-The weights are defined by the cosine of the angle between parent, base and child/neighbor minus pi:  
+The direction contributions D_n are defined by the cosine of the angle between parent, base and child/neighbor minus pi:  
+
 ![](img/persistence_cos_function.png)
 
-So there are max. 3 childs that get input via the persistence function from one parent.
+Therefore the direction contribution limits the maximum number of potential children to three, getting input via the persistence function from one parent.
 
-In the first calculation step, at the release or start cell, the persistence is set to one, because there exists no parent. So the first calculation step is totally dependent on the terrain.
+In the first calculation step, at the release or start cell no parent cells are defined and the persistence is set to one. So the first calculation step is solely determined by the terrain contribution.
 
 ### Terrain based routing
 
-The terrain based routing is dependent on the slope angle. The Holmgren (1994) algorithm [1] is used in different kind of models and works well for avalanches but also rockfall or soil slides.
-The exponent exp allows to control the divergence of the spreading. For avalanches a exponent of 8 shows good results.
-To reach a single flow in step terrain (rockfall, soil slides, steepest descend), an exponent of 75 is considered.
+The terrain based routing is solely dependent on the slope angle phi. The exponent exp allows to control the divergence of the spreading. 
+The Holmgren (1994) algorithm [1] is used in different kind of models and works well for avalanches but also rockfall or soil slides. For avalanches a exponent of 8 shows good results. To reach a single flow in step terrain (rockfall, soil slides, steepest descend), an exponent of 75 is considered.
 
 ![Holmgrem](img/flow_direction.png)
 *Holmgrem Algorithm from 1994 [1]*
 
-
+To overcome the challenge of routing in flat or uphill terrain, we adapted the slope angle phi for the normalized terrain contribution to:
 
 ![Phi_Formula](img/Phi.png)
 
+### Routing Flux 
 
-
-### Flux 
-
-The values given by the terrain based routing and the persistence function are combined according to Eq.(16).
+The routing flux summarizes the persistence and terrain contributions according to Eq.(16):
 
 ![](img/flux.png)
 
-, where i is the direction and n are the neighbors from 1 to 8. R_i is then the flux that flows in direction i.
-R_b is the flux in the base, for a release cell or starting cell the flux of the base equals one. \
-The result of Eq. (16) is a 3 x 3 array with assigned flux values. A normalization stage is then 
-required to bring the sum of the R_i's to the value of R_b. This aims at avoiding loss of flux [2].
+where i is the direction and n are the neighbors from 1 to 8. R_i is then the routing flux in direction i.
+R_b is the flux in the base, for a release cell or starting cell the flux of the base equals one. The result of Eq. (16) is a 3 x 3 array with assigned flux values. A normalization stage is then required to bring the sum of the R_i's to the value of R_b. This aims at avoiding loss of flux [2].
 
 ### Flow Chart / Overview
 
-In Fig. 3 the whole computational process is shown, and which files handles which computation. 
+In Fig. 3 the algorithm of the computational implementation is sketched, including function and files names with respect to the code in the repository.
 
-The main.py file handles the input for the model and splits the release layer in tiles and saves them in a release list. Then the main.py starts one process per tile, which calls the flow_core.py and starts the calculation for one path. The number of processes is depending on the used Hardware setting (CPU and RAM).  Whenever a new Cell is created flow_core.py calls flow_class.py and makes a new instance of this class, which is saved in the path. When the calculation in flow_core.py is finished it returns the path to main.py which saves the result to the output rasters. 
+The main.py file handles the input for the computation and splits the release layer in tiles and saves them in a release list. Then the main.py starts one process per tile, which calls the flow_core.py and starts the calculation for one release cell and the corresponding path. The number of processes is depending on the hardware setting (CPU and RAM).  Whenever a new cell is created flow_core.py calls flow_class.py and makes a new instance of this class, which is saved in the path. When the calculation in flow_core.py is finished it returns the path to main.py which saves the result to the output rasters. 
 
 ![Flow_Chart](img/Flow-Py_chart.png)
 
-*Fig.3: Flow Chart of the whole computational process of Flow-Py, and an overview of the files and what they manage.*
-
-
+*Fig.3: Flow chart of the Flow-Py computational process and an overview of the files and what they manage.*
 
 ### References
 
@@ -265,13 +253,12 @@ Murgang-Simulationsprogramm zur Gefahrenzonierung. PhD thesis, Universität Bern
 [4] Huber, A., Fischer, J. T., Kofler, A., and Kleemayr, K. (2016). Using spatially
 distributed statistical models for avalanche runout estimation. In International Snow Science Workshop, Breckenridge, Colorado, USA - 2016.  
 
-## Contact
+## Contact and acknowledgment
 
 For Questions contact:  
 Michael Neuhauser, Austrian Research Centre for Forest: Michael.Neuhauser@bfw.gv.at  
 Christopher D'Amboise, Austrian Research Centre for Forest: Christopher.DAmboise@bfw.gv.at
 
-
-
 This study was carried out in the framework of the GreenRisk4Alps project
-ASP635, funded by the European Regional Development Fund through the Interreg Apline Space programme  
+ASP635, funded by the European Regional Development Fund through the Interreg Apline Space programme. Additional financial support from the AvaRange (www.AvaRange.org, international cooperation project “AvaRange - Particle Tracking in Snow Avalanches” supported by
+the German Research Foundation (DFG) and the Austrian Science Fund (FWF, project number I 4274-N29) and the AvaFrame (www.AvaFrame.org, AvaFrame - The open Avalanche Framework is a cooperation between  Austrian Avalanche and Torrent Service (Wildbach- und Lawinenverbauung; WLV) and the Austrian Research Centre for Forests (Bundesforschungszentrum für Wald; BFW) within the Federal Ministry Republic of Austria: Agriculture, Regions and Tourism (BMLRT)) projects are greatly acknowledged.
