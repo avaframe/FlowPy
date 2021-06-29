@@ -107,7 +107,7 @@ The infrastructure layer must be in the same extent and resolution as the other 
 - Straight Line Travel Angle, SL_TA: Saves the γ angle, while the distances are calculated via a straight line from the release cell to the current cell
 - Back-tracking: Areas identified as endangering infrastructure. 
 
-## Motivation 2D
+## Motivation
 
 ![Image](img/Motivation_2d.png)
 *Fig. 1: Definition of angles and geometric measures for the calculation of z_delta, where s is the projected distance along the path and z(s) the corresponding altitude.*
