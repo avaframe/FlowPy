@@ -97,7 +97,7 @@ python3 main.py alpha_angle exponent working_directory path_to_dem path_to_relea
 python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.003 max_z=270
 ```
 
-The infrastructure layer must be in the same extent and resolution as the other input raster layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder). Different values can be used to differentiate types of infrastructure. When a raster cell is associated with endangering >1 infrastructure types the larger values is saved.
+The infrastructure layer must be in the same extent and resolution as the other input raster layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder). Different values can be used to differentiate types of infrastructure. When a raster cell is associated with endangering >=1 infrastructure, the back-tracking path has the same value as the endangered infrastructure cell. In the back-tracking raster output the maximum of all back-tracking paths is saved.
 
 ### Back-tracking output:
 
