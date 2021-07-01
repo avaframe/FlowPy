@@ -48,18 +48,22 @@
 		Z^\delta_{bn}  &=& Z^{\gamma}_{bn} - Z^{\alpha}_{bn}.
 	\end{eqnarray}
 
-	%Path equations
-	\begin{equation}
-		S_n = S_b + S_{bn}
+	\begin{equation}\label{equation:intensity_min}
+		Z^\delta_{i} = min\{ Z^{\delta}_0 + Z^{\gamma}_i - Z^{\alpha}_i, Z^\delta_{max}  \}
 	\end{equation}
 
-	\begin{equation}
-		\begin{split}
-			S_b & = \dfrac{Z_0 - Z_b - Z_b^{\delta}}{\tan(\alpha)}, \\
-			& = \dfrac{Z_b^{\gamma} - Z_b^{\delta}}{\tan(\alpha)}, \\	
-			& = \dfrac{Z_b^{\alpha}}{\tan(\alpha)}
-		\end{split}
-	\end{equation}
+	%Path equations
+
+
+%	\begin{equation}
+%		\begin{split}
+%			S_b & = \dfrac{Z_0 - Z_b - Z_b^{\delta}}{\tan(\alpha)}, \\
+%			& = \dfrac{Z_b^{\gamma} - Z_b^{\delta}}{\tan(\alpha)}, \\	
+%			& = \dfrac{Z_b^{\alpha}}{\tan(\alpha)}
+%		\end{split}
+%	\end{equation}
+
+
 
 	\begin{equation}
 		\begin{split}
@@ -70,8 +74,12 @@
 	\end{equation}
 
 	\begin{equation}
-			S_n  = \dfrac{Z_n^{\alpha}}{\tan(\alpha)} = \dfrac{Z_b^{\alpha}}{\tan(\alpha)} + \dfrac{Z_{bn}^{\alpha}}{\tan(\alpha)} 
+		S_n = S_b + S_{bn}
 	\end{equation}
+
+%	\begin{equation}
+%			S_n  = \dfrac{Z_n^{\alpha}}{\tan(\alpha)} = \dfrac{Z_b^{\alpha}}{\tan(\alpha)} + \dfrac{Z_{bn}^{\alpha}}{\tan(\alpha)} 
+%	\end{equation}
 
 	\begin{equation}\label{equation:persistence}
 		P_i = \sum_{p = 1}^{N_p} \sum_{n=1}^{8} Z^\delta_{p} \cdot D_{n},
@@ -89,7 +97,9 @@
 		\end{cases}
 	\end{equation}
 
-	$\Phi_i = \dfrac{\phi_i + \dfrac{\pi}{2}}{2}$
+	\begin{equation}
+		\Phi_i = \dfrac{\phi_i + \dfrac{\pi}{2}}{2}
+	\end{equation}
 	
 	\begin{equation}\label{equation:routing}
 		%	R_i = \dfrac{r_i^{t} \cdot r_i^{p}}{\sum_{j=1}^{8} r_j^{t} \cdot r_j^{p}} \cdot R_0 ,

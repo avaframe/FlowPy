@@ -2,7 +2,7 @@
 
 Flow-Py is an open source tool to compute gravitational mass flows (GMF) run out. The main objective of this tool is to compute the spatial extent of GMF, which consists of the track/path and deposition areas of GMF in three dimensional terrain. The resulting run out is mainly dependent on the terrain and the location of the starting/release point. No temporal evolution equations are solved in the model. Flow-Py uses existing statistical-data-based approaches for solving the routing and stopping of GMF. 
 
-The tool has been designed to be computationally light, allowing the application on a regional scale including a large number of GMF paths. The Flow-Py code is written in python and takes advantage of pythons object oriented class structure. The well structured model implementation allows users to address specific GMF research questions by keeping the parameterization flexible and the ability to include custom model extensions and ad-ons.
+The tool has been designed to be computationally light, allowing the application on a regional scale including a large number of GMF paths. The Flow-Py code is written in python and takes advantage of pythons object oriented class structure. The well structured model implementation allows users to address specific GMF research questions by keeping the parameterization flexible and the ability to include custom model extensions and add-ons.
 
 ## Setting up Python3 environment
 
@@ -28,7 +28,7 @@ Flow-Py has not been tested it on MacOS. If you are able to run it there, please
 
 ## Running the Code
 
-Once the required libraries are installed the model will run via the main.py script. Flow-Py can be run in the terminal or with a simple GUI which helps to organize the input date/parameterizations.
+Once the required libraries are installed the model will run via the main.py script. Flow-Py can be run in the terminal or with a simple GUI which helps to organize the input data/parameterizations.
 
 #### Graphical user interface version 
 
@@ -48,11 +48,11 @@ The terminal version runs with the following arguments:
 - (Optional) flux threshold (positive number) flux_threshold=xx (limits spreading with the exponent)
 - (Optional) Max z_{\delta} (positive number) max_z_delta=xx (max kinetic energy height, turbulent friction)
 
-Here is an example for running Flow-Py over a simple parabolic slope with a channelized path and a small dam between the transit and run out area. Input data can be found in example directory
-
 ```markup
 python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional
 ```
+
+Here is an example for running Flow-Py over a simple parabolic slope with a channelized path and a small dam between the transit and run out area. Input data can be found in example directory.
 
 #### Example:
 
@@ -74,7 +74,7 @@ The locations identified as release areas need values > 0. (see release.tif in e
 
 All outputs are in the .tiff raster format in the same resolution and extent as the input raster layers.
 
-- z_delta: the maximum of z_delta all paths for every raster cell (geometric measure of process magnitude, can be associated to kinetic energy/velocity)
+- z_delta: the maximum z_delta of all paths for every raster cell (geometric measure of process magnitude, can be associated to kinetic energy/velocity)
 - Flux: The maximum routing flux of all paths for every raster cell
 - sum_z_delta: z_delta summed up over all paths on every raster cell
 - Cell_Counts: number of paths that route flux through a raster cell
@@ -97,7 +97,7 @@ python3 main.py alpha_angle exponent working_directory path_to_dem path_to_relea
 python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.003 max_z=270
 ```
 
-The infrastructure layer must be in the same extent and resolution as the other input raster layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder). Different values can be used to differentiate types infrastructure. When a raster cell is associated with endangering >1 infrastructure types the larger values is saved.
+The infrastructure layer must be in the same extent and resolution as the other input raster layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder). Different values can be used to differentiate types of infrastructure. When a raster cell is associated with endangering >1 infrastructure types the larger values is saved.
 
 ### Back-tracking output:
 
@@ -205,7 +205,7 @@ In the first calculation step, at the release or start cell no parent cells are 
 ### Terrain based routing
 
 The terrain based routing is solely dependent on the slope angle phi. The exponent exp allows to control the divergence of the spreading. 
-The Holmgren (1994) algorithm [1] is used in different kind of models and works well for avalanches but also rockfall or soil slides. For avalanches a exponent of 8 shows good results. To reach a single flow in step terrain (rockfall, soil slides, steepest descend), an exponent of 75 is considered.
+The Holmgren (1994) algorithm [1] is used in different kind of models and works well for avalanches but also rockfall or soil slides. For avalanches an exponent of 8 shows good results. To reach a single flow in step terrain (rockfall, soil slides, steepest descend), an exponent of 75 is considered.
 
 ![Holmgrem](img/flow_direction.png)
 *Holmgrem Algorithm from 1994 [1]*
