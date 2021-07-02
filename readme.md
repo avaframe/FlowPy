@@ -97,14 +97,15 @@ python3 main.py alpha_angle exponent working_directory path_to_dem path_to_relea
 python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.003 max_z=270
 ```
 
-The infrastructure layer must be in the same extent and resolution as the other input raster layers. Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder). Different values can be used to differentiate types of infrastructure. When a raster cell is associated with endangering >=1 infrastructure, the back-tracking path has the same value as the endangered infrastructure cell. In the back-tracking raster output the maximum infrastructure value (corresponding to the most valuable infrastructure) of all back-tracking paths is saved.
+The infrastructure layer must be in the same extent and resolution as the other input layers (DEM and release raster). Raster cells that contain infrastructure must have values > zero, raster cells with values = 0 represent locations without infrastructure (see infrastructure.tif in example folder). Different integers can be used to differentiate types of infrastructure, where higher valued infrastructure should correspond to higher integers . When a raster cell is associated with endangering infrastructure the integer associated with the infrastructure type is saved in the back-tracking output layer. When a raster cell is associated with endangering more than one type of infrastructure the larger integer is saved to the back tracking output. 
+
 
 ### Back-tracking output:
 
-- z_delta: the maximum z_delta for every raster cell.
-- Flux: The maximum routing flux for every raster cell.
-- Flow Path Travel Angle, FP_TA: the γ angle along the flow path
-- Straight Line Travel Angle, SL_TA: Saves the γ angle, while the distances are calculated via a straight line from the release cell to the current cell
+- z_delta: the maximum z_delta of all paths for every raster cell (geometric measure of process magnitude, can be associated to kinetic energy/velocity)
+- Flux: The maximum routing flux of all paths for every raster cell
+- Flow Path Travel Angle, FP_TA: the gamma angle along the flow path
+- Straight Line Travel Angle, SL_TA: Saves the gamma angle, while the distances are calculated via a straight line from the release cell to the current cell
 - Back-tracking: Areas identified as endangering infrastructure. 
 
 ## Motivation
@@ -140,9 +141,7 @@ The major drawback of implementing the geometric runout angle concepts is that t
 
 ## Spatial Input and Iterative Calculation Steps on the Path
 
-To run the model at least two raster inputs are needed. First the digital elevation model on which we solve the equations, and second the release raster, which defines where the starting points or release cells are on the raster.
-
-For every release cell we start an iterative path calculation. The corresponding functions are implemented in the code in the flow_class.calc_distribution() function.
+A path is the spatial extent of a GMF, for the flow-Py model the path is represented by a set of raster cells. Each release area (single raster cell in release area GIS layer) will have it's own unique path (collection of raster cells), and a location on the terrain (a single raster cell) can belong to many paths. Flow-Py identifies the path with spatial iterations starting with a release area raster cell and only iterating over cells which receive routing flux.  The corresponding functions are implemented in the code in the flow_class.calc_distribution() function.
 
 To route in three dimensional terrain, operating on a quadrilateral grid, we implement the geometric concepts that have been sketched in the model motivation utilizing the following cell definitions:
 
@@ -150,18 +149,15 @@ To route in three dimensional terrain, operating on a quadrilateral grid, we imp
 
 *Fig. 2: Definition of parent, base, child and neighbors, as well as the indexing around the base.*
 
-Each path calculation starts with a release cell and operates on the raster, requiring the definition of parent, base, child and neighbour cells (see Fig. 2). The base cell is the current raster cell of the path that we are looking at, and from which we perform our calculations. In 2d this would correspond to the cell at the distance s along the path in Fig. 1.
+Each path calculation starts with a release cell and operates on the raster, requiring the definition of parent, base, child and neighbour cells (see Fig. 2).
+The base cell is the cell being calculated on the current spatial iteration step. The 8 raster cells surrounding the base cell are called neighbor cells (n, i) which have the potential to be parents (supplying flux to base cell), or a child (receive flux from the base cell). 
+In 2d the base cell corresponds to the cell/location at the distance s along the path in Fig. 1.
 
 Every base has at least one parent cell, except in the first calculation step from the release cell, where we start our calculation, this would be at s = s_0 in Fig. 1.
 
-The goal is to compute the path by iteratively determining potential children cells via the two stopping criteria (if stopping criteria are met the calculation stops, if not new children (or corresponding subsequent path cells) are defined):
+During an iteration step a raster cell from the iteration list is identified as the current base cell. The routing flux is calculated across the base cell from the parent cell to possible child cells. The goal is to keep the spatial iteration steps to a minimum, which is achieved by only adding neighbor cells to the iteration list that have flux routed to them from the base cell and do not meet either of the stopping conditions. These cells are called child cells. Child cells that are not already on the iteration list are added to the list and flow_class python object is created for the raster cell. The child cells flow_class has the parent added to it as a source for routing flux. By being added to the iteration list the cell has been recognized as being part of the GMF path and will be the base cell for a future iteration step. 
 
-- Z_delta has to be smaller then zero: Z_delta < 0
-- Routing Flux has to be smaller then the flux cut off: R_i < R_Stop
-
-If the stopping criteria are not met the child(ren) is/are saved in the path and assigned as base cell for the next calculation step. Analogously the current base cell is assigned as parent cell for the next step, and the current parent cells are added to the respective path. Therefore the flow path subsequently grows adding children, that become base cells and potentially parents, which are finally added to the path.
-
-If we reach the end of the path and all potential new children fulfill the stopping criteria, closing the current path calculation and saving the required information from the path to our summarizing output raster files. Then the calculation starts again for the next release cell and respective flow path. The spatial extend and magnitude for all release cells are summarized in the output raster files, which represent the overlay of all paths.
+When the iteration list is empty and all potential children fulfill a stopping criteria the path calculation is finished. The required information is saved from the cell class to the summarizing output raster files. Then the calculation starts again for the next release cell and respective flow path. The spatial extent and magnitude for all release cells are summarized in the output raster files, which represent the overlay of all paths.
 
 Every path is independent from the other, but depending on the information we want to extract, we save the highest values (e.g. Z_delta) or sums (e.g.Cell Counts) of different paths to the output raster file.
 
