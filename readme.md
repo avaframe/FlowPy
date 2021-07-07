@@ -105,7 +105,7 @@ The infrastructure layer must be in the same extent and resolution as the other 
 - z_delta: the maximum z_delta of all paths for every raster cell (geometric measure of process magnitude, can be associated to kinetic energy/velocity)
 - Flux: The maximum routing flux of all paths for every raster cell
 - Flow Path Travel Angle, FP_TA: the gamma angle along the flow path
-- Straight Line Travel Angle, SL_TA: Saves the gamma angle, while the distances are calculated via a straight line from the release cell to the current cell
+- Straight Line Travel Angle, SL_TA: Saves the travel angle along a straigt line, i.e. distances are calculated via a direct line from the release cell to the current cell
 - Back-tracking: Areas identified as endangering infrastructure. 
 
 ## Motivation
@@ -141,7 +141,7 @@ The major drawback of implementing the geometric runout angle concepts is that t
 
 ## Spatial Input and Iterative Calculation Steps on the Path
 
-A path is the spatial extent of a GMF, for the flow-Py model the path is represented by a set of raster cells. Each release area (single raster cell in release area GIS layer) will have it's own unique path (collection of raster cells), and a location on the terrain (a single raster cell) can belong to many paths. Flow-Py identifies the path with spatial iterations starting with a release area raster cell and only iterating over cells which receive routing flux.  The corresponding functions are implemented in the code in the flow_class.calc_distribution() function.
+In nature a GMF has one ore more release areas that span over single or multiple release cells. Flow-Py computes the so called path, which is defined as the spatial extent of the routing from each release cell. Each release area (single raster cell in release area GIS layer) will have it's own unique path (collection of raster cells), and a location on the terrain (a single raster cell) can belong to many paths. Flow-Py identifies the path with spatial iterations starting with a release area raster cell and only iterating over cells which receive routing flux.  The corresponding functions are implemented in the code in the flow_class.calc_distribution() function.
 
 To route in three dimensional terrain, operating on a quadrilateral grid, we implement the geometric concepts that have been sketched in the model motivation utilizing the following cell definitions:
 
@@ -155,9 +155,14 @@ In 2d the base cell corresponds to the cell/location at the distance s along the
 
 Every base has at least one parent cell, except in the first calculation step from the release cell, where we start our calculation, this would be at s = s_0 in Fig. 1.
 
-During an iteration step a raster cell from the iteration list is identified as the current base cell. The routing flux is calculated across the base cell from the parent cell to possible child cells. The goal is to keep the spatial iteration steps to a minimum, which is achieved by only adding neighbor cells to the iteration list that have flux routed to them from the base cell and do not meet either of the stopping conditions. These cells are called child cells. Child cells that are not already on the iteration list are added to the list and flow_class python object is created for the raster cell. The child cells flow_class has the parent added to it as a source for routing flux. By being added to the iteration list the cell has been recognized as being part of the GMF path and will be the base cell for a future iteration step. 
+During an iteration step a raster cell from the iteration list is identified as the current base cell. The routing flux is calculated across the base cell from the parent cell to possible child cells. The goal is to keep the spatial iteration steps to a minimum, which is achieved by only adding neighbor cells to the iteration list that have flux routed to them from the base cell and do not meet either of the stopping conditions. These cells are called child cells. Child cells that are not already on the iteration list are added to the list and flow_class python object is created for the raster cell. The child cells flow_class has the parent added to it as a source for routing flux. By being added to the iteration list the cell has been recognized as being part of the GMF path and will be the base cell for a future iteration step.
 
-When the iteration list is empty and all potential children fulfill a stopping criteria the path calculation is finished. The required information is saved from the cell class to the summarizing output raster files. Then the calculation starts again for the next release cell and respective flow path. The spatial extent and magnitude for all release cells are summarized in the output raster files, which represent the overlay of all paths.
+When the iteration list is empty and all potential children fulfill one of the stopping criteria:
+
+- Z_delta has to be smaller then zero: Z_delta < 0,
+- Routing Flux has to be smaller then the flux cut off: R_i < R_Stop,
+
+the path calculation is finished. The required information is saved from the cell class to the summarizing output raster files. Then the calculation starts again for the next release cell and respective flow path. The spatial extent and magnitude for all release cells are summarized in the output raster files, which represent the overlay of all paths.
 
 Every path is independent from the other, but depending on the information we want to extract, we save the highest values (e.g. Z_delta) or sums (e.g.Cell Counts) of different paths to the output raster file.
 
@@ -256,3 +261,7 @@ Christopher D'Amboise, Austrian Research Centre for Forest: Christopher.DAmboise
 This study was carried out in the framework of the GreenRisk4Alps project
 ASP635, funded by the European Regional Development Fund through the Interreg Apline Space programme. Additional financial support from the AvaRange (www.AvaRange.org, international cooperation project “AvaRange - Particle Tracking in Snow Avalanches” supported by
 the German Research Foundation (DFG) and the Austrian Science Fund (FWF, project number I 4274-N29) and the AvaFrame (www.AvaFrame.org, AvaFrame - The open Avalanche Framework is a cooperation between the Austrian Research Centre for Forests (Bundesforschungszentrum für Wald; BFW) and Austrian Avalanche and Torrent Service (Wildbach- und Lawinenverbauung; WLV) in conjunction with the Federal Ministry Republic of Austria: Agriculture, Regions and Tourism (BMLRT)) projects are greatly acknowledged.
+
+## Citation:
+
+Michael Neuhauser, Christopher D'Amboise, Michaela Teich, Andreas Kofler, Andreas Huber, Reinhard Fromm, & Jan Thomas Fischer. (2021, June 24). Flow-Py: routing and stopping of gravitational mass flows (Version 1.0). Zenodo. http://doi.org/10.5281/zenodo.5027275
