@@ -190,7 +190,7 @@ With this equations we determine the routing and corresponding run out distance 
 
 ### Persistence based routing
 
-The persistence contribution P_i aims to reproduce the behavior of inertia, and takes the flow the change in flow direction into account [3].
+The persistence contribution P_i aims to reproduce the behavior of inertia, and takes the change in flow direction into account [3].
 The direction contribution is scaled with the process magnitude Z_delta,parent, such that the direction from a parent cell with higher process magnitude has more effect on the path routing and direction.
 
 ![](img/persistence.png)
