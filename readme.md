@@ -46,7 +46,7 @@ The terminal version runs with the following arguments:
 - path to DEM raster (.tiff or .asc)
 - path to release raster (.tiff or .asc)  
 - (Optional) flux threshold (positive number) flux_threshold=xx (limits spreading with the exponent)
-- (Optional) Max z_{\delta} (positive number) max_z_delta=xx (max kinetic energy height, turbulent friction)
+- (Optional) Max Z<sup>&delta;</sup> (positive number) max_z_delta=xx (max kinetic energy height, turbulent friction)
 
 ```markup
 python3 main.py alpha_angle exponent working_directory path_to_dem path_to_release flux_threshold=positiv_number(Optional) max_z_delta=positiv_number(Optional
@@ -111,7 +111,7 @@ The infrastructure layer must be in the same extent and resolution as the other 
 ## Motivation
 
 ![Image](img/Motivation_2d.png)
-*Fig. 1: Definition of angles and geometric measures for the calculation of z_delta, where s is the projected distance along the path and z(s) the corresponding altitude.*
+*Fig. 1: Definition of angles and geometric measures for the calculation of Z<sup>&delta;</sup>, where s is the projected distance along the path and z(s) the corresponding altitude.*
 
 The model equations that determine the run out in three dimensional terrain are mainly motivated with respect to simple, geometric, two dimensional concepts [3,4] in conjunction with ideas existing algorithms for flow routing in three dimensional terrain [1,2], controlling the main routing and final stopping of the flow.
 
@@ -123,17 +123,17 @@ The local travel angle gamma is defined by the altitude difference and projected
 
 ![tan_gamma](img/tan_gamma.png)
 
-The angle delta is the difference between the local travel angle gamma and the runout angle alpha and is related to Z_delta, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached.
+The angle delta is the difference between the local travel angle gamma and the runout angle alpha and is related to Z<sup>&delta;</sup>, so when delta equals zero or gamma equals alpha, the maximum runout distance is reached.
 
 ![z_alpha](img/z_alpha.png)
 
-Z_alpha can be interpreted as dissipation energy.
+Z<sup>&alpha;</sup> can be interpreted as dissipation energy.
 
 ![z_gamma](img/z_gamma.png)
 
-Z_gamma is the altitude difference between the starting point and the current calculation step at the projected distance s.
+Z<sup>&gamma;</sup> is the altitude difference between the starting point and the current calculation step at the projected distance s.
 
-Z_delta is the difference between Z_gamma and Z_alpha, so when Z_delta is lower or equal zero the stopping criterion is met and the flow stops. Z_delta is associated to the process magnitude and can be interpreted as the kinetic energy or velocity of the process.
+Z<sup>&delta;</sup> is the difference between Z<sup>&gamma;</sup> and Z<sup>&alpha;</sup>, so when Z<sup>&delta;</sup> is lower or equal zero the stopping criterion is met and the flow stops. Z<sup>&delta;</sup> is associated to the process magnitude and can be interpreted as the kinetic energy or velocity of the process.
 
 ![z_delta](img/z_delta.png)
 
@@ -153,36 +153,36 @@ Each path calculation starts with a release cell and operates on the raster, req
 The base cell is the cell being calculated on the current spatial iteration step. The 8 raster cells surrounding the base cell are called neighbor cells (n, i) which have the potential to be parents (supplying flux to base cell), or a child (receive flux from the base cell). 
 In 2d the base cell corresponds to the cell/location at the distance s along the path in Fig. 1.
 
-Every base has at least one parent cell, except in the first calculation step from the release cell, where we start our calculation, this would be at s = s_0 in Fig. 1.
+Every base has at least one parent cell, except in the first calculation step from the release cell, where we start our calculation, this would be at s = s<sub>0</sub> in Fig. 1.
 
 During an iteration step a raster cell from the iteration list is identified as the current base cell. The routing flux is calculated across the base cell from the parent cell to possible child cells. The goal is to keep the spatial iteration steps to a minimum, which is achieved by only adding neighbor cells to the iteration list that have flux routed to them from the base cell and do not meet either of the stopping conditions. These cells are called child cells. Child cells that are not already on the iteration list are added to the list and flow_class python object is created for the raster cell. The child cells flow_class has the parent added to it as a source for routing flux. By being added to the iteration list the cell has been recognized as being part of the GMF path and will be the base cell for a future iteration step.
 
 When the iteration list is empty and all potential children fulfill one of the stopping criteria:
 
 - Z<sup>&delta;</sup> has to be smaller than zero: Z<sup>&delta;</sup> < 0,
-- Routing Flux has to be smaller than the flux cut off: R_i < R_Stop,
+- Routing Flux has to be smaller than the flux cut off: R<sub>i</sub> < R<sub>Stop</sub>,
 
 the path calculation is finished. The required information is saved from the cell class to the summarizing output raster files. Then the calculation starts again for the next release cell and respective flow path. The spatial extent and magnitude for all release cells are summarized in the output raster files, which represent the overlay of all paths.
 
-Every path is independent from the other, but depending on the information we want to extract, we save the highest values (e.g. Z_delta) or sums (e.g.Cell Counts) of different paths to the output raster file.
+Every path is independent from the other, but depending on the information we want to extract, we save the highest values (e.g. Z<sup>&delta;</sup>) or sums (e.g.Cell Counts) of different paths to the output raster file.
 
-### Z_delta
+### Z<sup>&delta;</sup>
 
-For each base cell in a path we solve the equations (6,7 and 8) for every neighbor n, if Z_bn^{delta} is higher than zero, this neighbor is defined as a potential child of this base, and routing  in this direction is possible.
+For each base cell in a path we solve the equations (6,7 and 8) for every neighbor n, if Z<sub>bn</sub><sup>&delta;</sup> is higher than zero, this neighbor is defined as a potential child of this base, and routing  in this direction is possible.
 
 ![z_delta_i](img/z_delta_array.png)
 
-Here S_bn is the projected distance between the base and the neighbor.
+Here S<sub>bn</sub> is the projected distance between the base and the neighbor.
 
-As Z_bn^{delta} can be interpreted as process magnitude (and kinetic energy or velocity respectively) it is possible to limit this value to a maximum. In comparison to process based modeling approaches this would correspond to maximum velocity induced by a velocity dependent turbulent friction term.
+As Z<sub>bn</sub><sup>&delta;</sup> can be interpreted as process magnitude (and kinetic energy or velocity respectively) it is possible to limit this value to a maximum. In comparison to process based modeling approaches this would correspond to maximum velocity induced by a velocity dependent turbulent friction term.
 
 ![z_delta_max](img/z_delta_max.png)
 
-The projected path lengths, or total travel distance to one of the neighbors (S_n) equals the path length to the base (S_b) plus the path from base to the neighbor (S_bn), which reads:
+The projected path lengths, or total travel distance to one of the neighbors (S<sub>n</sub>) equals the path length to the base (S<sub>b</sub>) plus the path from base to the neighbor (S<sub>bn</sub>), which reads:
 
 ![S_bn](img/S_bn.png)
 
-As there are many possibilities for the path from the starting point to the actual cell or base, the shortest path is taken into account, corresponding to the highest Z_delta in the base. If Z_delta,max is set to infinity, or as in the code to 8848 m (= Mount Everest), we can calculate the shortest path from the starting point to the base and yields the total projected travel distance:
+As there are many possibilities for the path from the starting point to the actual cell or base, the shortest path is taken into account, corresponding to the highest Z<sup>&delta;</sup> in the base. If Z<sup>&delta;</sup><sub>max</sub> is set to infinity, or as in the code to 8848 m (= Mount Everest), we can calculate the shortest path from the starting point to the base and yields the total projected travel distance:
 
 ![S_n_eq1](img/S_n_eq1.png)
 
@@ -190,12 +190,12 @@ This equations determine the routing and corresponding run out distance for the 
 
 ### Persistence based routing
 
-The persistence contribution P_i aims to reproduce the behavior of inertia, and takes the change in flow direction into account [3].
-The direction contribution is scaled with the process magnitude Z_delta,parent, such that the direction from a parent cell with higher process magnitude has more effect on the path routing and direction.
+The persistence contribution P<sub>i</sub> aims to reproduce the behavior of inertia, and takes the change in flow direction into account [3].
+The direction contribution is scaled with the process magnitude Z<sup>&delta;</sup><sub>parent</sub>, such that the direction from a parent cell with higher process magnitude has more effect on the path routing and direction.
 
 ![](img/persistence.png)
 
-The direction contributions D_n are defined by the cosine of the angle between parent, base and child/neighbor minus pi:  
+The direction contributions D<sub>n</sub> are defined by the cosine of the angle between parent, base and child/neighbor minus pi:  
 
 ![](img/persistence_cos_function.png)
 
@@ -221,8 +221,8 @@ The routing flux summarizes the persistence and terrain contributions according 
 
 ![](img/flux.png)
 
-where i is the direction and n are the neighbors from 1 to 8. R_i is then the routing flux in direction i.
-R_b is the flux in the base, for a release cell or starting cell the flux of the base equals one. The result of Eq. (16) is a 3 x 3 array with assigned flux values. A normalization stage is then required to bring the sum of the R_i's to the value of R_b. This aims at avoiding loss of flux [2].
+where i is the direction and n are the neighbors from 1 to 8. R<sub>i</sub> is then the routing flux in direction i.
+R<sub>b</sub> is the flux in the base, for a release cell or starting cell the flux of the base equals one. The result of Eq. (16) is a 3 x 3 array with assigned flux values. A normalization stage is then required to bring the sum of the R<sub>i</sub>'s to the value of R<sub>b</sub>. This aims at avoiding loss of flux [2].
 
 ### Flow Chart / Overview
 
