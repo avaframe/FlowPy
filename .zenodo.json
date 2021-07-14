@@ -30,33 +30,5 @@
             "name": "Jan-Thomas Fischer",
             "orcid": "0000-0001-5179-6457"
         }
-    ], 
-
-    "title": "Flow-Py: routing and stopping of gravitational mass flows",
-
-    "keywords": ["Gravitational mass flows", "model", "python3", 
-    	"open source", "Avalanche", "Rockfall", "Soil Slides",
-    	"runout", "travel angle"],
-
-    "description": "Flow-Py is an open source gravitational mass flows (GMFs) run out model. The main objective of this tool is to compute the spatial extent of GMFs, which consists of the track/path and deposition areas of GMFs in three dimensional terrain. The resulting run out is mainly dependent by the terrain and the location of the starting/release point. No temporal equations are solved in the model. Flow-py uses existing statistical-data-based approaches for solving the routing and stopping of GMFs. This tool has been designed to be computationally light, allowing it application on a regional scale. This tool is written in python and takes advantage of pythons object oriented class structure. The organization of the tool allows users to address specific GMF research questions by keeping the parameterization flexible and the ability to include custom model extensions/ad-ons.",
-
-    "access_right": "open",
-
-    "license": {
-        "id": "GPL-3.0"
-    },
-
-    "related_identifiers": [
-        {
-            "scheme": "doi", 
-            "identifier": "10.5281/zenodo.5027275", 
-            "relation": "isVersionOf"
-        }
-    ],
-
-
-    "references": [
-        "Huber, A., Fischer, J. T., Koer, A., and Kleemayr, K. (2016). Using spatially distributed statistical models for avalanche runout estimation. In International Snow Science Workshop, Breckenridge, Colorado, USA - 2016.", 
-        "Neuhauser, M., D'Amboise, C., Teich, M., and Fischer, J. T.: Flow-Py: Identifying protection forests and their effects on gravitational natural hazard processes on a regional scale, EGU General Assembly 2020, Online, 4–8 May 2020, EGU2020-21938, https://doi.org/10.5194/egusphere-egu2020-21938, 2020"
-    ]
+    ] 
 }
