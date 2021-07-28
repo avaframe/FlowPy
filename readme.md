@@ -1,6 +1,6 @@
 # Flow-Py
 
-Flow-Py is an open source tool to compute gravitational mass flows (GMF) run out. The main objective is to compute the spatial extent of GMF, which consists of the track/path and deposition areas of GMF on the surface of a three dimensional terrain. The resulting run out is mainly dependent on the terrain and the location of the starting/release point. No time-dependent equations are solved in the model. Flow-Py uses existing statistical-data-based approaches for solving the routing and stopping of GMF. 
+Flow-Py is an open source tool to compute gravitational mass flows (GMF) run out and intensity. The main objective is to compute the spatial extent of GMF, which consists of the starting, transit and runout zones of GMF on the surface of a three dimensional terrain. The resulting run out is mainly dependent on the terrain and the location of the starting/release point. No time-dependent equations are solved in the model. Flow-Py uses existing statistical-data-based approaches for solving the routing and stopping of GMF. 
 
 The tool has been designed to be computationally light, allowing the application on a regional scale including a large number of GMF paths. The Flow-Py code is written in python and takes advantage of pythons object oriented class structure. The well structured model implementation allows users to address specific GMF research questions by keeping the parameterization flexible and the ability to include custom model extensions and add-ons.
 
@@ -111,9 +111,10 @@ The infrastructure layer must be in the same extent and resolution as the other 
 ## Motivation
 
 ![Image](img/Motivation_2d.png)
+
 *Fig. 1: Definition of angles and geometric measures for the calculation of Z<sup>&delta;</sup>, where s is the projected distance along the path and z(s) the corresponding altitude.*
 
-The model equations that determine the run out in three dimensional terrain are mainly motivated with respect to simple, geometric, two dimensional concepts [3,4] in conjunction with ideas existing algorithms for flow routing in three dimensional terrain [1,2], controlling the main routing and final stopping of the flow.
+The model equations that determine the run out in three dimensional terrain are mainly motivated with respect to simple, geometric, two dimensional concepts [0,3,4] in conjunction with ideas existing algorithms for flow routing in three dimensional terrain [1,2], controlling the main routing and final stopping of the flow.
 
 Figure 1 summarizes the basic concept of a constant run out angle (alpha) with the corresponding geometric relations in two dimensions along a possible process path.
 
@@ -141,7 +142,7 @@ The major drawback of implementing the geometric runout angle concepts is that t
 
 ## Spatial Input and Iterative Calculation Steps on the Path
 
-In nature a GMF has one or more release areas that span over single or multiple release cells. Flow-Py computes the so called path, which is defined as the spatial extent of the routing from each release cell. Each release area (single raster cell in release area GIS layer) has it's own unique path (collection of raster cells), and a location on the terrain (a single raster cell) can belong to many paths. Flow-Py identifies the path with spatial iterations starting with a release area raster cell and only iterating over cells which receive routing flux.  The corresponding functions are implemented in the code in the flow_class.calc_distribution() function.
+In nature a GMF has one or more release areas that span over single or multiple release cells. Flow-Py computes the so called path, which is defined as the spatial extent of the routing from each release cell. Each release area (single raster cell in release area  layer) has it's own unique path (collection of raster cells), and a location on the terrain (a single raster cell) can belong to many paths. Flow-Py identifies the path with spatial iterations starting with a release area raster cell and only iterating over cells which receive routing flux.  The corresponding functions are implemented in the code in the flow_class.calc_distribution() function.
 
 To route on the surface of the three dimensional terrain, operating on a quadrilateral grid, we implement the geometric concepts that have been sketched in the model motivation utilizing the following cell definitions:
 
@@ -236,6 +237,8 @@ The file main.py handles the input for the computation and splits the release la
 
 ### References
 
+[0] [Heim, A. (1932).]: Bergstürze und Menschenleben
+
 [1] [Holmgren, P. (1994).](https://www.researchgate.net/publication/229484151_Multiple_flow_direction_algorithms_for_runoff_modelling_in_grid_based_elevation_models_An_empirical_evaluation) 
 Multiple flow direction algorithms for runoff modelling in
 grid based elevation models: an empirical evaluation. Hydrological Processes, 8:327–334.
@@ -249,7 +252,7 @@ Science, 13:869–885.
 [3] [Gamma, P. (1999).](https://www.researchgate.net/publication/34432465_dfwalk-Ein_Murgang-Simulationsprogramm_zur_Gefahrenzonierung) dfwalk - Ein
 Murgang-Simulationsprogramm zur Gefahrenzonierung. PhD thesis, Universität Bern.
 
-[4] Huber, A., Fischer, J. T., Kofler, A., and Kleemayr, K. (2016). Using spatially
+[4] [Huber, A., Fischer, J. T., Kofler, A., and Kleemayr, K. (2016).] Using spatially
 distributed statistical models for avalanche runout estimation. In International Snow Science Workshop, Breckenridge, Colorado, USA - 2016.  
 
 ## Contact and acknowledgment
