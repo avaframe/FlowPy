@@ -1,0 +1,5 @@
+2021-08-04 09:44:34 INFO     Start Calculation
+2021-08-04 09:44:34 INFO     Alpha Angle: 24
+2021-08-04 09:44:34 INFO     Exponent: 8
+2021-08-04 09:44:34 INFO     Flux Threshold: 0.00030000000000000003
+2021-08-04 09:44:34 INFO     Max Z_delta: 8848

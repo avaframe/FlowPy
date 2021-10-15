@@ -489,23 +489,32 @@ def main(args, kwargs):
             avaiable_memory, needed_memory*10, max_number_procces))
 
     # Calculation
-    logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
+    logging.info('Multiprocessing starts, used cores: {}'.format(int(os.environ.get('SLURM_NTASKS_PER_NODE'))))
 
     if calc_bool:
-        release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 2, max_number_procces))
+        release_list = fc.split_release(release, release_header, min(int(os.environ.get('SLURM_NTASKS_PER_NODE')) * 2, max_number_procces))
 
         print("{} Processes started.".format(len(release_list)))
-        pool = mp.Pool(len(release_list))
+        # Cedar Wiki python-multiprocessing
+        # Changed to fix how flow_py allocates CPUs on cedar nodes
+        ncpus = int(os.environ.get('SLURM_NTASKS_PER_NODE'))
+        pool = mp.Pool(len(release_list), processes = ncpus)
+        #pool = mp.Pool(len(release_list))
         results = pool.map(fc.calculation,
                            [[dem, header, infra, release_pixel, alpha, exp, flux_threshold, max_z]
                             for release_pixel in release_list])
         pool.close()
         pool.join()
     else:
-        release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 4, max_number_procces))
+        release_list = fc.split_release(release, release_header, min(int(os.environ.get('SLURM_NTASKS_PER_NODE')) * 4, max_number_procces))
 
         print("{} Processes started.".format(len(release_list)))
-        pool = mp.Pool(mp.cpu_count())
+        # Cedar Wiki python-multiprocessing
+        # Changed to fix how flow_py allocates CPUs on cedar nodes
+        #ncpus = int(os.environ.get('SLURM_CPUS_PER_TASK',default=1))
+        ncpus = int(os.environ.get('SLURM_NTASKS_PER_NODE'))
+        pool = mp.Pool(processes=ncpus)
+        # pool = mp.Pool(mp.cpu_count())
         # results = pool.map(gc.calculation, iterable)
         results = pool.map(fc.calculation_effect,
                            [[dem, header, release_pixel, alpha, exp, flux_threshold, max_z] for
