@@ -66,7 +66,7 @@ class Flow_Py_EXEC():
         self.ui.DEM_Button.clicked.connect(self.open_dhm)
         self.ui.Release_Button.clicked.connect(self.open_release)
         self.ui.infra_Button.clicked.connect(self.open_infra)
-        #self.ui.forest_Button.clicked.connect(self.open_forest)
+        self.ui.forest_Button.clicked.connect(self.open_forest)
         #self.ui.process_Box.currentIndexChanged.connect(self.processChanged)
         self.ui.calc_Button.clicked.connect(self.calculation)
         self.ui.actionSave.triggered.connect(self.save)
@@ -96,6 +96,7 @@ class Flow_Py_EXEC():
         self.ui.DEM_lineEdit.setEnabled(bool)
         self.ui.release_lineEdit.setEnabled(bool)
         self.ui.infra_lineEdit.setEnabled(bool)
+        self.ui.forest_lineEdit.setEnabled(bool)
 
     def save(self):
         """Save the input paths"""
@@ -120,7 +121,7 @@ class Flow_Py_EXEC():
             dhm.text = self.ui.DEM_lineEdit.text()
             release.text = self.ui.release_lineEdit.text()
             infra.text = self.ui.infra_lineEdit.text()
-            #forest.text = self.ui.forest_lineEdit.text()
+            forest.text = self.ui.forest_lineEdit.text()
     
             tree = ET.ElementTree(root)
             tree.write(name)
@@ -198,6 +199,14 @@ class Flow_Py_EXEC():
         if len(infra_file[0]) != 0:
             infra = infra_file[0]
             self.ui.infra_lineEdit.setText(infra[0])
+            
+    def open_forest(self):
+        """Open forest layer"""
+        forest_file = QFileDialog.getOpenFileNames(None, 'Open Forest Layer',
+                                                   self.directory,
+                                                   "ascii (*.asc);;tif (*.tif);;All Files (*.*)")
+        forest = forest_file[0]
+        self.ui.forest_lineEdit.setText(forest[0])
 
     def update_progressBar(self, float, thread, start, end):
         self.thread_list[thread] = float
@@ -298,6 +307,19 @@ class Flow_Py_EXEC():
                 return
         except:
             infra = np.zeros_like(dem)
+            
+        try:
+            forest, forest_header = io.read_raster(self.ui.forest_lineEdit.text())
+            if header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']:
+                print("Forest Layer ok!")
+                self.prot_for_bool = True
+                logging.info('Forest File: {}'.format(self.forest_lineEdit.text()))
+            else:
+                print("Error: Forest Layer doesn't match DEM!")
+                self.set_gui_bool(True)
+                return
+        except:
+            forest = np.zeros_like(dem)
 
         logging.info('Files read in')
 
@@ -388,6 +410,12 @@ def main(args, kwargs):
         #print(infra_path)
     else:
         infra_path = None
+        
+    if 'forest' in kwargs:
+        forest_path = kwargs.get('forest')
+        #print(infra_path)
+    else:
+        forest_path = None
         
     if 'flux' in kwargs:
         flux_threshold = float(kwargs.get('flux'))

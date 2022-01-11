@@ -137,8 +137,7 @@ def split_release(release, header_release, pieces):
             release_list.append(c)
             print("Release Split from {} to {}".format(breakpoint_x, i))
             breakpoint_x = i
-            
-        
+
     return release_list
 
     
