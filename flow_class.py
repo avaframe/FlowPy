@@ -28,13 +28,14 @@ import math
 
 class Cell:
     
-    def __init__(self, rowindex, colindex, dem_ng, cellsize, flux, z_delta, parent, alpha, exp, flux_threshold, max_z_delta, startcell):
+    def __init__(self, rowindex, colindex, dem_ng, forest, cellsize, flux, z_delta, parent, alpha, exp, flux_threshold, max_z_delta, startcell):
         '''This class handles the spreading over the DEM!
         Depending on the process different alpha angles are used for energy dissipation.'''
         self.rowindex = rowindex
         self.colindex = colindex
         self.altitude = dem_ng[1, 1]
         self.dem_ng = dem_ng
+        self.forest = forest
         self.cellsize = cellsize
         self.tan_beta = np.zeros_like(self.dem_ng)
         self.dist = np.zeros_like(self.dem_ng)
@@ -51,7 +52,10 @@ class Cell:
         self.max_distance = 0
         self.min_gamma = 0
         self.max_gamma = 0
-        self.sl_gamma = 0             
+        self.sl_gamma = 0    
+        # Parameters for Forest Friction, right now use it just for avalanches   
+        self.alpha_forest = 10
+        self.no_effect_v = 45
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
@@ -91,7 +95,14 @@ class Cell:
         self.z_delta_neighbour = np.zeros((3, 3))
         self.z_gamma = self.altitude - self.dem_ng
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
-        tan_alpha = np.tan(np.deg2rad(self.alpha))
+        # Calculation for Forest Friction leads to new alpha_calc
+        max_friction = self.alpha_forest * self.forest
+        if self.z_delta < self.no_effect_v:
+            alpha_calc = self.alpha + max(0, - self.z_delta * (max_friction / self.no_effect_v) + max_friction)
+        else:
+            alpha_calc = self.alpha
+        # Normal calculation
+        tan_alpha = np.tan(np.deg2rad(alpha_calc))
         self.z_alpha = ds * self.cellsize * tan_alpha
         self.z_delta_neighbour = self.z_delta + self.z_gamma - self.z_alpha
         self.z_delta_neighbour[self.z_delta_neighbour < 0] = 0

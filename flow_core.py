@@ -327,7 +327,8 @@ def calculation_effect(args):
             startcell_idx += 1
             continue
 
-        startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, None,
+        startcell = Cell(row_idx, col_idx, dem_ng, forest[row_idx, col_idx], 
+                         cellsize, 1, 0, None,
                          alpha, exp, flux_threshold, max_z_delta, True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
@@ -360,7 +361,9 @@ def calculation_effect(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
+                    Cell(row[k], col[k], dem_ng, forest[row_idx, col_idx], 
+                         cellsize, flux[k], z_delta[k], cell, alpha, exp, 
+                         flux_threshold, max_z_delta, startcell))
 
         for cell in cell_list:
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
