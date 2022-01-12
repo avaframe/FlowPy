@@ -148,7 +148,7 @@ def calculation(args):
     Input parameters:
         dem         The digital elevation model
         header      The header of the elevation model
-        forest      The forest layer
+        infras      The infrastructure layer
         process     Which process to calculate (Avalanche, Rockfall, SoilSlides)     
         release     The list of release arrays
         alpha
@@ -157,8 +157,9 @@ def calculation(args):
         max_z_delta
         
     Output parameters:
-        elh         Array like DEM with the max. Energy Line Height for every 
-                    pixel
+        z_delta_array   Array like DEM with the max. Energy Line Height for every 
+                        pixel
+        z_delta_sum     Array...
         mass_array  Array with max. concentration factor saved
         count_array Array with the number of hits for every pixel
         elh_sum     Array with the sum of Energy Line Height
@@ -168,11 +169,12 @@ def calculation(args):
     dem = args[0]
     header = args[1]
     infra = args[2]
-    release = args[3]
-    alpha = args[4]
-    exp = args[5]
-    flux_threshold = args[6]
-    max_z_delta = args[7]
+    forest = args[3]
+    release = args[4]
+    alpha = args[5]
+    exp = args[6]
+    flux_threshold = args[7]
+    max_z_delta = args[8]
     #print(len(args), max_z_delta)
     
     z_delta_array = np.zeros_like(dem)
@@ -288,11 +290,12 @@ def calculation_effect(args):
     
     dem = args[0]
     header = args[1]
-    release = args[2]
-    alpha = args[3]
-    exp = args[4]
-    flux_threshold = args[5]
-    max_z_delta = args[6]
+    forest = args[2]
+    release = args[3]
+    alpha = args[4]
+    exp = args[5]
+    flux_threshold = args[6]
+    max_z_delta = args[7]
 
     z_delta_array = np.zeros_like(dem)
     z_delta_sum = np.zeros_like(dem)

@@ -343,7 +343,7 @@ class Flow_Py_EXEC():
         self.sl_ta = np.zeros_like(dem)
 
         # Calculation
-        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, self.calc_bool, alpha, exp, flux_threshold, max_z)
+        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, forest, self.calc_bool, alpha, exp, flux_threshold, max_z)
         self.calc_class.value_changed.connect(self.update_progressBar)
         self.calc_class.finished.connect(self.thread_finished)
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
@@ -413,7 +413,7 @@ def main(args, kwargs):
         
     if 'forest' in kwargs:
         forest_path = kwargs.get('forest')
-        #print(infra_path)
+        #print(forest_path)
     else:
         forest_path = None
         
@@ -496,6 +496,18 @@ def main(args, kwargs):
             return
     except:
         infra = np.zeros_like(dem)
+        
+    try:
+        forest, forest_header = io.read_raster(forest_path)
+        if header['ncols'] == forest_header['ncols'] and header['nrows'] == forest_header['nrows']:
+            print("Forest Layer ok!")
+            prot_for_bool = True
+            logging.info('Forest File: {}'.format(forest_path))
+        else:
+            print("Error: Forest Layer doesn't match DEM!")
+            return
+    except:
+        forest = np.zeros_like(dem)
 
     logging.info('Files read in')
 
@@ -525,7 +537,7 @@ def main(args, kwargs):
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(len(release_list))
         results = pool.map(fc.calculation,
-                           [[dem, header, infra, release_pixel, alpha, exp, flux_threshold, max_z]
+                           [[dem, header, infra, forest, release_pixel, alpha, exp, flux_threshold, max_z]
                             for release_pixel in release_list])
         pool.close()
         pool.join()
@@ -536,7 +548,7 @@ def main(args, kwargs):
         pool = mp.Pool(mp.cpu_count())
         # results = pool.map(gc.calculation, iterable)
         results = pool.map(fc.calculation_effect,
-                           [[dem, header, release_pixel, alpha, exp, flux_threshold, max_z] for
+                           [[dem, header, forest, release_pixel, alpha, exp, flux_threshold, max_z] for
                             release_pixel in release_list])
         pool.close()
         pool.join()

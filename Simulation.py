@@ -37,13 +37,14 @@ class Simulation(QThread):
     value_changed = pyqtSignal(float)
     finished = pyqtSignal(list, list, list, list, list, list, list)
 
-    def __init__(self, dem, header, release, release_header, infra, calc_bool, alpha, exp, flux, max_z):
+    def __init__(self, dem, header, release, release_header, infra, forest, calc_bool, alpha, exp, flux, max_z):
         QThread.__init__(self)
         self.dem = dem
         self.header = header
         self.release = release
         self.release_header = release_header
         self.infra = infra
+        self.forest = forest
         self.numberofprocesses = mp.cpu_count()
         self.calc_bool = calc_bool
         self.alpha = alpha
@@ -76,7 +77,7 @@ class Simulation(QThread):
 
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(len(release_list))
-            results = pool.map(fc.calculation, [[self.dem, self.header, self.infra, release_pixel, self.alpha, self.exp, self.flux, self.max_z] for release_pixel in release_list])
+            results = pool.map(fc.calculation, [[self.dem, self.header, self.infra, self.forest, release_pixel, self.alpha, self.exp, self.flux, self.max_z] for release_pixel in release_list])
             pool.close()
             pool.join()
         else:
@@ -86,7 +87,7 @@ class Simulation(QThread):
             pool = mp.Pool(mp.cpu_count())
             #results = pool.map(gc.calculation, iterable)
             results = pool.map(fc.calculation_effect,
-                               [[self.dem, self.header, release_pixel,
+                               [[self.dem, self.header, self.forest, release_pixel, 
                                  self.alpha, self.exp, self.flux, self.max_z] 
                                 for release_pixel in release_list])
             pool.close()
