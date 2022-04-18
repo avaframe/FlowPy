@@ -175,6 +175,11 @@ def calculation(args):
     exp = args[6]
     flux_threshold = args[7]
     max_z_delta = args[8]
+    max_forest_friction = 0
+    max_forest_detrainment = 0 #todo impliment args similar to infra layer
+    min_forest_friction = 0
+    min_forest_detrainment = 0
+    max_forest_effet_velocity = 0
     #print(len(args), max_z_delta)
     
     z_delta_array = np.zeros_like(dem)

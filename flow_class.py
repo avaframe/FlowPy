@@ -54,8 +54,13 @@ class Cell:
         self.max_gamma = 0
         self.sl_gamma = 0    
         # Parameters for Forest Friction, right now use it just for avalanches   
-        self.alpha_forest = 10
-        self.no_effect_v = 45
+        #self.alpha_forest = 10  # Max added friction angel
+        self.max_added_friction_forest = 10
+        self.min_added_friction_forest = 2 # minimium effect forested terrain can have
+        self.no_friction_effect_v = 45 # velocity shared for friction and detrainment methods
+        self.max_added_detrainment_forest = 0#.003
+        self.min_added_detrainment_forest = 0
+        self.no_detrainmnet_effect_v = 45
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
@@ -69,6 +74,18 @@ class Cell:
 
     def add_os(self, flux):
         self.flux += flux
+
+    def forest_detrainment(self ):
+        """
+        This is the detrainment routine for forest. It should reduce the routing flux of the avalanche.
+        self.max_added_detrainment_forest = .001
+        self.min_added_detrainment_forest = 0
+        self.no_detrainmnet_effect_v = 45
+        """
+        rest = self.max_added_detrainment_forest * self.forest # detrainment effect scalled to forest, should be zero for non-forested area
+        slope = (rest - self.min_added_detrainment_forest)/(0-self.no_detrainmnet_effect_v) # rise over run (should be negative slope)
+        self.detrainment  = max(self.min_added_detrainment_forest, slope * self.z_delta + rest) # y = mx + b, shere z_delta is the x
+        # todo check that z_delta is correct or do I want it chagne it to velocity?
 
     def add_parent(self, parent):
         self.parent.append(parent)
@@ -95,12 +112,18 @@ class Cell:
         self.z_delta_neighbour = np.zeros((3, 3))
         self.z_gamma = self.altitude - self.dem_ng
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
-        # Calculation for Forest Friction leads to new alpha_calc
-        max_friction = self.alpha_forest * self.forest
-        if self.z_delta < self.no_effect_v:
-            alpha_calc = self.alpha + max(0, - self.z_delta * (max_friction / self.no_effect_v) + max_friction)
-        else:
-            alpha_calc = self.alpha
+        ## Calculation for Forest Friction leads to new alpha_calc
+        #total_forest_friction = self.max_added_friction_forest * self.forest #todo update this section to deal with all inputs
+        #scalled_effect = forest_scale(self, max, min, FSI, max_FE_velocity, z_delta)
+        rest = self.max_added_friction_forest * self.forest  # detrainment effect scalled to forest
+        slope = (rest - self.min_added_friction_forest) / (0 - self.no_friction_effect_v)  # rise over run
+        self.friction = max(self.min_added_friction_forest,
+                               slope * self.z_delta + rest)  # y = mx + b, shere z_delta is the x
+        alpha_calc = self.alpha + max(0, self.friction)
+        #if self.z_delta < self.no_forest_effect_v:
+            #alpha_calc = self.alpha + max(0, - self.z_delta * (total_forest_friction / self.no_forest_effect_v) + total_forest_friction)
+        #else:
+        #    alpha_calc = self.alpha + self.min_added_friction_forest
         # Normal calculation
         tan_alpha = np.tan(np.deg2rad(alpha_calc))
         self.z_alpha = ds * self.cellsize * tan_alpha
@@ -113,7 +136,7 @@ class Cell:
         distance = ds * self.cellsize
         
         beta = np.arctan((self.altitude - self.dem_ng) / distance) + np.deg2rad(90)
-        self.tan_beta = np.tan(beta/2)
+        self.tan_beta = np.tan(beta/2)#def forest_scale(self, rest, max, min, FSI, max_FE_velocity, z_delta )
 
         self.tan_beta[self.z_delta_neighbour <= 0] = 0
         self.tan_beta[self.persistence <= 0] = 0
@@ -189,7 +212,7 @@ class Cell:
 #                 pers[1, 1] = 0
 #                 self.persistence += pers * maxweight
 # =============================================================================
-                    
+
     def calc_distribution(self):
 
         self.calc_z_delta()
@@ -197,6 +220,7 @@ class Cell:
         self.persistence *= self.no_flow
         self.calc_tanbeta()
         #print(self.persistence)
+        self.forest_detrainment()
 
         if not self.is_start:
             self.calc_fp_travelangle()
@@ -205,11 +229,18 @@ class Cell:
         threshold = self.flux_threshold
         if np.sum(self.r_t) > 0:
             self.dist = (self.persistence * self.r_t) / np.sum(self.persistence * self.r_t) * self.flux
+         #if slef.forest > 0:
+            #detrainment =  forest_scale(self, max_detrainment, min_detrainment, FSI, max_FE_velocity, z_delta )
+            self.dist = self.dist - self.detrainment # todo max needed to keep it always positive
+            print(self.detrainment, "detrainment" , self.dist, "mass")
         # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
         # flux.
         # The flux of this cells will then spread equally to all neighbour cells
         count = ((0 < self.dist) & (self.dist < threshold)).sum()
         mass_to_distribute = np.sum(self.dist[self.dist < threshold])
+
+
+
         '''Checking if flux is distributed to a field that isn't taking in account, when then distribute it equally to
          the other fields'''
         if mass_to_distribute > 0 and count > 0:
