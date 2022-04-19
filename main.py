@@ -59,7 +59,7 @@ class Flow_Py_EXEC():
 
         self.ui.alpha_Edit.setText('25')
         self.ui.exp_Edit.setText('8')
-        self.ui.flux_Edit.setText('0.003')
+        self.ui.flux_Edit.setText('0.0003')
         self.ui.z_Edit.setText('8848')
 
         self.ui.wDir_Button.clicked.connect(self.open_wDir)
