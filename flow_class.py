@@ -54,7 +54,7 @@ class Cell:
         self.max_gamma = 0
         self.sl_gamma = 0    
         # Parameters for Forest Friction, right now use it just for avalanches   
-        self.alpha_forest = 10
+        self.alpha_forest = 50
         self.no_effect_v = 45
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
@@ -101,6 +101,7 @@ class Cell:
             alpha_calc = self.alpha + max(0, - self.z_delta * (max_friction / self.no_effect_v) + max_friction)
         else:
             alpha_calc = self.alpha
+        print("Alpha_calc = ", alpha_calc)
         # Normal calculation
         tan_alpha = np.tan(np.deg2rad(alpha_calc))
         self.z_alpha = ds * self.cellsize * tan_alpha

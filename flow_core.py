@@ -208,7 +208,7 @@ def calculation(args):
             startcell_idx += 1
             continue
 
-        startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, None,
+        startcell = Cell(row_idx, col_idx, dem_ng, forest[row_idx, col_idx], cellsize, 1, 0, None,
                          alpha, exp, flux_threshold, max_z_delta, startcell=True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
@@ -243,7 +243,7 @@ def calculation(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
+                    Cell(row[k], col[k], dem_ng, forest[row_idx, col_idx], cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
 
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
             flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex], cell.flux)
@@ -291,6 +291,7 @@ def calculation_effect(args):
     dem = args[0]
     header = args[1]
     forest = args[2]
+    print(forest)
     release = args[3]
     alpha = args[4]
     exp = args[5]
@@ -326,7 +327,7 @@ def calculation_effect(args):
         if (nodata in dem_ng) or np.size(dem_ng) < 9:
             startcell_idx += 1
             continue
-
+        print(forest[row_idx, col_idx])
         startcell = Cell(row_idx, col_idx, dem_ng, forest[row_idx, col_idx], 
                          cellsize, 1, 0, None,
                          alpha, exp, flux_threshold, max_z_delta, True)
@@ -361,7 +362,7 @@ def calculation_effect(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(row[k], col[k], dem_ng, forest[row_idx, col_idx], 
+                    Cell(row[k], col[k], dem_ng, forest[row[k], col[k]], 
                          cellsize, flux[k], z_delta[k], cell, alpha, exp, 
                          flux_threshold, max_z_delta, startcell))
 

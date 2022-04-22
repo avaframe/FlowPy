@@ -413,7 +413,7 @@ def main(args, kwargs):
         
     if 'forest' in kwargs:
         forest_path = kwargs.get('forest')
-        #print(forest_path)
+        print(forest_path)
     else:
         forest_path = None
         
@@ -533,7 +533,7 @@ def main(args, kwargs):
 
     if calc_bool:
         release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 2, max_number_procces))
-
+        print("Calculation 1")
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(len(release_list))
         results = pool.map(fc.calculation,
@@ -543,7 +543,7 @@ def main(args, kwargs):
         pool.join()
     else:
         release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 4, max_number_procces))
-
+        print("Calculation 2")
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(mp.cpu_count())
         # results = pool.map(gc.calculation, iterable)
@@ -619,6 +619,8 @@ if __name__ == '__main__':
     #mp.set_start_method('spawn') # used in Windows
     argv = sys.argv[1:]
     #argv = ['--gui']
+    #argv = ['25', '8', './examples/forest/', './examples/forest/parabola.asc', './examples/forest/release.tif', 'forest=./examples/forest/forest.tif']
+    #argv = ['25', '8', './examples/forest/', './examples/forest/parabola.asc', './examples/forest/release.tif']
     if len(argv) < 1:
     	print("Too few input arguments!!!")
     	sys.exit(1)
