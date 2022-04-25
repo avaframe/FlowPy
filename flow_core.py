@@ -361,7 +361,7 @@ def calculation_effect(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(row[k], col[k], dem_ng, forest[row_idx, col_idx], 
+                    Cell(row[k], col[k], dem_ng, forest[row[k], col[k]],
                          cellsize, flux[k], z_delta[k], cell, alpha, exp, 
                          flux_threshold, max_z_delta, startcell))
 
