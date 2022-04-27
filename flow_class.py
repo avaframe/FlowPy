@@ -57,16 +57,16 @@ class Cell:
         #self.alpha_forest = 10  # Max added friction angel
         self.max_added_friction_forest = 10 # degrees added to friction angle
         self.min_added_friction_forest = 2 # minimium effect forested terrain can have
-        self.no_friction_effect_v = 45 # velocity shared for friction and detrainment methods
-        self.max_added_detrainment_forest = 0.0001#.003
-        self.min_added_detrainment_forest = 0
-        self.no_detrainmnet_effect_v = 45 # todo this will mix ELH [m] with velocity [m/s2] in the equns 30 m/s**2 ~ 45m elh
+        self.no_friction_effect_v = 30 # velocity shared for friction and detrainment methods
+        self.max_added_detrainment_forest = 0.0003 #
+        self.min_added_detrainment_forest = 0.0001
+        self.no_detrainmnet_effect_v = 30 #
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
         else:            
             self.startcell = startcell  # give startcell to cell
-            self.is_start = False  # set is_start to False
+            self.is_start = False  # s et is_start to False
 
         self.parent = []
         if type(parent) == Cell:
@@ -82,10 +82,12 @@ class Cell:
         self.min_added_detrainment_forest = 0
         self.no_detrainmnet_effect_v = 45
         """
+        no_detrainmnet_effect_zdelta = self.no_detrainment_effect_v ^ 2 / (np.sqrt(
+            2) * 9.8)  # change veloctiy into kinetic energy line hight (z_delta) 9.8 = gravity. derrived from 1/2mv^2 = mgh
         rest = self.max_added_detrainment_forest * self.forest # detrainment effect scalled to forest, should be zero for non-forested area
-        slope = (rest - self.min_added_detrainment_forest)/(0-self.no_detrainmnet_effect_v) # rise over run (should be negative slope)
+        slope = (rest - self.min_added_detrainment_forest)/(0-no_detrainmnet_effect_zdelta) # rise over run (should be negative slope)
         self.detrainment  = max(self.min_added_detrainment_forest, slope * self.z_delta + rest) # y = mx + b, shere z_delta is the x
-        # todo check that z_delta is correct or do I want it chagne it to velocity?
+
 
     def add_parent(self, parent):
         self.parent.append(parent)
@@ -111,11 +113,12 @@ class Cell:
     def calc_z_delta(self):
         self.z_delta_neighbour = np.zeros((3, 3))
         self.z_gamma = self.altitude - self.dem_ng
+        no_friction_effect_zdelta = self.no_friction_effect_v **2 / (np.sqrt(2) * 9.8) # change veloctiy into energy line hight (z_delta) 9.8 = gravity. derrived from 1/2mv^2 = mgh
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         ## Calculation for Forest Friction leads to new alpha_calc
-        if self.z_delta < self.no_friction_effect_v: # no min_added forest values becuase of this line
-            rest = self.max_added_friction_forest * self.forest  # todo change no_friction_effect_v to energy line height [m]
-            slope = (rest - self.min_added_friction_forest) / (0 - self.no_friction_effect_v)  # rise over run
+        if self.z_delta < no_friction_effect_zdelta: # no min_added forest values becuase of this line
+            rest = no_friction_effect_zdelta * self.forest  # friction at rest v=0 would be applied to start cells 
+            slope = (rest - self.min_added_friction_forest) / (0 - no_friction_effect_zdelta)  # rise over run
             friction = max(self.min_added_friction_forest,
                                slope * self.z_delta + rest)  # y = mx + b, shere z_delta is the x
             if rest > 0:
