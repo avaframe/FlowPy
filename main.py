@@ -618,7 +618,7 @@ def main(args, kwargs):
 if __name__ == '__main__':
     #mp.set_start_method('spawn') # used in Windows
     #argv = sys.argv[1:]
-    argv = ["28", "8", "../runs/open_slope/", "../runs/open_slope/parabola.asc", "../runs/open_slope/release.tif", "forest=../runs/open_slope/forest_deep.tif",  "flux=0.0003" ,  "max_z=270"] #"forest=../runs/open_slope/forest.tif",
+    argv = ["28", "8", "../runs/open_slope/", "../runs/open_slope/parabola.asc", "../runs/open_slope/release.tif", "forest=../runs/open_slope/forest_deep.tif", "flux=0.0003" ,  "max_z=270"] #"forest=../runs/open_slope/forest.tif",
     #argv = ['--gui']
     if len(argv) < 1:
     	print("Too few input arguments!!!")

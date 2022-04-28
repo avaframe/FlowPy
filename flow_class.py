@@ -59,7 +59,7 @@ class Cell:
         self.min_added_friction_forest = 2 # minimium effect forested terrain can have
         self.no_friction_effect_v = 30 # velocity shared for friction and detrainment methods
         self.max_added_detrainment_forest = 0.0003 #
-        self.min_added_detrainment_forest = 0.0001
+        self.min_added_detrainment_forest = 0.00001
         self.no_detrainmnet_effect_v = 30 #
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
@@ -77,13 +77,13 @@ class Cell:
 
     def forest_detrainment(self ):
         """
+        linear decrease of forest effect with regard to alpha increase and kinetic energy height
         This is the detrainment routine for forest. It should reduce the routing flux of the avalanche.
         self.max_added_detrainment_forest = .001
         self.min_added_detrainment_forest = 0
         self.no_detrainmnet_effect_v = 45
         """
-        no_detrainmnet_effect_zdelta = self.no_detrainmnet_effect_v**(2)/ (np.sqrt(
-            2) * 9.8)  # change veloctiy into kinetic energy line hight (z_delta) 9.8 = gravity. derrived from 1/2mv^2 = mgh
+        no_detrainmnet_effect_zdelta = self.no_detrainmnet_effect_v**(2)/(np.sqrt(2) * 9.8)  # change veloctiy into kinetic energy line hight (z_delta) 9.8 = gravity. derrived from 1/2mv^2 = mgh
         rest = self.max_added_detrainment_forest * self.forest # detrainment effect scalled to forest, should be zero for non-forested area
         slope = (rest - self.min_added_detrainment_forest)/(0-no_detrainmnet_effect_zdelta) # rise over run (should be negative slope)
         self.detrainment  = max(self.min_added_detrainment_forest, slope * self.z_delta + rest) # y = mx + b, shere z_delta is the x
@@ -116,16 +116,15 @@ class Cell:
         no_friction_effect_zdelta = self.no_friction_effect_v**(2) / (np.sqrt(2) * 9.8) # change veloctiy into energy line hight (z_delta) 9.8 = gravity. derrived from 1/2mv^2 = mgh
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         ## Calculation for Forest Friction leads to new alpha_calc
-        if self.z_delta < no_friction_effect_zdelta: # no min_added forest values becuase of this line
-            rest = no_friction_effect_zdelta * self.forest  # friction at rest v=0 would be applied to start cells
-            slope = (rest - self.min_added_friction_forest) / (0 - no_friction_effect_zdelta)  # rise over run
-            friction = max(self.min_added_friction_forest,
-                               slope * self.z_delta + rest)  # y = mx + b, shere z_delta is the x
-            #if rest > 0:
-                #print(slope * self.z_delta + rest , "forest" , self.forest, "z delta ", self.z_delta, "rest ", rest)
-            alpha_calc = self.alpha + max(0, friction)
-            #if alpha_calc > self.alpha + self.min_added_friction_forest:
-               # print(alpha_calc)
+        if self.forest > 0:
+            if self.z_delta < no_friction_effect_zdelta: # no min_added forest values becuase of this line
+                rest = self.max_added_friction_forest * self.forest  # friction at rest v=0 would be applied to start cells
+                slope = (rest - self.min_added_friction_forest) / (0 - no_friction_effect_zdelta)  # rise over run
+                friction = max(self.min_added_friction_forest,
+                                   slope * self.z_delta + rest)  # y = mx + b, shere z_delta is the x
+                alpha_calc = self.alpha + max(0, friction)
+            else:
+                alpha_calc = self.alpha + self.min_added_friction_forest
         else:
             alpha_calc = self.alpha
         # Normal calculation
@@ -230,11 +229,13 @@ class Cell:
             self.calc_fp_travelangle()
             self.calc_sl_travelangle()
 
+        self.flux = max(0.0003, self.flux - self.detrainment) # here we subtract the detrainment from the flux before moving flux to new cells.
+
         threshold = self.flux_threshold
         if np.sum(self.r_t) > 0: # if there is routing flux
             self.dist = (self.persistence * self.r_t) / np.sum(self.persistence * self.r_t) * self.flux
             #detrainment =  forest_scale(self, max_detrainment, min_detrainment, FSI, max_FE_velocity, z_delta )
-            self.dist = self.dist - self.detrainment # todo max needed to keep it always positive
+            #self.dist = self.dist - self.detrainment # todo max needed to keep it always positive
             #todo make sure that I am only removing detrained mass once not every spatial iteration that includes a cell as a neighbor
             #print(self.detrainment, "detrainment" , self.dist, "mass")
         # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
