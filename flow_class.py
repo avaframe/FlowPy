@@ -82,7 +82,7 @@ class Cell:
         self.min_added_detrainment_forest = 0
         self.no_detrainmnet_effect_v = 45
         """
-        no_detrainmnet_effect_zdelta = self.no_detrainment_effect_v ^ 2 / (np.sqrt(
+        no_detrainmnet_effect_zdelta = self.no_detrainmnet_effect_v**(2)/ (np.sqrt(
             2) * 9.8)  # change veloctiy into kinetic energy line hight (z_delta) 9.8 = gravity. derrived from 1/2mv^2 = mgh
         rest = self.max_added_detrainment_forest * self.forest # detrainment effect scalled to forest, should be zero for non-forested area
         slope = (rest - self.min_added_detrainment_forest)/(0-no_detrainmnet_effect_zdelta) # rise over run (should be negative slope)
@@ -113,19 +113,19 @@ class Cell:
     def calc_z_delta(self):
         self.z_delta_neighbour = np.zeros((3, 3))
         self.z_gamma = self.altitude - self.dem_ng
-        no_friction_effect_zdelta = self.no_friction_effect_v **2 / (np.sqrt(2) * 9.8) # change veloctiy into energy line hight (z_delta) 9.8 = gravity. derrived from 1/2mv^2 = mgh
+        no_friction_effect_zdelta = self.no_friction_effect_v**(2) / (np.sqrt(2) * 9.8) # change veloctiy into energy line hight (z_delta) 9.8 = gravity. derrived from 1/2mv^2 = mgh
         ds = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]])
         ## Calculation for Forest Friction leads to new alpha_calc
         if self.z_delta < no_friction_effect_zdelta: # no min_added forest values becuase of this line
-            rest = no_friction_effect_zdelta * self.forest  # friction at rest v=0 would be applied to start cells 
+            rest = no_friction_effect_zdelta * self.forest  # friction at rest v=0 would be applied to start cells
             slope = (rest - self.min_added_friction_forest) / (0 - no_friction_effect_zdelta)  # rise over run
             friction = max(self.min_added_friction_forest,
                                slope * self.z_delta + rest)  # y = mx + b, shere z_delta is the x
-            if rest > 0:
-                print(slope * self.z_delta + rest , "forest" , self.forest, "z delta ", self.z_delta, "rest ", rest)
+            #if rest > 0:
+                #print(slope * self.z_delta + rest , "forest" , self.forest, "z delta ", self.z_delta, "rest ", rest)
             alpha_calc = self.alpha + max(0, friction)
-            if alpha_calc > self.alpha + self.min_added_friction_forest:
-                print(alpha_calc)
+            #if alpha_calc > self.alpha + self.min_added_friction_forest:
+               # print(alpha_calc)
         else:
             alpha_calc = self.alpha
         # Normal calculation
