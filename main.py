@@ -312,13 +312,13 @@ class Flow_Py_EXEC():
         logging.info('Max Z_delta: {}'.format(max_z))
         logging.info
         
-        self.z_delta = np.zeros_like(dem)
-        self.flux = np.zeros_like(dem)
-        self.cell_counts = np.zeros_like(dem)
-        self.z_delta_sum = np.zeros_like(dem)
-        self.backcalc = np.zeros_like(dem)
-        self.fp_ta = np.zeros_like(dem)
-        self.sl_ta = np.zeros_like(dem)
+        self.z_delta = np.zeros_like(dem, dtype=np.float32)
+        self.flux = np.zeros_like(dem, dtype=np.float32)
+        self.cell_counts = np.zeros_like(dem, dtype=np.int32)
+        self.z_delta_sum = np.zeros_like(dem, dtype=np.float32)
+        self.backcalc = np.zeros_like(dem, dtype=np.int32)
+        self.fp_ta = np.zeros_like(dem, dtype=np.float32)
+        self.sl_ta = np.zeros_like(dem, dtype=np.float32)
 
         # Calculation
         self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, self.calc_bool, alpha, exp, flux_threshold, max_z)
@@ -471,22 +471,21 @@ def main(args, kwargs):
 
     logging.info('Files read in')
 
-    z_delta = np.zeros_like(dem)
-    flux = np.zeros_like(dem)
-    cell_counts = np.zeros_like(dem)
-    z_delta_sum = np.zeros_like(dem)
-    backcalc = np.zeros_like(dem)
-    fp_ta = np.zeros_like(dem)
-    sl_ta = np.zeros_like(dem)
+    z_delta = np.zeros_like(dem, dtype=np.float32)
+    flux = np.zeros_like(dem, dtype=np.float32)
+    cell_counts = np.zeros_like(dem, dtype=np.int32)
+    z_delta_sum = np.zeros_like(dem, dtype=np.float32)
+    backcalc = np.zeros_like(dem, dtype=np.int32)
+    fp_ta = np.zeros_like(dem, dtype=np.float32)
+    sl_ta = np.zeros_like(dem, dtype=np.float32)
 
     avaiable_memory = psutil.virtual_memory()[1]
-    needed_memory = sys.getsizeof(dem)
+    needed_memory_dem = sys.getsizeof(dem)
+    needed_memory_array = sys.getsizeof(z_delta)
 
-    max_number_procces = int(avaiable_memory / (needed_memory * 10))
+    max_number_procces = int(avaiable_memory / (needed_memory_dem + needed_memory_array * 7))
 
-    print(
-        "There are {} Bytes of Memory avaiable and {} Bytes needed per process. \nMax. Nr. of Processes = {}".format(
-            avaiable_memory, needed_memory*10, max_number_procces))
+    print("There are {} MB of Memory avaiable and {} MB needed per process. \nMax. Nr. of Processes = {}".format(avaiable_memory/1000000, (needed_memory_dem + needed_memory_array * 7)/1000000, max_number_procces))
 
     # Calculation
     logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
@@ -579,6 +578,9 @@ if __name__ == '__main__':
     #mp.set_start_method('spawn') # used in Windows
     argv = sys.argv[1:]
     #argv = ['--gui']
+    #argv = ["25", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif"]
+    #argv = ["15", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif", "infra=./examples/dam/infra.tif", "flux=0.0003", "max_z=270"]
+    
     if len(argv) < 1:
     	print("Too few input arguments!!!")
     	sys.exit(1)

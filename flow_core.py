@@ -176,13 +176,13 @@ def calculation(args):
     max_z_delta = args[7]
     #print(len(args), max_z_delta)
     
-    z_delta_array = np.zeros_like(dem)
-    z_delta_sum = np.zeros_like(dem)
-    flux_array = np.zeros_like(dem)
-    count_array = np.zeros_like(dem)
-    backcalc = np.zeros_like(dem)
-    fp_travelangle_array = np.zeros_like(dem)
-    sl_travelangle_array = np.ones_like(dem) * 90
+    z_delta_array = np.zeros_like(dem, dtype=np.float32)
+    z_delta_sum = np.zeros_like(dem, dtype=np.float32)
+    flux_array = np.zeros_like(dem, dtype=np.float32)
+    count_array = np.zeros_like(dem, dtype=np.int32)
+    backcalc = np.zeros_like(dem, dtype=np.int32)
+    fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)
+    sl_travelangle_array = np.ones_like(dem, dtype=np.float32) * 90
     back_list = []
 
     cellsize = header["cellsize"]
@@ -246,7 +246,7 @@ def calculation(args):
 
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
             flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex], cell.flux)
-            count_array[cell.rowindex, cell.colindex] += 1
+            count_array[cell.rowindex, cell.colindex] += int(1)
             z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
             fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex], cell.max_gamma)
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex], cell.sl_gamma)
@@ -295,13 +295,13 @@ def calculation_effect(args):
     flux_threshold = args[5]
     max_z_delta = args[6]
 
-    z_delta_array = np.zeros_like(dem)
-    z_delta_sum = np.zeros_like(dem)
-    flux_array = np.zeros_like(dem)
-    count_array = np.zeros_like(dem)
-    backcalc = np.zeros_like(dem)
-    fp_travelangle_array = np.zeros_like(dem)  # fp = Flow Path
-    sl_travelangle_array = np.zeros_like(dem)  # sl = Straight Line
+    z_delta_array = np.zeros_like(dem, dtype=np.float32)
+    z_delta_sum = np.zeros_like(dem, dtype=np.float32)
+    flux_array = np.zeros_like(dem, dtype=np.float32)
+    count_array = np.zeros_like(dem, dtype=np.int32)
+    backcalc = np.zeros_like(dem, dtype=np.int32)
+    fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # fp = Flow Path
+    sl_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # sl = Straight Line
 
     cellsize = header["cellsize"]
     nodata = header["noDataValue"]

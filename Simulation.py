@@ -25,6 +25,7 @@ In this class the mutliprocessing is handled.
 """
 # Flow-Py libraries
 import multiprocessing as mp
+from numpy import zeros_like, float32
 import flow_core as fc
 import psutil
 import sys
@@ -55,14 +56,16 @@ class Simulation(QThread):
         dem_memory = sys.getsizeof(self.dem)
         release_memory = sys.getsizeof(self.release)
         infra_memory = sys.getsizeof(self.infra)
-        puffer = avaiable_memory * 0.2  # ~ 5GB
-        needed_memory = dem_memory * 7 + dem_memory + release_memory + infra_memory
+        puffer = avaiable_memory * 0.1  # ~ 5GB
+        array_memory = sys.getsizeof(zeros_like(dem, dtype=float32))
+        needed_memory = array_memory * 7 + dem_memory + release_memory + infra_memory
+        
         self.max_number_procces = int((avaiable_memory - puffer) / (needed_memory))
         print(avaiable_memory)
 
         print(
-            "There are {} Bytes of Memory avaiable and {} Bytes needed per process. Max. Nr. of Processes = {}".format(
-                avaiable_memory, needed_memory, self.max_number_procces))
+            "There are {} MB of Memory avaiable and {} MB needed per process. Max. Nr. of Processes = {}".format(
+                avaiable_memory/1000000, needed_memory/1000000, self.max_number_procces))
 
     def run(self):
 
