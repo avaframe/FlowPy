@@ -141,6 +141,117 @@ def split_release(release, header_release, pieces):
         
     return release_list
 
+def split_arrays(dem, release, header_release, cores, alpha):
+    """Split the release layer in several tiles, the number is depending on the
+    available CPU Cores, so every Core gets one tile. The area is determined by
+    the number of release pixels in it, so that every tile has the same amount
+    of release pixels in it. Splitting in x(Columns) direction. 
+    The release tiles have still the size of the original layer, so no split
+    for the DEM is needed.
+    
+    Input parameters: 
+        release         the release layer with release pixels as int > 0
+        header_release  the header of the release layer to identify the 
+                        noDataValue
+                        
+    Output parameters:
+        release_list    A list with the tiles(arrays) in it [array0, array1, ..]
+        """
+    
+    release_list = []  
+    dem_list = []
+    idx_list = []
+    
+    nodata = header_release["noDataValue"]
+    cellsize = header_release["cellsize"]
+    if nodata:
+        release[release == nodata] = 0
+    else:
+        print("Release Layer has no No Data Value, negative Value asumed!")
+        release[release < 0] = 0
+    release[release > 1] = 1
+    sum_release = int(np.sum(release)) # Count number of release pixels
+    print("Number of release pixels: ", sum_release)
+    
+    splits = cores  # Divide the release pixels by avaiable Cores
+    if splits < 1:
+        splits = 1
+        release_list.append(release)
+        dem_list.append(dem)
+
+    else:    
+        max_h_diff = np.amax(dem) - np.amin(dem)
+        max_overlap = int((max_h_diff / np.tan(np.deg2rad(float(alpha)))) / cellsize) + 1
+        print(max_overlap)    
+        
+        # Release split      
+        
+        if release.shape[0] > release.shape[1]: # y > x or row > col
+            axis=0
+        else:
+            axis=1
+        print("Axis = ", axis)
+        if axis == 0:
+            row = 0
+            row_step = int(release.shape[0] / splits)
+            if  row + row_step + max_overlap < release.shape[0]:
+                release_temp = np.zeros_like(release[row : row + row_step + max_overlap, :])
+                release_temp[row : row + row_step, :] = release[row : row + row_step, :]
+                release_list.append(release_temp)
+                dem_list.append(dem[row : row + row_step + max_overlap, :])
+                idx_list.append([row , row + row_step + max_overlap])
+                row = row + row_step + max_overlap
+    
+                for i in range(splits):
+                    if row + row_step + max_overlap < release.shape[0]:
+                        release_temp = np.zeros_like(release[row - max_overlap : row + row_step + max_overlap, :])
+                        release_temp[row : row + row_step, :] = release[row : row + row_step, :]
+                        release_list.append(release_temp)
+                        dem_list.append(dem[row - max_overlap : row + row_step + max_overlap, :])
+                        idx_list.append([row - max_overlap, row + row_step + max_overlap])
+                        row = row + row_step + max_overlap
+                    else:
+                        release_list.append(release[row - max_overlap  : -1, :])
+                        dem_list.append(dem[row - max_overlap  : -1, :])
+                        idx_list.append([row - max_overlap , -1])
+                        break
+                    
+            else:
+                release_list.append(release)
+                dem_list.append(dem)
+                
+        if axis == 1:
+            col = 0
+            col_step = int(release.shape[1] / splits)
+            if  col + col_step + max_overlap < release.shape[1]:
+                release_temp = np.zeros_like(release[:, col : col + col_step + max_overlap])
+                release_temp[:, col : col + col_step] = release[:, col : col + col_step]
+                release_list.append(release_temp)
+                dem_list.append(dem[:, col : col + col_step + max_overlap])
+                idx_list.append([col , col + col_step + max_overlap])
+                col = col + col_step + max_overlap
+    
+                for i in range(splits):
+                    if col + col_step + max_overlap < release.shape[1]:
+                        release_temp = np.zeros_like(release[:, col - max_overlap : col + col_step + max_overlap])
+                        release_temp[:, col : col + col_step] = release[:, col : col + col_step]
+                        release_list.append(release_temp)
+
+                        dem_list.append(dem[:, col - max_overlap : col + col_step + max_overlap])
+                        idx_list.append([col - max_overlap, col + col_step + max_overlap])
+                        col = col + col_step + max_overlap
+                    else:
+                        release_list.append(release[:, col - max_overlap  : -1])
+                        dem_list.append(dem[:, col - max_overlap  : -1])
+                        idx_list.append([col - max_overlap , -1])
+                        break
+                    
+            else:
+                release_list.append(release)
+                dem_list.append(dem)
+    
+    return dem_list, release_list, idx_list
+
     
 def calculation(args):
     """This is the core function where all the data handling and calculation is

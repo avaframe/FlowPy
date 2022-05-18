@@ -501,14 +501,14 @@ def main(args, kwargs):
         pool.close()
         pool.join()
     else:
-        release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 4, max_number_procces))
+        dem_list, release_list, idx_list = fc.split_arrays(dem, release, release_header, min(mp.cpu_count() * 4, max_number_procces), alpha)
 
         print("{} Processes started.".format(len(release_list)))
         pool = mp.Pool(mp.cpu_count())
         # results = pool.map(gc.calculation, iterable)
         results = pool.map(fc.calculation_effect,
-                           [[dem, header, release_pixel, alpha, exp, flux_threshold, max_z] for
-                            release_pixel in release_list])
+                           [[dem_list[idx], header, release_array, alpha, exp, flux_threshold, max_z] for
+                            idx, release_array in enumerate(release_list)])
         pool.close()
         pool.join()
 
@@ -531,14 +531,29 @@ def main(args, kwargs):
         sl_ta_list.append(res[6])
 
     logging.info('Calculation finished, getting results.')
+    
+    if dem.shape[0] > dem.shape[1]: # y > x or row > col
+        axis=0
+    else:
+        axis=1
+    print("Axis ", axis)
     for i in range(len(z_delta_list)):
-        z_delta = np.maximum(z_delta, z_delta_list[i])
-        flux = np.maximum(flux, flux_list[i])
-        cell_counts += cc_list[i]
-        z_delta_sum += z_delta_sum_list[i]
-        backcalc = np.maximum(backcalc, backcalc_list[i])
-        fp_ta = np.maximum(fp_ta, fp_ta_list[i])
-        sl_ta = np.maximum(sl_ta, sl_ta_list[i])
+        if axis == 0:
+            z_delta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(z_delta[idx_list[i][0]:idx_list[i][1], :], z_delta_list[i])
+            flux[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(flux[idx_list[i][0]:idx_list[i][1], :], flux_list[i])
+            cell_counts[idx_list[i][0]:idx_list[i][1], :] += cc_list[i]
+            z_delta_sum[idx_list[i][0]:idx_list[i][1], :] += z_delta_sum_list[i]
+            backcalc[idx_list[i][0]:idx_list[i][1], :] = np.maximum(backcalc[:, idx_list[i][0]:idx_list[i][1]], backcalc_list[i])
+            fp_ta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(fp_ta[idx_list[i][0]:idx_list[i][1], :], fp_ta_list[i])
+            sl_ta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(sl_ta[idx_list[i][0]:idx_list[i][1], :], sl_ta_list[i])
+        elif axis == 1:
+            z_delta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(z_delta[:, idx_list[i][0]:idx_list[i][1]], z_delta_list[i])
+            flux[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(flux[:, idx_list[i][0]:idx_list[i][1]], flux_list[i])
+            cell_counts[:, idx_list[i][0]:idx_list[i][1]] += cc_list[i]
+            z_delta_sum[:, idx_list[i][0]:idx_list[i][1]] += z_delta_sum_list[i]
+            backcalc[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(backcalc[:, idx_list[i][0]:idx_list[i][1]], backcalc_list[i])
+            fp_ta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(fp_ta[:, idx_list[i][0]:idx_list[i][1]], fp_ta_list[i])
+            sl_ta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(sl_ta[:, idx_list[i][0]:idx_list[i][1]], sl_ta_list[i])
 
 
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -578,8 +593,9 @@ if __name__ == '__main__':
     #mp.set_start_method('spawn') # used in Windows
     argv = sys.argv[1:]
     #argv = ['--gui']
-    #argv = ["25", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif"]
+    argv = ["25", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif"]
     #argv = ["15", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif", "infra=./examples/dam/infra.tif", "flux=0.0003", "max_z=270"]
+    #argv = ["25", "8", "./examples/Arzler/", "./examples/Arzler/arzleralmdhm0101m_clipped.tif", "./examples/Arzler/release.tif"]
     
     if len(argv) < 1:
     	print("Too few input arguments!!!")
