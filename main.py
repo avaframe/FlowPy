@@ -77,6 +77,7 @@ class Flow_Py_EXEC():
 
         self.calc_class = None
         self.prot_for_bool = False
+        self.infra_bool = False
         self.threads_calc = 0
         self.progress_value = 0
         self.cpu_count = 1
@@ -249,7 +250,15 @@ class Flow_Py_EXEC():
             self.res_dir = ('/res_{}/'.format(time_string))
         except FileExistsError:
             self.res_dir = ('/res_{}/'.format(time_string))
+        
+        directory = self.ui.wDir_lineEdit.text()
+        try:
+            os.makedirs(directory + self.res_dir + 'temp/')
+            temp_dir = (directory + self.res_dir + 'temp/')
+        except FileExistsError:
+            temp_dir = (directory + self.res_dir + 'temp/')
 
+        self.temp_dir = temp_dir
             # Setup logger
 
         for handler in logging.root.handlers[:]:
@@ -293,6 +302,7 @@ class Flow_Py_EXEC():
             if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
                 print("Infra Layer ok!")
                 self.calc_bool = True
+                self.infra_bool = True
                 logging.info('Infrastructure File: {}'.format(self.ui.infra_lineEdit.text()))
             else:
                 print("Error: Infra Layer doesn't match DEM!")
@@ -302,6 +312,23 @@ class Flow_Py_EXEC():
             infra = np.zeros_like(dem)
 
         logging.info('Files read in')
+        
+        cellsize = header["cellsize"]
+        nodata = header["noDataValue"]
+        del dem, release, infra
+        
+        tileCOLS = int(15000 / cellsize)
+        tileROWS = int(15000 / cellsize)
+        U = int(5000 / cellsize) # 5km overlap
+        
+        logging.info("Start Tiling.")
+        
+        SPAM.tileRaster(self.ui.DEM_lineEdit.text(), "dem", temp_dir, tileCOLS, tileROWS, U)
+        SPAM.tileRaster(self.ui.release_lineEdit.text(), "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
+        if self.infra_bool:
+            SPAM.tileRaster(self.ui.infra_lineEdit.text(), "infra", temp_dir, tileCOLS, tileROWS, U)
+            
+        nTiles = pickle.load(open(temp_dir + "nTiles", "rb"))
 
         alpha = self.ui.alpha_Edit.text()
         exp = self.ui.exp_Edit.text()
@@ -314,31 +341,44 @@ class Flow_Py_EXEC():
         logging.info('Max Z_delta: {}'.format(max_z))
         logging.info
         
-        self.z_delta = np.zeros_like(dem, dtype=np.float32)
-        self.flux = np.zeros_like(dem, dtype=np.float32)
-        self.cell_counts = np.zeros_like(dem, dtype=np.int32)
-        self.z_delta_sum = np.zeros_like(dem, dtype=np.float32)
-        self.backcalc = np.zeros_like(dem, dtype=np.int32)
-        self.fp_ta = np.zeros_like(dem, dtype=np.float32)
-        self.sl_ta = np.zeros_like(dem, dtype=np.float32)
+# =============================================================================
+#         self.z_delta = np.zeros_like(dem, dtype=np.float32)
+#         self.flux = np.zeros_like(dem, dtype=np.float32)
+#         self.cell_counts = np.zeros_like(dem, dtype=np.int32)
+#         self.z_delta_sum = np.zeros_like(dem, dtype=np.float32)
+#         self.backcalc = np.zeros_like(dem, dtype=np.int32)
+#         self.fp_ta = np.zeros_like(dem, dtype=np.float32)
+#         self.sl_ta = np.zeros_like(dem, dtype=np.float32)
+# =============================================================================
+        
+        optList = []
+        # das hier ist die batch-liste, die von mulitprocessing
+        # abgearbeitet werden muss - sieht so aus:
+        # [(0,0,alpha,exp,cellsize,-9999.),
+        # (0,1,alpha,exp,cellsize,-9999.),
+        # etc.]
+           
+        for i in range(nTiles[0]+1):
+            for j in range(nTiles[1]+1):
+                optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
 
         # Calculation
-        self.calc_class = Sim.Simulation(dem, header, release, release_header, infra, self.calc_bool, alpha, exp, flux_threshold, max_z)
-        self.calc_class.value_changed.connect(self.update_progressBar)
+        self.calc_class = Sim.Simulation(optList, self.infra_bool)
         self.calc_class.finished.connect(self.thread_finished)
-        logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
+        logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
         self.calc_class.start()
 
-    def thread_finished(self, z_delta, flux, count_array, z_delta_sum, backcalc, fp_ta, sl_ta):
+    def thread_finished(self):
         logging.info('Calculation finished, getting results.')
-        for i in range(len(z_delta)):
-            self.z_delta = np.maximum(self.z_delta, z_delta[i])
-            self.flux = np.maximum(self.flux, flux[i])
-            self.cell_counts += count_array[i]
-            self.z_delta_sum += z_delta_sum[i]
-            self.backcalc = np.maximum(self.backcalc, backcalc[i])
-            self.fp_ta = np.maximum(self.fp_ta, fp_ta[i])
-            self.sl_ta = np.maximum(self.sl_ta, sl_ta[i])
+        # Merge calculated tiles
+        self.z_delta = SPAM.MergeRaster(self.temp_dir, "res_z_delta")
+        self.flux = SPAM.MergeRaster(self.temp_dir, "res_flux")
+        self.cell_counts = SPAM.MergeRaster(self.temp_dir, "res_count")
+        self.z_delta_sum = SPAM.MergeRaster(self.temp_dir, "res_z_delta_sum")
+        self.fp_ta = SPAM.MergeRaster(self.temp_dir, "res_fp")
+        self.sl_ta = SPAM.MergeRaster(self.temp_dir, "res_sl")
+        if self.infra_bool:
+            self.backcalc = SPAM.MergeRaster(self.temp_dir, "res_backcalc")
         self.output()
 
     def output(self):
@@ -356,14 +396,14 @@ class Flow_Py_EXEC():
         io.output_raster(self.ui.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "SL_travel_angle{}".format(self.ui.outputBox.currentText()),
                          self.sl_ta)
-        if not self.calc_bool:
+        if not self.infra_bool:
             io.output_raster(self.ui.DEM_lineEdit.text(),
                              self.directory + self.res_dir + "cell_counts{}".format(self.ui.outputBox.currentText()),
                              self.cell_counts)
             io.output_raster(self.ui.DEM_lineEdit.text(),
                              self.directory + self.res_dir + "z_delta_sum{}".format(self.ui.outputBox.currentText()),
                              self.z_delta_sum)
-        if self.calc_bool:
+        if self.infra_bool:
             io.output_raster(self.ui.DEM_lineEdit.text(),
                              self.directory + self.res_dir + "backcalculation{}".format(self.ui.outputBox.currentText()),
                              self.backcalc)
@@ -479,16 +519,22 @@ def main(args, kwargs):
     except:
         infra = np.zeros_like(dem)
 
+    del dem, release, infra
     logging.info('Files read in')
     
-    tileCOLS = 500
-    tileROWS = 500
-    U = 100
+    cellsize = header["cellsize"]
+    nodata = header["noDataValue"]
     
-    SPAM.tileRaster(dem, "dem", temp_dir, tileCOLS, tileROWS, U)
-    SPAM.tileRaster(release, "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
+    tileCOLS = int(15000 / cellsize)
+    tileROWS = int(15000 / cellsize)
+    U = int(5000 / cellsize) # 5km overlap
+    
+    logging.info("Start Tiling.")
+    
+    SPAM.tileRaster(dem_path, "dem", temp_dir, tileCOLS, tileROWS, U)
+    SPAM.tileRaster(release_path, "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
     if infra_bool:
-        SPAM.tileRaster(infra, "infra", temp_dir, tileCOLS, tileROWS, U)
+        SPAM.tileRaster(infra_path, "infra", temp_dir, tileCOLS, tileROWS, U)
         
     nTiles = pickle.load(open(temp_dir + "nTiles", "rb"))
 
@@ -498,42 +544,41 @@ def main(args, kwargs):
     # [(0,0,alpha,exp,cellsize,-9999.),
     # (0,1,alpha,exp,cellsize,-9999.),
     # etc.]
-    
-    cellsize = header["cellsize"]
-    nodata = header["noDataValue"]
-    
+       
     for i in range(nTiles[0]+1):
         for j in range(nTiles[1]+1):
             optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
 
     # Calculation
-    logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
+    logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
 
     if infra_bool:
         #release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 2, max_number_procces))
 
         print("{} Processes started.".format(mp.cpu_count() - 1))
         pool = mp.Pool(mp.cpu_count() - 1)
-        results = pool.map(fc.calculation, optList)
+        res = pool.map(fc.calculation, optList)
         pool.close()
         pool.join()
     else:
 
         print("{} Processes started.".format(mp.cpu_count() - 1))
         pool = mp.Pool(mp.cpu_count() - 1)
-        # results = pool.map(gc.calculation, iterable)
-        pool.map(fc.calculation_effect, optList)
+        res = pool.map(fc.calculation_effect, optList)
         pool.close()
         pool.join()
 
     logging.info('Calculation finished, merging results.')
     
+    # Merge calculated tiles
     z_delta = SPAM.MergeRaster(temp_dir, "res_z_delta")
     flux = SPAM.MergeRaster(temp_dir, "res_flux")
     cell_counts = SPAM.MergeRaster(temp_dir, "res_count")
     z_delta_sum = SPAM.MergeRaster(temp_dir, "res_z_delta_sum")
     fp_ta = SPAM.MergeRaster(temp_dir, "res_fp")
     sl_ta = SPAM.MergeRaster(temp_dir, "res_sl")
+    if infra_bool:
+        backcalc = SPAM.MergeRaster(temp_dir, "res_backcalc")
     
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     logging.info('Writing Output Files')
@@ -570,12 +615,12 @@ def main(args, kwargs):
 
 if __name__ == '__main__':
     #mp.set_start_method('spawn') # used in Windows
-    #argv = sys.argv[1:]
-    #argv = ['--gui']
+    argv = sys.argv[1:]
+    argv = ['--gui']
     #argv = ["25", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif"]
     #argv = ["15", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif", "infra=./examples/dam/infra.tif", "flux=0.0003", "max_z=270"]
     #argv = ["25", "8", "./examples/Arzler/", "./examples/Arzler/arzleralmdhm0101m_clipped.tif", "./examples/Arzler/release.tif"]
-    argv = ["50", "100", "./examples/Oberammergau/", "./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif", "./examples/Oberammergau/release.tif", "max_z=270"]
+    #argv = ["25", "8", "./examples/Oberammergau/", "./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif", "./examples/Oberammergau/release.tif", "max_z=270"]
     
     if len(argv) < 1:
     	print("Too few input arguments!!!")

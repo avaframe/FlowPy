@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
 import logging
 import pickle
 import gc
 import numpy as np
-
-# import tkFileDialog
-# wDir = tkFileDialog.askdirectory(title="define working directory")
+import raster_io as io
 
 
-def tileRaster(largeRaster, fNameOut, dirName, xDim, yDim, U, isInit=False):
+def tileRaster(fNameIn, fNameOut, dirName, xDim, yDim, U, isInit=False):
 
     #if not os.path.exists(dirName):
     #    os.makedirs(dirName)
 
     #largeRaster, largeHeader = iof.f_readASC(fNameIn, dType='float')
+    largeRaster, largeHeader = io.read_raster(fNameIn)
     # einlesen des Rasters und der Header
 
     i, j, imax, jmax = 0, 0, 0, 0

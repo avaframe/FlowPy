@@ -32,6 +32,7 @@ of DEM, return arrays)
 import sys
 import numpy as np
 from datetime import datetime
+import logging
 from flow_class import Cell
 
 
@@ -85,186 +86,8 @@ def back_calculation(back_cell):
     #print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
     return back_list
 
-
-def divide_chunks(l, n):
-    """Splitting release list in equivalent sub lists, was done before 
-    split_release, maybe don't needed anymore... """
-    for i in range(0, len(l), n):
-        yield l[i:i+n]
-
-
-def split_release(release, header_release, pieces):
-    """Split the release layer in several tiles, the number is depending on the
-    available CPU Cores, so every Core gets one tile. The area is determined by
-    the number of release pixels in it, so that every tile has the same amount
-    of release pixels in it. Splitting in x(Columns) direction. 
-    The release tiles have still the size of the original layer, so no split
-    for the DEM is needed.
     
-    Input parameters: 
-        release         the release layer with release pixels as int > 0
-        header_release  the header of the release layer to identify the 
-                        noDataValue
-                        
-    Output parameters:
-        release_list    A list with the tiles(arrays) in it [array0, array1, ..]
-        """
-        
-    nodata = header_release["noDataValue"]
-    if nodata:
-        release[release == nodata] = 0
-    else:
-        print("Release Layer has no No Data Value, negative Value asumed!")
-        release[release < 0] = 0
-    release[release > 1] = 1
-    summ = np.sum(release) # Count number of release pixels
-    print("Number of release pixels: ", summ)
-    sum_per_split = summ/pieces  # Divide the number by avaiable Cores
-    release_list = []
-    breakpoint_x = 0
-
-    for i in range(breakpoint_x, release.shape[1]):
-        if len(release_list) == (pieces - 1):
-            c = np.zeros_like(release)
-            c[:, breakpoint_x:] = release[:, breakpoint_x:]
-            release_list.append(c)
-            break
-        if np.sum(release[:, breakpoint_x:i]) < sum_per_split:
-            continue
-        else:
-            c = np.zeros_like(release)
-            c[:, breakpoint_x:i] = release[:, breakpoint_x:i]
-            release_list.append(c)
-            print("Release Split from {} to {}".format(breakpoint_x, i))
-            breakpoint_x = i
-            
-        
-    return release_list
-
-def split_arrays(dem, release, header_release, cores, alpha):
-    """Split the release layer in several tiles, the number is depending on the
-    available CPU Cores, so every Core gets one tile. The area is determined by
-    the number of release pixels in it, so that every tile has the same amount
-    of release pixels in it. Splitting in x(Columns) direction. 
-    The release tiles have still the size of the original layer, so no split
-    for the DEM is needed.
-    
-    Input parameters: 
-        release         the release layer with release pixels as int > 0
-        header_release  the header of the release layer to identify the 
-                        noDataValue
-                        
-    Output parameters:
-        release_list    A list with the tiles(arrays) in it [array0, array1, ..]
-        """
-    
-    release_list = []  
-    dem_list = []
-    idx_list = []
-    
-    nodata = header_release["noDataValue"]
-    cellsize = header_release["cellsize"]
-    if nodata:
-        release[release == nodata] = 0
-    else:
-        print("Release Layer has no No Data Value, negative Value asumed!")
-        release[release < 0] = 0
-    release[release > 1] = 1
-    sum_release = int(np.sum(release)) # Count number of release pixels
-    print("Number of release pixels: ", sum_release)
-
-    max_h_diff = np.amax(dem) - np.amin(dem[dem>0])
-    max_overlap = int((max_h_diff / np.tan(np.deg2rad(float(alpha)))) / cellsize) + 1
-    print(max_overlap)  
-    
-    
-    # Split       
-    if release.shape[0] > release.shape[1]: # y > x or row > col
-        axis=0
-    else:
-        axis=1
-    print("Axis = ", axis)
-    
-    if axis == 0:
-        row = 0
-        splits = int(release.shape[0] / (max_overlap))
-        row_step = int(release.shape[0] / splits)
-        if  row + row_step + max_overlap < release.shape[0]:
-# =============================================================================
-#             release_temp = np.zeros_like(release[row : row + row_step + max_overlap, :])
-#             release_temp[row : row + row_step, :] = release[row : row + row_step, :]
-#             release_list.append(release_temp)
-# =============================================================================
-            release_list.append(release[row - max_overlap : row + row_step + max_overlap, :])
-            dem_list.append(dem[row : row + row_step + max_overlap, :])
-            idx_list.append([row , row + row_step + max_overlap])
-            row = row + row_step
-
-            for i in range(splits):
-                if row + row_step + max_overlap < release.shape[0]:
-# =============================================================================
-#                     release_temp = np.zeros_like(release[row - max_overlap : row + row_step + max_overlap, :])
-#                     release_temp[row : row + row_step, :] = release[row : row + row_step, :]
-#                     release_list.append(release_temp)
-# =============================================================================
-                    release_list.append(release[row - max_overlap : row + row_step + max_overlap, :])
-                    dem_list.append(dem[row - max_overlap : row + row_step + max_overlap, :])
-                    idx_list.append([row - max_overlap, row + row_step + max_overlap])
-                    row = row + row_step
-                else:
-                    release_list.append(release[row - max_overlap  : -1, :])
-                    dem_list.append(dem[row - max_overlap  : -1, :])
-                    idx_list.append([row - max_overlap , -1])
-                    break
-                
-        else:
-            release_list.append(release)
-            dem_list.append(dem)
-            
-    if axis == 1:
-        col = 0
-        splits = int(release.shape[1] / (max_overlap))
-        col_step = int(release.shape[1] / splits)
-        if  col + col_step + max_overlap < release.shape[1]:
-# =============================================================================
-#             release_temp = np.zeros_like(release[:, col : col + col_step + max_overlap])
-#             release_temp[:, col : col + col_step] = release[:, col : col + col_step]
-#             release_list.append(release_temp)
-# =============================================================================
-            release_list.append(release[:, col - max_overlap : col + col_step + max_overlap])
-            dem_list.append(dem[:, col : col + col_step + max_overlap])
-            idx_list.append([col , col + col_step + max_overlap])
-            col = col + col_step
-
-            for i in range(splits):
-                if col + col_step + max_overlap < release.shape[1]:
-# =============================================================================
-#                     if col >= max_overlap:
-#                         release_temp = np.zeros_like(release[:, col - max_overlap : col + col_step + max_overlap])
-#                     else:
-#                         release_temp = np.zeros_like(release[:, 0 : col + col_step + max_overlap])
-#                     release_temp[:, col : col + col_step] = release[:, col : col + col_step]
-#                     release_list.append(release_temp)
-# =============================================================================
-                    release_list.append(release[:, col - max_overlap : col + col_step + max_overlap])
-                    dem_list.append(dem[:, col - max_overlap : col + col_step + max_overlap])
-                    idx_list.append([col - max_overlap, col + col_step + max_overlap])
-                    col = col + col_step
-                else:
-                    release_list.append(release[:, col - max_overlap  : -1])
-                    dem_list.append(dem[:, col - max_overlap  : -1])
-                    idx_list.append([col - max_overlap , -1])
-                    break
-                
-        else:
-            release_list.append(release)
-            dem_list.append(dem)
-            idx_list.append([0, -1])
-    
-    return dem_list, release_list, idx_list
-
-    
-def calculation(args):
+def calculation(optTuple):
     """This is the core function where all the data handling and calculation is
     done. 
     
@@ -287,28 +110,28 @@ def calculation(args):
         elh_sum     Array with the sum of Energy Line Height
         back_calc   Array with back calculation, still to do!!!
         """
+    temp_dir = optTuple[8]
     
-    dem = args[0]
-    header = args[1]
-    infra = args[2]
-    release = args[3]
-    alpha = args[4]
-    exp = args[5]
-    flux_threshold = args[6]
-    max_z_delta = args[7]
-    #print(len(args), max_z_delta)
+    dem = np.load(temp_dir + "dem_{}_{}.npy".format(optTuple[0], optTuple[1]))
+    release = np.load(temp_dir + "init_{}_{}.npy".format(optTuple[0], optTuple[1]))
+    infra = np.load(temp_dir + "infra_{}_{}.npy".format(optTuple[0], optTuple[1]))
+    
+    alpha = float(optTuple[2])
+    exp = float(optTuple[3])
+    cellsize = float(optTuple[4])
+    nodata = float(optTuple[5])
+    flux_threshold = float(optTuple[6])
+    max_z_delta = float(optTuple[7])
     
     z_delta_array = np.zeros_like(dem, dtype=np.float32)
     z_delta_sum = np.zeros_like(dem, dtype=np.float32)
     flux_array = np.zeros_like(dem, dtype=np.float32)
     count_array = np.zeros_like(dem, dtype=np.int32)
     backcalc = np.zeros_like(dem, dtype=np.int32)
-    fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)
-    sl_travelangle_array = np.ones_like(dem, dtype=np.float32) * 90
+    fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # fp = Flow Path
+    sl_travelangle_array = np.zeros_like(dem, dtype=np.float32) * 90  # sl = Straight Line
+    
     back_list = []
-
-    cellsize = header["cellsize"]
-    nodata = header["noDataValue"]
 
     # Core
     start = datetime.now().replace(microsecond=0)
@@ -385,11 +208,20 @@ def calculation(args):
         # Check if i hit a release Cell, if so set it to zero and get again the indexes of release cells
         row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
-    end = datetime.now().replace(microsecond=0)
-    #elh_multi[elh_multi == 1] = 0         
-    print('\n Time needed: ' + str(end - start))
-    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array
+    end = datetime.now().replace(microsecond=0) 
 
+    # Save Calculated tiles
+    np.save(temp_dir + "./res_z_delta_{}_{}".format(optTuple[0], optTuple[1]), z_delta_array)
+    np.save(temp_dir + "./res_z_delta_sum_{}_{}".format(optTuple[0], optTuple[1]), z_delta_sum)
+    np.save(temp_dir + "./res_flux_{}_{}".format(optTuple[0], optTuple[1]), flux_array)    
+    np.save(temp_dir + "./res_count_{}_{}".format(optTuple[0], optTuple[1]), count_array)
+    np.save(temp_dir + "./res_fp_{}_{}".format(optTuple[0], optTuple[1]), fp_travelangle_array)
+    np.save(temp_dir + "./res_sl_{}_{}".format(optTuple[0], optTuple[1]), sl_travelangle_array)
+    np.save(temp_dir + "./res_backcalc_{}_{}".format(optTuple[0], optTuple[1]), backcalc)
+      
+    print('\n Time needed: ' + str(end - start))
+    
+    
 def calculation_effect(optTuple):
     """This is the core function where all the data handling and calculation is
     done. 
@@ -411,8 +243,8 @@ def calculation_effect(optTuple):
     
     temp_dir = optTuple[8]
     
-    dem = np.load(temp_dir + "dem_%i_%i.npy" % (optTuple[0], optTuple[1]))
-    release = np.load(temp_dir + "init_%i_%i.npy" % (optTuple[0], optTuple[1]))
+    dem = np.load(temp_dir + "dem_{}_{}.npy".format(optTuple[0], optTuple[1]))
+    release = np.load(temp_dir + "init_{}_{}.npy".format(optTuple[0], optTuple[1]))
     
 
     alpha = float(optTuple[2])
@@ -422,16 +254,6 @@ def calculation_effect(optTuple):
     flux_threshold = float(optTuple[6])
     max_z_delta = float(optTuple[7])
     
-# =============================================================================
-#     dem = args[0]
-#     header = args[1]
-#     release = args[2]
-#     alpha = args[3]
-#     exp = args[4]
-#     flux_threshold = args[5]
-#     max_z_delta = args[6]
-# =============================================================================
-
     z_delta_array = np.zeros_like(dem, dtype=np.float32)
     z_delta_sum = np.zeros_like(dem, dtype=np.float32)
     flux_array = np.zeros_like(dem, dtype=np.float32)
@@ -439,11 +261,6 @@ def calculation_effect(optTuple):
     #backcalc = np.zeros_like(dem, dtype=np.int32)
     fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # fp = Flow Path
     sl_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # sl = Straight Line
-
-# =============================================================================
-#     cellsize = header["cellsize"]
-#     nodata = header["noDataValue"]
-# =============================================================================
 
     # Core
     start = datetime.now().replace(microsecond=0)
@@ -511,7 +328,8 @@ def calculation_effect(optTuple):
                                                                      cell.sl_gamma)
 
         startcell_idx += 1
-        
+    
+    # Save Calculated tiles
     np.save(temp_dir + "./res_z_delta_{}_{}".format(optTuple[0], optTuple[1]), z_delta_array)
     np.save(temp_dir + "./res_z_delta_sum_{}_{}".format(optTuple[0], optTuple[1]), z_delta_sum)
     np.save(temp_dir + "./res_flux_{}_{}".format(optTuple[0], optTuple[1]), flux_array)    
@@ -519,7 +337,7 @@ def calculation_effect(optTuple):
     np.save(temp_dir + "./res_fp_{}_{}".format(optTuple[0], optTuple[1]), fp_travelangle_array)
     np.save(temp_dir + "./res_sl_{}_{}".format(optTuple[0], optTuple[1]), sl_travelangle_array)
     
-    #logging.info("finished calculation %i_%i", optTuple[0], optTuple[1]) #ToDo!
+    logging.info("finished calculation %i_%i", optTuple[0], optTuple[1]) #ToDo!
     
     end = datetime.now().replace(microsecond=0)        
     print('\n Time needed: ' + str(end - start))
