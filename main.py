@@ -29,11 +29,13 @@ from multiprocessing import cpu_count
 import multiprocessing as mp
 import logging
 from xml.etree import ElementTree as ET
+import pickle
 
 # Flow-Py Libraries
 import raster_io as io
 import Simulation as Sim
 import flow_core as fc
+import split_and_merge as SPAM
 
 # Libraries for GUI, PyQt5
 from PyQt5.QtCore import pyqtSlot, QCoreApplication
@@ -410,6 +412,7 @@ def main(args, kwargs):
 
     start = datetime.now().replace(microsecond=0)
     calc_bool = False
+    infra_bool = False
     # Create result directory
     time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     try:
@@ -417,6 +420,12 @@ def main(args, kwargs):
         res_dir = ('/res_{}/'.format(time_string))
     except FileExistsError:
         res_dir = ('/res_{}/'.format(time_string))
+        
+    try:
+        os.makedirs(directory[:-1] + res_dir + 'temp/')
+        temp_dir = (directory[:-1] + res_dir + 'temp/')
+    except FileExistsError:
+        temp_dir = (directory[:-1] + res_dir + 'temp/')
 
     # Setup logger
     for handler in logging.root.handlers[:]:
@@ -461,6 +470,7 @@ def main(args, kwargs):
         infra, infra_header = io.read_raster(infra_path)
         if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
             print("Infra Layer ok!")
+            infra_bool = True
             calc_bool = True
             logging.info('Infrastructure File: {}'.format(infra_path))
         else:
@@ -470,101 +480,61 @@ def main(args, kwargs):
         infra = np.zeros_like(dem)
 
     logging.info('Files read in')
+    
+    tileCOLS = 500
+    tileROWS = 500
+    U = 100
+    
+    SPAM.tileRaster(dem, "dem", temp_dir, tileCOLS, tileROWS, U)
+    SPAM.tileRaster(release, "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
+    if infra_bool:
+        SPAM.tileRaster(infra, "infra", temp_dir, tileCOLS, tileROWS, U)
+        
+    nTiles = pickle.load(open(temp_dir + "nTiles", "rb"))
 
-    z_delta = np.zeros_like(dem, dtype=np.float32)
-    flux = np.zeros_like(dem, dtype=np.float32)
-    cell_counts = np.zeros_like(dem, dtype=np.int32)
-    z_delta_sum = np.zeros_like(dem, dtype=np.float32)
-    backcalc = np.zeros_like(dem, dtype=np.int32)
-    fp_ta = np.zeros_like(dem, dtype=np.float32)
-    sl_ta = np.zeros_like(dem, dtype=np.float32)
-
-    avaiable_memory = psutil.virtual_memory()[1]
-    needed_memory_dem = sys.getsizeof(dem)
-    needed_memory_array = sys.getsizeof(z_delta)
-
-    max_number_procces = int(avaiable_memory / (needed_memory_dem + needed_memory_array * 7))
-
-    print("There are {} MB of Memory avaiable and {} MB needed per process. \nMax. Nr. of Processes = {}".format(avaiable_memory/1000000, (needed_memory_dem + needed_memory_array * 7)/1000000, max_number_procces))
+    optList = []
+    # das hier ist die batch-liste, die von mulitprocessing
+    # abgearbeitet werden muss - sieht so aus:
+    # [(0,0,alpha,exp,cellsize,-9999.),
+    # (0,1,alpha,exp,cellsize,-9999.),
+    # etc.]
+    
+    cellsize = header["cellsize"]
+    nodata = header["noDataValue"]
+    
+    for i in range(nTiles[0]+1):
+        for j in range(nTiles[1]+1):
+            optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
 
     # Calculation
     logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count()))
 
-    if calc_bool:
-        release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 2, max_number_procces))
+    if infra_bool:
+        #release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 2, max_number_procces))
 
-        print("{} Processes started.".format(len(release_list)))
-        pool = mp.Pool(len(release_list))
-        results = pool.map(fc.calculation,
-                           [[dem, header, infra, release_pixel, alpha, exp, flux_threshold, max_z]
-                            for release_pixel in release_list])
+        print("{} Processes started.".format(mp.cpu_count() - 1))
+        pool = mp.Pool(mp.cpu_count() - 1)
+        results = pool.map(fc.calculation, optList)
         pool.close()
         pool.join()
     else:
-        dem_list, release_list, idx_list = fc.split_arrays(dem, release, release_header, min(mp.cpu_count() * 4, max_number_procces), alpha)
 
-        print("{} Processes started.".format(len(release_list)))
-        pool = mp.Pool(mp.cpu_count())
+        print("{} Processes started.".format(mp.cpu_count() - 1))
+        pool = mp.Pool(mp.cpu_count() - 1)
         # results = pool.map(gc.calculation, iterable)
-        results = pool.map(fc.calculation_effect,
-                           [[dem_list[idx], header, release_array, alpha, exp, flux_threshold, max_z] for
-                            idx, release_array in enumerate(release_list)])
+        pool.map(fc.calculation_effect, optList)
         pool.close()
         pool.join()
 
-    z_delta_list = []
-    flux_list = []
-    cc_list = []
-    z_delta_sum_list = []
-    backcalc_list = []
-    fp_ta_list = []
-    sl_ta_list = []
-    for i in range(len(results)):
-        res = results[i]
-        res = list(res)
-        z_delta_list.append(res[0])
-        flux_list.append(res[1])
-        cc_list.append(res[2])
-        z_delta_sum_list.append(res[3])
-        backcalc_list.append(res[4])
-        fp_ta_list.append(res[5])
-        sl_ta_list.append(res[6])
-
-    logging.info('Calculation finished, getting results.')
+    logging.info('Calculation finished, merging results.')
     
-    if dem.shape[0] > dem.shape[1]: # y > x or row > col
-        axis=0
-    else:
-        axis=1
-    print("Axis ", axis)
-    if len(z_delta_list) == 1:
-        z_delta = np.maximum(z_delta, z_delta_list[i])
-        flux = np.maximum(flux, flux_list[i])
-        cell_counts += cc_list[i]
-        z_delta_sum += z_delta_sum_list[i]
-        backcalc = np.maximum(backcalc, backcalc_list[i])
-        fp_ta = np.maximum(fp_ta, fp_ta_list[i])
-        sl_ta = np.maximum(sl_ta, sl_ta_list[i])
-    else:
-        for i in range(len(z_delta_list)):
-            if axis == 0:
-                z_delta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(z_delta[idx_list[i][0]:idx_list[i][1], :], z_delta_list[i])
-                flux[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(flux[idx_list[i][0]:idx_list[i][1], :], flux_list[i])
-                cell_counts[idx_list[i][0]:idx_list[i][1], :] += cc_list[i]
-                z_delta_sum[idx_list[i][0]:idx_list[i][1], :] += z_delta_sum_list[i]
-                backcalc[idx_list[i][0]:idx_list[i][1], :] = np.maximum(backcalc[:, idx_list[i][0]:idx_list[i][1]], backcalc_list[i])
-                fp_ta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(fp_ta[idx_list[i][0]:idx_list[i][1], :], fp_ta_list[i])
-                sl_ta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(sl_ta[idx_list[i][0]:idx_list[i][1], :], sl_ta_list[i])
-            elif axis == 1:
-                z_delta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(z_delta[:, idx_list[i][0]:idx_list[i][1]], z_delta_list[i])
-                flux[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(flux[:, idx_list[i][0]:idx_list[i][1]], flux_list[i])
-                cell_counts[:, idx_list[i][0]:idx_list[i][1]] += cc_list[i]
-                z_delta_sum[:, idx_list[i][0]:idx_list[i][1]] += z_delta_sum_list[i]
-                backcalc[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(backcalc[:, idx_list[i][0]:idx_list[i][1]], backcalc_list[i])
-                fp_ta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(fp_ta[:, idx_list[i][0]:idx_list[i][1]], fp_ta_list[i])
-                sl_ta[:, idx_list[i][0]:idx_list[i][1]] = np.maximum(sl_ta[:, idx_list[i][0]:idx_list[i][1]], sl_ta_list[i])
-
-
+    z_delta = SPAM.MergeRaster(temp_dir, "res_z_delta")
+    flux = SPAM.MergeRaster(temp_dir, "res_flux")
+    cell_counts = SPAM.MergeRaster(temp_dir, "res_count")
+    z_delta_sum = SPAM.MergeRaster(temp_dir, "res_z_delta_sum")
+    fp_ta = SPAM.MergeRaster(temp_dir, "res_fp")
+    sl_ta = SPAM.MergeRaster(temp_dir, "res_sl")
+    
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     logging.info('Writing Output Files')
     output_format = '.tif'
@@ -587,7 +557,7 @@ def main(args, kwargs):
         io.output_raster(dem_path,
                          directory + res_dir + "z_delta_sum{}".format( output_format),
                          z_delta_sum)
-    if calc_bool:  # if infra
+    if infra_bool:  # if infra
         io.output_raster(dem_path,
                          directory + res_dir + "backcalculation{}".format(output_format),
                          backcalc)
@@ -600,12 +570,12 @@ def main(args, kwargs):
 
 if __name__ == '__main__':
     #mp.set_start_method('spawn') # used in Windows
-    argv = sys.argv[1:]
+    #argv = sys.argv[1:]
     #argv = ['--gui']
-    argv = ["25", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif"]
+    #argv = ["25", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif"]
     #argv = ["15", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif", "infra=./examples/dam/infra.tif", "flux=0.0003", "max_z=270"]
     #argv = ["25", "8", "./examples/Arzler/", "./examples/Arzler/arzleralmdhm0101m_clipped.tif", "./examples/Arzler/release.tif"]
-    #argv = ["25", "8", "./examples/Oberammergau/", "./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif", "./examples/Oberammergau/release.tif", "max_z=270"]
+    argv = ["50", "100", "./examples/Oberammergau/", "./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif", "./examples/Oberammergau/release.tif", "max_z=270"]
     
     if len(argv) < 1:
     	print("Too few input arguments!!!")
