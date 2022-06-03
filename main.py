@@ -228,7 +228,6 @@ class Flow_Py_EXEC():
 
     def calculation(self):
         self.start = datetime.now().replace(microsecond=0)
-        self.calc_bool = False
 
         # Check if input is ok
         if self.ui.wDir_lineEdit.text() == '':
@@ -301,7 +300,6 @@ class Flow_Py_EXEC():
             infra, infra_header = io.read_raster(self.ui.infra_lineEdit.text())
             if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
                 print("Infra Layer ok!")
-                self.calc_bool = True
                 self.infra_bool = True
                 logging.info('Infrastructure File: {}'.format(self.ui.infra_lineEdit.text()))
             else:
@@ -451,21 +449,20 @@ def main(args, kwargs):
     print("...")
 
     start = datetime.now().replace(microsecond=0)
-    calc_bool = False
     infra_bool = False
     # Create result directory
     time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     try:
-        os.makedirs(directory + '/res_{}/'.format(time_string))
-        res_dir = ('/res_{}/'.format(time_string))
+        os.makedirs(directory + 'res_{}/'.format(time_string))
+        res_dir = ('res_{}/'.format(time_string))
     except FileExistsError:
-        res_dir = ('/res_{}/'.format(time_string))
+        res_dir = ('res_{}/'.format(time_string))
         
     try:
-        os.makedirs(directory[:-1] + res_dir + 'temp/')
-        temp_dir = (directory[:-1] + res_dir + 'temp/')
+        os.makedirs(directory + res_dir + 'temp/')
+        temp_dir = (directory + res_dir + 'temp/')
     except FileExistsError:
-        temp_dir = (directory[:-1] + res_dir + 'temp/')
+        temp_dir = (directory + res_dir + 'temp/')
 
     # Setup logger
     for handler in logging.root.handlers[:]:
@@ -511,7 +508,6 @@ def main(args, kwargs):
         if header['ncols'] == infra_header['ncols'] and header['nrows'] == infra_header['nrows']:
             print("Infra Layer ok!")
             infra_bool = True
-            calc_bool = True
             logging.info('Infrastructure File: {}'.format(infra_path))
         else:
             print("Error: Infra Layer doesn't match DEM!")
@@ -530,12 +526,14 @@ def main(args, kwargs):
     U = int(5000 / cellsize) # 5km overlap
     
     logging.info("Start Tiling.")
+    print("Start Tiling...")
     
     SPAM.tileRaster(dem_path, "dem", temp_dir, tileCOLS, tileROWS, U)
     SPAM.tileRaster(release_path, "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
     if infra_bool:
         SPAM.tileRaster(infra_path, "infra", temp_dir, tileCOLS, tileROWS, U)
-        
+    
+    print("Finished Tiling...")    
     nTiles = pickle.load(open(temp_dir + "nTiles", "rb"))
 
     optList = []
@@ -551,22 +549,16 @@ def main(args, kwargs):
 
     # Calculation
     logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
-
+    print("{} Processes started and {} calculations to perform.".format(mp.cpu_count() - 1, len(optList)))
+    pool = mp.Pool(mp.cpu_count() - 1)
+        
     if infra_bool:
-        #release_list = fc.split_release(release, release_header, min(mp.cpu_count() * 2, max_number_procces))
+        pool.map(fc.calculation, optList)
+    else:       
+        pool.map(fc.calculation_effect, optList)
 
-        print("{} Processes started.".format(mp.cpu_count() - 1))
-        pool = mp.Pool(mp.cpu_count() - 1)
-        res = pool.map(fc.calculation, optList)
-        pool.close()
-        pool.join()
-    else:
-
-        print("{} Processes started.".format(mp.cpu_count() - 1))
-        pool = mp.Pool(mp.cpu_count() - 1)
-        res = pool.map(fc.calculation_effect, optList)
-        pool.close()
-        pool.join()
+    pool.close()
+    pool.join()
 
     logging.info('Calculation finished, merging results.')
     
@@ -595,7 +587,7 @@ def main(args, kwargs):
     io.output_raster(dem_path,
                      directory + res_dir + "SL_travel_angle{}".format(output_format),
                      sl_ta)
-    if not calc_bool:  # if no infra
+    if not infra_bool:  # if no infra
         io.output_raster(dem_path,
                          directory + res_dir + "cell_counts{}".format(output_format),
                          cell_counts)
@@ -621,6 +613,7 @@ if __name__ == '__main__':
     #argv = ["15", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif", "infra=./examples/dam/infra.tif", "flux=0.0003", "max_z=270"]
     #argv = ["25", "8", "./examples/Arzler/", "./examples/Arzler/arzleralmdhm0101m_clipped.tif", "./examples/Arzler/release.tif"]
     #argv = ["25", "8", "./examples/Oberammergau/", "./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif", "./examples/Oberammergau/release.tif", "max_z=270"]
+    argv = ["25", "8", "./examples/Osttirol/", "./examples/Osttirol/DTM_5m.tif", "./examples/Osttirol/post_VAIA_release_areas_DGM_extend.tif", "max_z=270"]
     
     if len(argv) < 1:
     	print("Too few input arguments!!!")

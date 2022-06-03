@@ -103,9 +103,9 @@ def calculation(optTuple):
         max_z_delta
         
     Output parameters:
-        elh         Array like DEM with the max. Energy Line Height for every 
+        z_delta     Array like DEM with the max. kinetic Energy Height for every 
                     pixel
-        mass_array  Array with max. concentration factor saved
+        flux_array  Array with max. concentration factor saved
         count_array Array with the number of hits for every pixel
         elh_sum     Array with the sum of Energy Line Height
         back_calc   Array with back calculation, still to do!!!
@@ -220,6 +220,7 @@ def calculation(optTuple):
     np.save(temp_dir + "./res_backcalc_{}_{}".format(optTuple[0], optTuple[1]), backcalc)
       
     print('\n Time needed: ' + str(end - start))
+    print("Finished calculation {}_{}".format(optTuple[0], optTuple[1]))
     
     
 def calculation_effect(optTuple):
@@ -228,8 +229,6 @@ def calculation_effect(optTuple):
     
     Input parameters:
         dem         The digital elevation model
-        header      The header of the elevation model
-        process     Which process to calculate (Avalanche, Rockfall, SoilSlides)     
         release     The list of release arrays
         
     Output parameters:
@@ -246,7 +245,6 @@ def calculation_effect(optTuple):
     dem = np.load(temp_dir + "dem_{}_{}.npy".format(optTuple[0], optTuple[1]))
     release = np.load(temp_dir + "init_{}_{}.npy".format(optTuple[0], optTuple[1]))
     
-
     alpha = float(optTuple[2])
     exp = float(optTuple[3])
     cellsize = float(optTuple[4])
@@ -260,7 +258,7 @@ def calculation_effect(optTuple):
     count_array = np.zeros_like(dem, dtype=np.int32)
     #backcalc = np.zeros_like(dem, dtype=np.int32)
     fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # fp = Flow Path
-    sl_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # sl = Straight Line
+    sl_travelangle_array = np.ones_like(dem, dtype=np.float32) * 90  # sl = Straight Line
 
     # Core
     start = datetime.now().replace(microsecond=0)
@@ -337,7 +335,8 @@ def calculation_effect(optTuple):
     np.save(temp_dir + "./res_fp_{}_{}".format(optTuple[0], optTuple[1]), fp_travelangle_array)
     np.save(temp_dir + "./res_sl_{}_{}".format(optTuple[0], optTuple[1]), sl_travelangle_array)
     
-    logging.info("finished calculation %i_%i", optTuple[0], optTuple[1]) #ToDo!
+    logging.info("finished calculation {}_{}".format(optTuple[0], optTuple[1])) #ToDo!
+    print("Finished calculation {}_{}".format(optTuple[0], optTuple[1]))
     
     end = datetime.now().replace(microsecond=0)        
     print('\n Time needed: ' + str(end - start))
