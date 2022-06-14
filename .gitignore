@@ -36,3 +36,5 @@
 *.rar
 *.tar
 *.zip
+/examples/Arzler/
+/examples/Oberammergau/
