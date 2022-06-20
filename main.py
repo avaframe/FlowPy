@@ -613,7 +613,7 @@ if __name__ == '__main__':
     #argv = ["15", "8", "./examples/dam/", "./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc", "./examples/dam/release_dam.tif", "infra=./examples/dam/infra.tif", "flux=0.0003", "max_z=270"]
     #argv = ["25", "8", "./examples/Arzler/", "./examples/Arzler/arzleralmdhm0101m_clipped.tif", "./examples/Arzler/release.tif"]
     #argv = ["25", "8", "./examples/Oberammergau/", "./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif", "./examples/Oberammergau/release.tif", "max_z=270"]
-    argv = ["25", "8", "./examples/Osttirol/", "./examples/Osttirol/DTM_5m.tif", "./examples/Osttirol/post_VAIA_release_areas_DGM_extend.tif", "max_z=270"]
+    #argv = ["25", "8", "./examples/Osttirol/", "./examples/Osttirol/DTM_5m.tif", "./examples/Osttirol/post_VAIA_release_areas_DGM_extend.tif", "max_z=270"]
     
     if len(argv) < 1:
     	print("Too few input arguments!!!")
