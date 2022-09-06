@@ -86,6 +86,36 @@ def back_calculation(back_cell):
     #print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
     return back_list
 
+def back_calculation_v2(back_calc_list):
+    """Here the back calculation from a run out pixel that hits a infrastructure
+    to the release pixel is performed.
+    
+    Input parameters:
+        hit_cell_list        All cells that hit a Infrastructure
+        
+    Output parameters:
+        Back_list   List of pixels that are on the way to the start cell
+                    Maybe change it to array like DEM?
+    """
+    #start = time.time()
+    #if len(hit_cell_list) > 1:
+        #hit_cell_list.sort(key=lambda cell: cell.altitude, reverse=False)
+        #print("{} Elements sorted!".format(len(hit_cell_list)))
+    back_list = []
+    for back_cell in back_calc_list:
+        if back_cell not in back_list:
+            for parent in back_cell.parent:
+                if parent not in back_list:
+                    back_list.append(parent)
+            for cell in back_list:
+                for parent in cell.parent:
+                    # Check if parent already in list
+                    if parent not in back_list:
+                        back_list.append(parent)
+    #end = time.time()            
+    #print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
+    return back_list
+
     
 def calculation(optTuple):
     """This is the core function where all the data handling and calculation is
@@ -197,13 +227,17 @@ def calculation(optTuple):
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex], cell.sl_gamma)
             
         #Backcalculation
+        back_calc_list = []
+        for cell in cell_list:
             if infra[cell.rowindex, cell.colindex] > 0:
-                #backlist = []
-                back_list = back_calculation(cell)
-
-                for back_cell in back_list:
-                    backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex],
-                                                                           infra[cell.rowindex, cell.colindex])
+                back_calc_list.append(cell)
+                
+        back_list = back_calculation_v2(back_calc_list) # 06.09.22 / MN: back_calc_v2 for Forest as Infra!!!
+        back_list.sort(key=lambda x: x.sl_gamma, reverse=True)
+        
+        for back_cell in back_list:
+            backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex],
+                                                                   1) # 06.09.22 / MN: ToDo, infra integer hinzufügen
         release[z_delta_array > 0] = 0
         # Check if i hit a release Cell, if so set it to zero and get again the indexes of release cells
         row_list, col_list = get_start_idx(dem, release)
