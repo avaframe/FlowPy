@@ -515,7 +515,7 @@ def main(args, kwargs):
     except:
         infra = np.zeros_like(dem)
 
-    del dem, release, infra
+    #del dem, infra
     logging.info('Files read in')
     
     cellsize = header["cellsize"]
@@ -528,49 +528,107 @@ def main(args, kwargs):
     logging.info("Start Tiling.")
     print("Start Tiling...")
     
-    SPAM.tileRaster(dem_path, "dem", temp_dir, tileCOLS, tileROWS, U)
-    SPAM.tileRaster(release_path, "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
-    if infra_bool:
-        SPAM.tileRaster(infra_path, "infra", temp_dir, tileCOLS, tileROWS, U)
+    if header['ncols'] * cellsize > 15000 or header['ncols'] * cellsize > 15000:
     
-    print("Finished Tiling...")    
-    nTiles = pickle.load(open(temp_dir + "nTiles", "rb"))
-
-    optList = []
-    # das hier ist die batch-liste, die von mulitprocessing
-    # abgearbeitet werden muss - sieht so aus:
-    # [(0,0,alpha,exp,cellsize,-9999.),
-    # (0,1,alpha,exp,cellsize,-9999.),
-    # etc.]
-       
-    for i in range(nTiles[0]+1):
-        for j in range(nTiles[1]+1):
-            optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
-
-    # Calculation
-    logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
-    print("{} Processes started and {} calculations to perform.".format(mp.cpu_count() - 1, len(optList)))
-    pool = mp.Pool(mp.cpu_count() - 1)
+        SPAM.tileRaster(dem_path, "dem", temp_dir, tileCOLS, tileROWS, U)
+        SPAM.tileRaster(release_path, "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
+        if infra_bool:
+            SPAM.tileRaster(infra_path, "infra", temp_dir, tileCOLS, tileROWS, U)
         
-    if infra_bool:
-        pool.map(fc.calculation, optList)
-    else:       
-        pool.map(fc.calculation_effect, optList)
-
-    pool.close()
-    pool.join()
-
-    logging.info('Calculation finished, merging results.')
+        print("Finished Tiling...")    
+        nTiles = pickle.load(open(temp_dir + "nTiles", "rb"))
     
-    # Merge calculated tiles
-    z_delta = SPAM.MergeRaster(temp_dir, "res_z_delta")
-    flux = SPAM.MergeRaster(temp_dir, "res_flux")
-    cell_counts = SPAM.MergeRaster(temp_dir, "res_count")
-    z_delta_sum = SPAM.MergeRaster(temp_dir, "res_z_delta_sum")
-    fp_ta = SPAM.MergeRaster(temp_dir, "res_fp")
-    sl_ta = SPAM.MergeRaster(temp_dir, "res_sl")
-    if infra_bool:
-        backcalc = SPAM.MergeRaster(temp_dir, "res_backcalc")
+        optList = []
+        # das hier ist die batch-liste, die von mulitprocessing
+        # abgearbeitet werden muss - sieht so aus:
+        # [(0,0,alpha,exp,cellsize,-9999.),
+        # (0,1,alpha,exp,cellsize,-9999.),
+        # etc.]
+           
+        for i in range(nTiles[0]+1):
+            for j in range(nTiles[1]+1):
+                optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
+    
+        # Calculation
+        logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
+        print("{} Processes started and {} calculations to perform.".format(mp.cpu_count() - 1, len(optList)))
+        pool = mp.Pool(mp.cpu_count() - 1)
+        
+    
+        
+        if infra_bool:
+            pool.map(fc.calculation, optList)
+        else:       
+            pool.map(fc.calculation_effect, optList)
+    
+        pool.close()
+        pool.join()
+        
+
+        logging.info('Calculation finished, merging results.')
+        
+        # Merge calculated tiles
+        z_delta = SPAM.MergeRaster(temp_dir, "res_z_delta")
+        flux = SPAM.MergeRaster(temp_dir, "res_flux")
+        cell_counts = SPAM.MergeRaster(temp_dir, "res_count")
+        z_delta_sum = SPAM.MergeRaster(temp_dir, "res_z_delta_sum")
+        fp_ta = SPAM.MergeRaster(temp_dir, "res_fp")
+        sl_ta = SPAM.MergeRaster(temp_dir, "res_sl")
+        if infra_bool:
+            backcalc = SPAM.MergeRaster(temp_dir, "res_backcalc")
+            
+    else:
+        print("No Tiling!")
+        logging.info("No Tiling!")
+        if infra_bool:
+            release_list = fc.split_release(release, release_header, mp.cpu_count()-1)
+        
+            print("{} Processes started.".format(len(release_list)))
+            pool = mp.Pool(len(release_list))
+            results = pool.map(fc.calculation,
+                               [[dem, header, infra, release_pixel, alpha, exp, flux_threshold, max_z]
+                                for release_pixel in release_list])
+            pool.close()
+            pool.join()
+        else:
+            release_list = fc.split_release(release, release_header, mp.cpu_count()-1)
+        
+            print("{} Processes started.".format(len(release_list)))
+            pool = mp.Pool(mp.cpu_count())
+            # results = pool.map(gc.calculation, iterable)
+            results = pool.map(fc.calculation_effect,
+                               [[dem, header, release_pixel, alpha, exp, flux_threshold, max_z] for
+                                release_pixel in release_list])
+            pool.close()
+            pool.join()
+        
+        z_delta_list = []
+        flux_list = []
+        cc_list = []
+        z_delta_sum_list = []
+        backcalc_list = []
+        fp_ta_list = []
+        sl_ta_list = []
+        for i in range(len(results)):
+            res = results[i]
+            res = list(res)
+            z_delta_list.append(res[0])
+            flux_list.append(res[1])
+            cc_list.append(res[2])
+            z_delta_sum_list.append(res[3])
+            backcalc_list.append(res[4])
+            fp_ta_list.append(res[5])
+            sl_ta_list.append(res[6])
+        
+        logging.info('Calculation finished, getting results.')
+        for i in range(len(z_delta_list)):
+            z_delta = np.maximum(z_delta, z_delta_list[i])
+            flux = np.maximum(flux, flux_list[i])
+            cell_counts += cc_list[i]
+            z_delta_sum += z_delta_sum_list[i]
+            backcalc = np.maximum(backcalc, backcalc_list[i])
+            fp_ta = np.maximum(fp_ta, fp_ta_list[i])
+            sl_ta = np.maximum(sl_ta, sl_ta_list[i])
     
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     logging.info('Writing Output Files')

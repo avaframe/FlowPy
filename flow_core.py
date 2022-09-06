@@ -226,6 +226,17 @@ def calculation(optTuple):
             fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex], cell.max_gamma)
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex], cell.sl_gamma)
             
+            # Backcalculation, Old Version
+# =============================================================================
+#            if infra[cell.rowindex, cell.colindex] > 0:
+#                #backlist = []
+#                back_list = back_calculation(cell)
+# 
+#                for back_cell in back_list:
+#                    backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex],
+#                                                                           infra[cell.rowindex, cell.colindex])
+# =============================================================================
+            
         #Backcalculation
         back_calc_list = []
         for cell in cell_list:
