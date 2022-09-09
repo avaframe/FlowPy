@@ -30,6 +30,7 @@ import multiprocessing as mp
 import logging
 from xml.etree import ElementTree as ET
 import pickle
+import cProfile
 
 # Flow-Py Libraries
 import raster_io as io
@@ -47,12 +48,12 @@ from Flow_GUI import Ui_MainWindow
 class Flow_Py_EXEC():
 
     def __init__(self):
-        
-        app = QApplication(sys.argv) 
+
+        app = QApplication(sys.argv)
         MainWindow = QMainWindow()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(MainWindow)
-        
+
         # self.showMaximized()
         #self.ui.setWindowTitle("Flow-Py")
         #self.ui.setWindowIcon(QIcon('logo.jpg'))
@@ -88,11 +89,11 @@ class Flow_Py_EXEC():
             self.thread_list.append(0)
             self.start_list.append(0)
             self.end_list.append(0)
-            
+
         # show the constructed window
         MainWindow.show()
         sys.exit(app.exec_())
-            
+
     def set_gui_bool(self, bool):
         self.ui.calc_Button.setEnabled(bool)
         self.ui.wDir_lineEdit.setEnabled(bool)
@@ -112,19 +113,19 @@ class Flow_Py_EXEC():
             release = ET.SubElement(root, 'Release')
             infra = ET.SubElement(root, 'Infrastructure')
             forest = ET.SubElement(root, 'Forest')
-    
+
             wdir.set('Directory', 'Working')
             dhm.set('Directory', 'DHM')
             release.set('Directory', 'Release')
             infra.set('Directory', 'Infrastructure')
             forest.set('Directory', 'Forest')
-    
+
             wdir.text = self.ui.wDir_lineEdit.text()
             dhm.text = self.ui.DEM_lineEdit.text()
             release.text = self.ui.release_lineEdit.text()
             infra.text = self.ui.infra_lineEdit.text()
             #forest.text = self.ui.forest_lineEdit.text()
-    
+
             tree = ET.ElementTree(root)
             tree.write(name)
 
@@ -136,28 +137,28 @@ class Flow_Py_EXEC():
         if len(xml_file) != 0:
             tree = ET.parse(xml_file[0])
             root = tree.getroot()
-    
+
             try:
                 self.ui.wDir_lineEdit.setText(root[0].text)
                 self.directory = root[0].text
             except:
                 print("No Working Directory Path in File!")
-    
+
             try:
                 self.ui.DEM_lineEdit.setText(root[1].text)
             except:
                 print("No DEM Path in File!")
-    
+
             try:
                 self.ui.release_lineEdit.setText(root[2].text)
             except:
                 print("No Release Path in File!")
-    
+
             try:
                 self.ui.infra_lineEdit.setText(root[3].text)
             except:
                 print("No Infrastructure Path in File!")
-    
+
             try:
                 self.ui.forest_lineEdit.setText(root[4].text)
             except:
@@ -249,7 +250,7 @@ class Flow_Py_EXEC():
             self.res_dir = ('/res_{}/'.format(time_string))
         except FileExistsError:
             self.res_dir = ('/res_{}/'.format(time_string))
-        
+
         directory = self.ui.wDir_lineEdit.text()
         try:
             os.makedirs(directory + self.res_dir + 'temp/')
@@ -310,35 +311,35 @@ class Flow_Py_EXEC():
             infra = np.zeros_like(dem)
 
         logging.info('Files read in')
-        
+
         cellsize = header["cellsize"]
         nodata = header["noDataValue"]
         del dem, release, infra
-        
+
         tileCOLS = int(15000 / cellsize)
         tileROWS = int(15000 / cellsize)
         U = int(5000 / cellsize) # 5km overlap
-        
+
         logging.info("Start Tiling.")
-        
+
         SPAM.tileRaster(self.ui.DEM_lineEdit.text(), "dem", temp_dir, tileCOLS, tileROWS, U)
         SPAM.tileRaster(self.ui.release_lineEdit.text(), "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
         if self.infra_bool:
             SPAM.tileRaster(self.ui.infra_lineEdit.text(), "infra", temp_dir, tileCOLS, tileROWS, U)
-            
+
         nTiles = pickle.load(open(temp_dir + "nTiles", "rb"))
 
         alpha = self.ui.alpha_Edit.text()
         exp = self.ui.exp_Edit.text()
         flux_threshold = self.ui.flux_Edit.text()
         max_z = self.ui.z_Edit.text()
-        
+
         logging.info('Alpha Angle: {}'.format(alpha))
         logging.info('Exponent: {}'.format(exp))
         logging.info('Flux Threshold: {}'.format(flux_threshold))
         logging.info('Max Z_delta: {}'.format(max_z))
         logging.info
-        
+
 # =============================================================================
 #         self.z_delta = np.zeros_like(dem, dtype=np.float32)
 #         self.flux = np.zeros_like(dem, dtype=np.float32)
@@ -348,14 +349,14 @@ class Flow_Py_EXEC():
 #         self.fp_ta = np.zeros_like(dem, dtype=np.float32)
 #         self.sl_ta = np.zeros_like(dem, dtype=np.float32)
 # =============================================================================
-        
+
         optList = []
         # das hier ist die batch-liste, die von mulitprocessing
         # abgearbeitet werden muss - sieht so aus:
         # [(0,0,alpha,exp,cellsize,-9999.),
         # (0,1,alpha,exp,cellsize,-9999.),
         # etc.]
-           
+
         for i in range(nTiles[0]+1):
             for j in range(nTiles[1]+1):
                 optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
@@ -416,7 +417,7 @@ class Flow_Py_EXEC():
 
 
 def main(args, kwargs):
-    
+
 
     alpha = args[0]
     exp = args[1]
@@ -428,13 +429,13 @@ def main(args, kwargs):
         #print(infra_path)
     else:
         infra_path = None
-        
+
     if 'flux' in kwargs:
         flux_threshold = float(kwargs.get('flux'))
         #print(flux_threshold)
     else:
         flux_threshold = 3 * 10 ** -4
-        
+
     if 'max_z' in kwargs:
         max_z = kwargs.get('max_z')
         #print(max_z)
@@ -457,7 +458,7 @@ def main(args, kwargs):
         res_dir = ('res_{}/'.format(time_string))
     except FileExistsError:
         res_dir = ('res_{}/'.format(time_string))
-        
+
     try:
         os.makedirs(directory + res_dir + 'temp/')
         temp_dir = (directory + res_dir + 'temp/')
@@ -517,56 +518,59 @@ def main(args, kwargs):
 
     #del dem, infra
     logging.info('Files read in')
-    
+
     cellsize = header["cellsize"]
     nodata = header["noDataValue"]
-    
+
     tileCOLS = int(15000 / cellsize)
     tileROWS = int(15000 / cellsize)
     U = int(5000 / cellsize) # 5km overlap
-    
-    logging.info("Start Tiling.")
-    print("Start Tiling...")
-    
-    if header['ncols'] * cellsize > 15000 or header['ncols'] * cellsize > 15000:
-    
+
+
+
+    if (header['ncols'] * cellsize > 15000) or (header['nrows'] * cellsize > 15000):
+
+        logging.info("Tiling is ON, because DEM dimensions larger than 15km in x and/or y")
+        logging.info("Start Tiling.")
+        print("Start Tiling...")
+
         SPAM.tileRaster(dem_path, "dem", temp_dir, tileCOLS, tileROWS, U)
         SPAM.tileRaster(release_path, "init", temp_dir, tileCOLS, tileROWS, U, isInit=True)
         if infra_bool:
             SPAM.tileRaster(infra_path, "infra", temp_dir, tileCOLS, tileROWS, U)
-        
-        print("Finished Tiling...")    
+
+        print("Finished Tiling...")
         nTiles = pickle.load(open(temp_dir + "nTiles", "rb"))
-    
+
         optList = []
         # das hier ist die batch-liste, die von mulitprocessing
         # abgearbeitet werden muss - sieht so aus:
         # [(0,0,alpha,exp,cellsize,-9999.),
         # (0,1,alpha,exp,cellsize,-9999.),
         # etc.]
-           
+
         for i in range(nTiles[0]+1):
             for j in range(nTiles[1]+1):
                 optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
-    
+
         # Calculation
         logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
         print("{} Processes started and {} calculations to perform.".format(mp.cpu_count() - 1, len(optList)))
         pool = mp.Pool(mp.cpu_count() - 1)
-        
-    
-        
+
+
+
         if infra_bool:
             pool.map(fc.calculation, optList)
-        else:       
+        else:
             pool.map(fc.calculation_effect, optList)
-    
+
         pool.close()
         pool.join()
-        
+
 
         logging.info('Calculation finished, merging results.')
-        
+
         # Merge calculated tiles
         z_delta = SPAM.MergeRaster(temp_dir, "res_z_delta")
         flux = SPAM.MergeRaster(temp_dir, "res_flux")
@@ -576,32 +580,40 @@ def main(args, kwargs):
         sl_ta = SPAM.MergeRaster(temp_dir, "res_sl")
         if infra_bool:
             backcalc = SPAM.MergeRaster(temp_dir, "res_backcalc")
-            
+
     else:
         print("No Tiling!")
         logging.info("No Tiling!")
         if infra_bool:
             release_list = fc.split_release(release, release_header, mp.cpu_count()-1)
-        
+
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(len(release_list))
-            results = pool.map(fc.calculation,
+            results = pool.map(fc.calculation_small,
                                [[dem, header, infra, release_pixel, alpha, exp, flux_threshold, max_z]
                                 for release_pixel in release_list])
             pool.close()
             pool.join()
         else:
             release_list = fc.split_release(release, release_header, mp.cpu_count()-1)
-        
+
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(mp.cpu_count())
             # results = pool.map(gc.calculation, iterable)
-            results = pool.map(fc.calculation_effect,
+            results = pool.map(fc.calculation_effect_small,
                                [[dem, header, release_pixel, alpha, exp, flux_threshold, max_z] for
                                 release_pixel in release_list])
             pool.close()
             pool.join()
-        
+
+        z_delta = np.zeros_like(dem)
+        flux = np.zeros_like(dem)
+        cell_counts = np.zeros_like(dem)
+        z_delta_sum = np.zeros_like(dem)
+        backcalc = np.zeros_like(dem)
+        fp_ta = np.zeros_like(dem)
+        sl_ta = np.zeros_like(dem)
+#
         z_delta_list = []
         flux_list = []
         cc_list = []
@@ -619,7 +631,7 @@ def main(args, kwargs):
             backcalc_list.append(res[4])
             fp_ta_list.append(res[5])
             sl_ta_list.append(res[6])
-        
+
         logging.info('Calculation finished, getting results.')
         for i in range(len(z_delta_list)):
             z_delta = np.maximum(z_delta, z_delta_list[i])
@@ -629,7 +641,7 @@ def main(args, kwargs):
             backcalc = np.maximum(backcalc, backcalc_list[i])
             fp_ta = np.maximum(fp_ta, fp_ta_list[i])
             sl_ta = np.maximum(sl_ta, sl_ta_list[i])
-    
+
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     logging.info('Writing Output Files')
     output_format = '.tif'
@@ -672,7 +684,7 @@ if __name__ == '__main__':
     #argv = ["25", "8", "./examples/Arzler/", "./examples/Arzler/arzleralmdhm0101m_clipped.tif", "./examples/Arzler/release.tif"]
     #argv = ["25", "8", "./examples/Oberammergau/", "./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif", "./examples/Oberammergau/release.tif", "max_z=270"]
     #argv = ["25", "8", "./examples/Osttirol/", "./examples/Osttirol/DTM_5m.tif", "./examples/Osttirol/post_VAIA_release_areas_DGM_extend.tif", "max_z=270"]
-    
+
     if len(argv) < 1:
     	print("Too few input arguments!!!")
     	sys.exit(1)
@@ -682,7 +694,9 @@ if __name__ == '__main__':
         args=[arg for arg in argv if arg.find('=')<0]
         kwargs={kw[0]:kw[1] for kw in [ar.split('=') for ar in argv if ar.find('=')>0]}
 
+        #with cProfile.Profile() as cpr:
         main(args, kwargs)
-    
+        #cpr.dump_stats('~/profilingTest.pstats')
+
 # example dam: python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
 # example dam: python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.0003 max_z=270
