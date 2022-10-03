@@ -23,6 +23,7 @@ Created on Mon May  7 14:23:00 2018
 import os
 import sys
 import psutil
+import shutil
 import numpy as np
 from datetime import datetime
 from multiprocessing import cpu_count
@@ -364,7 +365,7 @@ class Flow_Py_EXEC():
         # Calculation
         self.calc_class = Sim.Simulation(optList, self.infra_bool)
         self.calc_class.finished.connect(self.thread_finished)
-        logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
+        logging.info('Multiprocessing starts, used cores: {}'.format(nCPU))
         self.calc_class.start()
 
     def thread_finished(self):
@@ -418,7 +419,6 @@ class Flow_Py_EXEC():
 
 def main(args, kwargs):
 
-
     alpha = args[0]
     exp = args[1]
     directory = args[2]
@@ -445,6 +445,13 @@ def main(args, kwargs):
                 # Avalanche = 270
                 # Rockfall = 50
                 # Soil Slide = 12
+    if 'maxCores' in kwargs:
+        if kwargs.get('maxCores') == 'all':
+            nCPU = mp.cpu_count()
+        else:
+            nCPU = mp.cpu_count()-1 #leaving 1 core "open" by default
+    else:
+        nCPU = mp.cpu_count()-1 #leaving 1 core "open" by default
 
     print("Starting...")
     print("...")
@@ -476,12 +483,13 @@ def main(args, kwargs):
                         filemode='w')
 
     # Start of Calculation
+    logging.info("--FlowPy development Version 'schuwa'--") #useful to utilized the Version of FlowPy
     logging.info('Start Calculation')
     logging.info('Alpha Angle: {}'.format(alpha))
     logging.info('Exponent: {}'.format(exp))
     logging.info('Flux Threshold: {}'.format(flux_threshold))
     logging.info('Max Z_delta: {}'.format(max_z))
-    logging.info
+    #logging.info
     # Read in raster files
     try:
         dem, header = io.read_raster(dem_path)
@@ -521,14 +529,13 @@ def main(args, kwargs):
 
     cellsize = header["cellsize"]
     nodata = header["noDataValue"]
-
     tileCOLS = int(15000 / cellsize)
     tileROWS = int(15000 / cellsize)
     U = int(5000 / cellsize) # 5km overlap
 
 
 
-    if (header['ncols'] * cellsize > 15000) or (header['nrows'] * cellsize > 15000):
+    if (header['ncols'] * cellsize > 25000) or (header['nrows'] * cellsize > 25000):
 
         logging.info("Tiling is ON, because DEM dimensions larger than 15km in x and/or y")
         logging.info("Start Tiling.")
@@ -554,9 +561,9 @@ def main(args, kwargs):
                 optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
 
         # Calculation
-        logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
-        print("{} Processes started and {} calculations to perform.".format(mp.cpu_count() - 1, len(optList)))
-        pool = mp.Pool(mp.cpu_count() - 1)
+        logging.info('Multiprocessing starts, used cores: {}'.format(nCPU)) #this is only correct if number of tiles >= number of available cores!!
+        print("{} Processes started and {} calculations to perform.".format(nCPU, len(optList)))
+        pool = mp.Pool(nCPU)
 
 
 
@@ -585,7 +592,7 @@ def main(args, kwargs):
         print("No Tiling!")
         logging.info("No Tiling!")
         if infra_bool:
-            release_list = fc.split_release(release, release_header, mp.cpu_count()-1)
+            release_list = fc.split_release(release, release_header, nCPU)
 
             print("{} Processes started.".format(len(release_list)))
             pool = mp.Pool(len(release_list))
@@ -595,10 +602,10 @@ def main(args, kwargs):
             pool.close()
             pool.join()
         else:
-            release_list = fc.split_release(release, release_header, mp.cpu_count()-1)
+            release_list = fc.split_release(release, release_header, nCPU)
 
             print("{} Processes started.".format(len(release_list)))
-            pool = mp.Pool(mp.cpu_count())
+            pool = mp.Pool(nCPU)
             # results = pool.map(gc.calculation, iterable)
             results = pool.map(fc.calculation_effect_small,
                                [[dem, header, release_pixel, alpha, exp, flux_threshold, max_z] for
@@ -673,6 +680,12 @@ def main(args, kwargs):
     print("...")
     end = datetime.now().replace(microsecond=0)
     logging.info('Calculation needed: ' + str(end - start) + ' seconds')
+    logging.info('Deleting temp folder "%s" ...'%temp_dir)
+    try:
+        shutil.rmtree(temp_dir)
+        logging.info('Deleted temp folder "%s"'%temp_dir)
+    except OSError as e:
+        print ("Error: %s : %s" %(temp_dir, e.strerror))
 
 
 if __name__ == '__main__':
