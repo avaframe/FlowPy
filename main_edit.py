@@ -252,10 +252,10 @@ class Flow_Py_EXEC():
         # Create result directory
         time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
         try:
-            os.makedirs(self.ui.wDir_lineEdit.text() + '/res_{}/'.format(time_string))
-            self.res_dir = ('/res_{}/'.format(time_string))
+            os.makedirs(self.ui.wDir_lineEdit.text() + '/result/')
+            self.res_dir = ('/result/')
         except FileExistsError:
-            self.res_dir = ('/res_{}/'.format(time_string))
+            self.res_dir = ('/result/')
 
             # Setup logger
 
@@ -353,13 +353,6 @@ class Flow_Py_EXEC():
         logging.info('Calculation finished, getting results.')
         for i in range(len(z_delta)):
             self.z_delta = np.maximum(self.z_delta, z_delta[i])
-        #CH
-            #self.travel_length = np.maximum(travel_length, travel_length_list[i])
-            self.travel_length = np.maximum(travel_length, travel_length[i])
-        #ende
-        #ch alti
-            self.altitude_diff_array = np.maximum(altitude_diff, altitude_diff[i])
-        #ch alti
             self.flux = np.maximum(self.flux, flux[i])
             self.cell_counts += count_array[i]
             self.z_delta_sum += z_delta_sum[i]
@@ -377,16 +370,6 @@ class Flow_Py_EXEC():
         io.output_raster(self.ui.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "z_delta{}".format(self.ui.outputBox.currentText()),
                          self.z_delta)
-    #CH
-        io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "travel_length{}".format(self.ui.outputBox.currentText()),
-                         self.travel_length)
-    #ende
-    #ch alti
-        io.output_raster(self.ui.DEM_lineEdit.text(),
-                         self.directory + self.res_dir + "altitude_diff{}".format(self.ui.outputBox.currentText()),
-                         self.altitude_diff)
-    #ch alti
         io.output_raster(self.ui.DEM_lineEdit.text(),
                          self.directory + self.res_dir + "FP_travel_angle{}".format(self.ui.outputBox.currentText()),
                          self.fp_ta)
@@ -458,10 +441,10 @@ def main(args, kwargs):
     # Create result directory
     time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     try:
-        os.makedirs(directory + '/res_{}/'.format(time_string))
-        res_dir = ('/res_{}/'.format(time_string))
+        os.makedirs(directory + '/result/')
+        res_dir = ('/result/')
     except FileExistsError:
-        res_dir = ('/res_{}/'.format(time_string))
+        res_dir = ('/result/')
 
     # Setup logger
     for handler in logging.root.handlers[:]:
@@ -529,12 +512,6 @@ def main(args, kwargs):
     logging.info('Files read in')
 
     z_delta = np.zeros_like(dem)
-    #JT 
-    travel_length = np.zeros_like(dem)
-    #ende
-    #ch alti
-    altitude_diff = np.zeros_like(dem)
-    #ch alti
     flux = np.zeros_like(dem)
     cell_counts = np.zeros_like(dem)
     z_delta_sum = np.zeros_like(dem)
@@ -583,12 +560,6 @@ def main(args, kwargs):
     backcalc_list = []
     fp_ta_list = []
     sl_ta_list = []
-    #JT
-    travel_length_list = []
-    #ende
-    #ch alti
-    altitude_diff_list = []
-    #ch alti
     for i in range(len(results)):
         res = results[i]
         res = list(res)
@@ -599,30 +570,16 @@ def main(args, kwargs):
         backcalc_list.append(res[4])
         fp_ta_list.append(res[5])
         sl_ta_list.append(res[6])
-	#JT
-        #travel_length_list.append(res[7])
-        travel_length_list.append(res[7])
-	#ende
-        altitude_diff_list.append(res[8])
 
-
-	
     logging.info('Calculation finished, getting results.')
     for i in range(len(z_delta_list)):
         z_delta = np.maximum(z_delta, z_delta_list[i])
-        #JT
-        travel_length = np.maximum(travel_length, travel_length_list[i])
-        #ende
-        #ch alti
-        altitude_diff = np.maximum(altitude_diff, altitude_diff_list[i])
-        #ch alti
         flux = np.maximum(flux, flux_list[i])
         cell_counts += cc_list[i]
         z_delta_sum += z_delta_sum_list[i]
         backcalc = np.maximum(backcalc, backcalc_list[i])
         fp_ta = np.maximum(fp_ta, fp_ta_list[i])
         sl_ta = np.maximum(sl_ta, sl_ta_list[i])
-        #print(z_delta_list[i])
 
 
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -634,16 +591,6 @@ def main(args, kwargs):
     io.output_raster(dem_path,
                      directory + res_dir + "z_delta{}".format(output_format),
                      z_delta)
-    #JT
-    io.output_raster(dem_path,
-                     directory + res_dir + "travel_length{}".format(output_format),
-                     travel_length)
-    #ende                                     
-    #ch alti
-    io.output_raster(dem_path,
-                     directory + res_dir + "altitude_diff{}".format(output_format),
-                     altitude_diff)
-    #ch alti
     io.output_raster(dem_path,
                      directory + res_dir + "FP_travel_angle{}".format(output_format),
                      fp_ta)

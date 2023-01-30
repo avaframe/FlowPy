@@ -8,11 +8,11 @@ Created on Fri Feb 26 11:31:27 2021
 import raster_io as io
 import numpy as np
 
-dem, header = io.read_raster("./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif")
-slope, slope_header = io.read_raster("./examples/Oberammergau/slope.tif")
+dem, header = io.read_raster("./examples/ValsGries/PAR6_Vals_Gries_dtm_10_utm32n_bil_.tif")
+slope, slope_header = io.read_raster("./examples/ValsGries/slope.asc")
 
 release = np.zeros_like(dem)
 
-release[(dem > 1500) & (slope > 40) & (slope < 55)] = 1 
+release[(dem > 1800) & (slope > 30) & (slope < 35)] = 1 
 
-io.output_raster("./examples/Oberammergau/PAR3_OAG_DGM_utm32n.tif", "examples/Oberammergau/release.tif", release)
+io.output_raster("./examples/ValsGries/PAR6_Vals_Gries_dtm_10_utm32n_bil_.tif", "release.tif", release)

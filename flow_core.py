@@ -32,7 +32,6 @@ of DEM, return arrays)
 import sys
 import numpy as np
 from datetime import datetime
-import logging
 from flow_class import Cell
 
 
@@ -86,15 +85,70 @@ def back_calculation(back_cell):
     #print('\n Backcalculation needed: ' + str(end - start) + ' seconds')
     return back_list
 
+
+def divide_chunks(l, n):
+    """Splitting release list in equivalent sub lists, was done before 
+    split_release, maybe don't needed anymore... """
+    for i in range(0, len(l), n):
+        yield l[i:i+n]
+
+
+def split_release(release, header_release, pieces):
+    """Split the release layer in several tiles, the number is depending on the
+    available CPU Cores, so every Core gets one tile. The area is determined by
+    the number of release pixels in it, so that every tile has the same amount
+    of release pixels in it. Splitting in x(Columns) direction. 
+    The release tiles have still the size of the original layer, so no split
+    for the DEM is needed.
     
-def calculation(optTuple):
+    Input parameters: 
+        release         the release layer with release pixels as int > 0
+        header_release  the header of the release layer to identify the 
+                        noDataValue
+                        
+    Output parameters:
+        release_list    A list with the tiles(arrays) in it [array0, array1, ..]
+        """
+        
+    nodata = header_release["noDataValue"]
+    if nodata:
+        release[release == nodata] = 0
+    else:
+        print("Release Layer has no No Data Value, negative Value asumed!")
+        release[release < 0] = 0
+    release[release > 1] = 1
+    summ = np.sum(release) # Count number of release pixels
+    print("Number of release pixels: ", summ)
+    sum_per_split = summ/pieces  # Divide the number by avaiable Cores
+    release_list = []
+    breakpoint_x = 0
+
+    for i in range(breakpoint_x, release.shape[1]):
+        if len(release_list) == (pieces - 1):
+            c = np.zeros_like(release)
+            c[:, breakpoint_x:] = release[:, breakpoint_x:]
+            release_list.append(c)
+            break
+        if np.sum(release[:, breakpoint_x:i]) < sum_per_split:
+            continue
+        else:
+            c = np.zeros_like(release)
+            c[:, breakpoint_x:i] = release[:, breakpoint_x:i]
+            release_list.append(c)
+            print("Release Split from {} to {}".format(breakpoint_x, i))
+            breakpoint_x = i
+
+    return release_list
+
+    
+def calculation(args):
     """This is the core function where all the data handling and calculation is
     done. 
     
     Input parameters:
         dem         The digital elevation model
         header      The header of the elevation model
-        forest      The forest layer
+        infras      The infrastructure layer
         process     Which process to calculate (Avalanche, Rockfall, SoilSlides)     
         release     The list of release arrays
         alpha
@@ -103,35 +157,43 @@ def calculation(optTuple):
         max_z_delta
         
     Output parameters:
-        z_delta     Array like DEM with the max. kinetic Energy Height for every 
-                    pixel
-        flux_array  Array with max. concentration factor saved
+        z_delta_array   Array like DEM with the max. Energy Line Height for every 
+                        pixel
+        z_delta_sum     Array...
+        mass_array  Array with max. concentration factor saved
         count_array Array with the number of hits for every pixel
         elh_sum     Array with the sum of Energy Line Height
         back_calc   Array with back calculation, still to do!!!
         """
-    temp_dir = optTuple[8]
     
-    dem = np.load(temp_dir + "dem_{}_{}.npy".format(optTuple[0], optTuple[1]))
-    release = np.load(temp_dir + "init_{}_{}.npy".format(optTuple[0], optTuple[1]))
-    infra = np.load(temp_dir + "infra_{}_{}.npy".format(optTuple[0], optTuple[1]))
+    dem = args[0]
+    header = args[1]
+    infra = args[2]
+    forest = args[3]
+    release = args[4]
+    alpha = args[5]
+    exp = args[6]
+    flux_threshold = args[7]
+    max_z_delta = args[8]
+    #print(len(args), max_z_delta)
     
-    alpha = float(optTuple[2])
-    exp = float(optTuple[3])
-    cellsize = float(optTuple[4])
-    nodata = float(optTuple[5])
-    flux_threshold = float(optTuple[6])
-    max_z_delta = float(optTuple[7])
-    
-    z_delta_array = np.zeros_like(dem, dtype=np.float32)
-    z_delta_sum = np.zeros_like(dem, dtype=np.float32)
-    flux_array = np.zeros_like(dem, dtype=np.float32)
-    count_array = np.zeros_like(dem, dtype=np.int32)
-    backcalc = np.zeros_like(dem, dtype=np.int32)
-    fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # fp = Flow Path
-    sl_travelangle_array = np.zeros_like(dem, dtype=np.float32) * 90  # sl = Straight Line
-    
+    # JT PROGRAMMIERT CRAZY STUFF
+    #ch alti
+    altitude_diff_array = np.zeros_like(dem)
+    #ch alti
+    travel_length_array = np.zeros_like(dem)
+    # JT ENDE
+    z_delta_array = np.zeros_like(dem)
+    z_delta_sum = np.zeros_like(dem)
+    flux_array = np.zeros_like(dem)
+    count_array = np.zeros_like(dem)
+    backcalc = np.zeros_like(dem)
+    fp_travelangle_array = np.zeros_like(dem)
+    sl_travelangle_array = np.ones_like(dem) * 90
     back_list = []
+
+    cellsize = header["cellsize"]
+    nodata = header["noDataValue"]
 
     # Core
     start = datetime.now().replace(microsecond=0)
@@ -159,7 +221,7 @@ def calculation(optTuple):
         cell_list.append(startcell)
 
         for idx, cell in enumerate(cell_list):
-            row, col, flux, z_delta = cell.calc_distribution()
+            row, col, flux, z_delta = cell.distribution()
 
             if len(flux) > 0:
                 # mass, row, col  = list(zip(*sorted(zip( mass, row, col), reverse=False)))
@@ -188,10 +250,15 @@ def calculation(optTuple):
                     continue
                 cell_list.append(
                     Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
-
+	    # JT PROGRAMMIERT CRAZY STUFF
+        # ch alti
+            altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.altitude_diff) 
+        #ch alti
+            travel_length_array[cell.rowindex, cell.colindex] = max(travel_length_array[cell.rowindex, cell.colindex], cell.min_distance)
+	    # JT ENDE
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
             flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex], cell.flux)
-            count_array[cell.rowindex, cell.colindex] += int(1)
+            count_array[cell.rowindex, cell.colindex] += 1
             z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
             fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex], cell.max_gamma)
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex], cell.sl_gamma)
@@ -208,57 +275,61 @@ def calculation(optTuple):
         # Check if i hit a release Cell, if so set it to zero and get again the indexes of release cells
         row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
-    end = datetime.now().replace(microsecond=0) 
-
-    # Save Calculated tiles
-    np.save(temp_dir + "./res_z_delta_{}_{}".format(optTuple[0], optTuple[1]), z_delta_array)
-    np.save(temp_dir + "./res_z_delta_sum_{}_{}".format(optTuple[0], optTuple[1]), z_delta_sum)
-    np.save(temp_dir + "./res_flux_{}_{}".format(optTuple[0], optTuple[1]), flux_array)    
-    np.save(temp_dir + "./res_count_{}_{}".format(optTuple[0], optTuple[1]), count_array)
-    np.save(temp_dir + "./res_fp_{}_{}".format(optTuple[0], optTuple[1]), fp_travelangle_array)
-    np.save(temp_dir + "./res_sl_{}_{}".format(optTuple[0], optTuple[1]), sl_travelangle_array)
-    np.save(temp_dir + "./res_backcalc_{}_{}".format(optTuple[0], optTuple[1]), backcalc)
-      
+    end = datetime.now().replace(microsecond=0)
+    #elh_multi[elh_multi == 1] = 0         
     print('\n Time needed: ' + str(end - start))
-    print("Finished calculation {}_{}".format(optTuple[0], optTuple[1]))
+    #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array
+    #JT CRAZY STUFF
+    #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array
+    #JT ENDE
+    #ch alti
+    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array, altitude_diff_array
+    #ch alti
     
-    
-def calculation_effect(optTuple):
+def calculation_effect(args):
     """This is the core function where all the data handling and calculation is
     done. 
     
     Input parameters:
         dem         The digital elevation model
+        header      The header of the elevation model
+        process     Which process to calculate (Avalanche, Rockfall, SoilSlides)     
         release     The list of release arrays
         
     Output parameters:
-        z_delta        Array like DEM with the max. Energy Line Height for every 
+        elh         Array like DEM with the max. Energy Line Height for every 
                     pixel
-        flux_array  Array with max. concentration factor saved
+        mass_array  Array with max. concentration factor saved
         count_array Array with the number of hits for every pixel
-        z_delta_sum     Array with the sum of Energy Line Height
+        elh_sum     Array with the sum of Energy Line Height
         back_calc   Array with back calculation, still to do!!!
         """
     
-    temp_dir = optTuple[8]
-    
-    dem = np.load(temp_dir + "dem_{}_{}.npy".format(optTuple[0], optTuple[1]))
-    release = np.load(temp_dir + "init_{}_{}.npy".format(optTuple[0], optTuple[1]))
-    
-    alpha = float(optTuple[2])
-    exp = float(optTuple[3])
-    cellsize = float(optTuple[4])
-    nodata = float(optTuple[5])
-    flux_threshold = float(optTuple[6])
-    max_z_delta = float(optTuple[7])
-    
-    z_delta_array = np.zeros_like(dem, dtype=np.float32)
-    z_delta_sum = np.zeros_like(dem, dtype=np.float32)
-    flux_array = np.zeros_like(dem, dtype=np.float32)
-    count_array = np.zeros_like(dem, dtype=np.int32)
-    #backcalc = np.zeros_like(dem, dtype=np.int32)
-    fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # fp = Flow Path
-    sl_travelangle_array = np.ones_like(dem, dtype=np.float32) * 90  # sl = Straight Line
+    dem = args[0]
+    header = args[1]
+    forest = args[2]
+    release = args[3]
+    alpha = args[4]
+    exp = args[5]
+    flux_threshold = args[6]
+    max_z_delta = args[7]
+
+    # CH PROGRAMMIERT CRAZY STUFF
+    #ch alti
+    altitude_diff_array = np.zeros_like(dem)
+    #ch alti
+    travel_length_array = np.zeros_like(dem)
+    # CH ENDE
+    z_delta_array = np.zeros_like(dem)
+    z_delta_sum = np.zeros_like(dem)
+    flux_array = np.zeros_like(dem)
+    count_array = np.zeros_like(dem)
+    backcalc = np.zeros_like(dem)
+    fp_travelangle_array = np.zeros_like(dem)  # fp = Flow Path
+    sl_travelangle_array = np.zeros_like(dem)  # sl = Straight Line
+
+    cellsize = header["cellsize"]
+    nodata = header["noDataValue"]
 
     # Core
     start = datetime.now().replace(microsecond=0)
@@ -279,7 +350,8 @@ def calculation_effect(optTuple):
             startcell_idx += 1
             continue
 
-        startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, None,
+        startcell = Cell(row_idx, col_idx, dem_ng, forest[row_idx, col_idx], 
+                         cellsize, 1, 0, None,
                          alpha, exp, flux_threshold, max_z_delta, True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
@@ -312,9 +384,18 @@ def calculation_effect(optTuple):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
+                    Cell(row[k], col[k], dem_ng, forest[row[k], col[k]],
+                         cellsize, flux[k], z_delta[k], cell, alpha, exp, 
+                         flux_threshold, max_z_delta, startcell))
 
         for cell in cell_list:
+	    # ch PROGRAMMIERT CRAZY STUFF
+            #ch alti
+            #altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.startcell.altitude - cell.altitude) 
+            altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.altitutde_diff) 
+            #ch alti
+            travel_length_array[cell.rowindex, cell.colindex] = max(travel_length_array[cell.rowindex, cell.colindex], cell.min_distance)
+	    # CH ENDE
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
             flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
                                                            cell.flux)
@@ -326,18 +407,14 @@ def calculation_effect(optTuple):
                                                                      cell.sl_gamma)
 
         startcell_idx += 1
-    
-    # Save Calculated tiles
-    np.save(temp_dir + "./res_z_delta_{}_{}".format(optTuple[0], optTuple[1]), z_delta_array)
-    np.save(temp_dir + "./res_z_delta_sum_{}_{}".format(optTuple[0], optTuple[1]), z_delta_sum)
-    np.save(temp_dir + "./res_flux_{}_{}".format(optTuple[0], optTuple[1]), flux_array)    
-    np.save(temp_dir + "./res_count_{}_{}".format(optTuple[0], optTuple[1]), count_array)
-    np.save(temp_dir + "./res_fp_{}_{}".format(optTuple[0], optTuple[1]), fp_travelangle_array)
-    np.save(temp_dir + "./res_sl_{}_{}".format(optTuple[0], optTuple[1]), sl_travelangle_array)
-    
-    logging.info("finished calculation {}_{}".format(optTuple[0], optTuple[1])) #ToDo!
-    print("Finished calculation {}_{}".format(optTuple[0], optTuple[1]))
-    
     end = datetime.now().replace(microsecond=0)        
     print('\n Time needed: ' + str(end - start))
+    #CH 
     #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array
+    #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array
+    #CH ENDE
+    #ch alti
+    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array, altitude_diff_array
+    #ch alti
+    
+    
