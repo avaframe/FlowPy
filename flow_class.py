@@ -55,12 +55,12 @@ class Cell:
         self.sl_gamma = 0    
         # Parameters for Forest Friction, right now use it just for avalanches   
         #self.alpha_forest = 10  # Max added friction angel
-        self.max_added_friction_forest = 10 # degrees added to friction angle
+        self.max_added_friction_forest = 20 # degrees added to friction angle
         self.min_added_friction_forest = 2 # minimium effect forested terrain can have
-        self.no_friction_effect_v = 30 # velocity shared for friction and detrainment methods
+        self.no_friction_effect_v = 100 # velocity shared for friction and detrainment methods
         self.max_added_detrainment_forest = 0.0003 #
         self.min_added_detrainment_forest = 0.00001
-        self.no_detrainmnet_effect_v = 30 #
+        self.no_detrainmnet_effect_v = 100 #
 
         if type(startcell) == bool:  # check, if start cell exist (start cell is release point)
             self.is_start = True  # set is_start to True
