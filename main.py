@@ -585,6 +585,7 @@ def main(args, kwargs):
     # time_string = datetime.now().strftime("%Y%m%d_%H%M%S")
     logging.info('Writing Output Files')
     output_format = '.tif'
+    res_dir = 'res'
     io.output_raster(dem_path,
                      directory + res_dir + "flux{}".format(output_format),
                      flux)
