@@ -2,5 +2,5 @@ from setuptools import setup
 from Cython.Build import cythonize
 
 setup(
-    ext_modules = cythonize("flow_class.pyx")
+    ext_modules = cythonize("flow_class.pyx", annotate=True)
 )
