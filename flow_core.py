@@ -35,7 +35,6 @@ from datetime import datetime
 import logging
 from flow_class import Cell
 
-
 def get_start_idx(dem, release):
     """Sort Release Pixels by altitude and return the result as lists for the
     Rows and Columns, starting with the highest altitude
