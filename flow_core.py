@@ -550,9 +550,9 @@ def calculation_small(args):
                 for back_cell in back_list:
                     backcalc[back_cell.rowindex, back_cell.colindex] = max(backcalc[back_cell.rowindex, back_cell.colindex],
                                                                            infra[cell.rowindex, cell.colindex])
-        release[z_delta_array > 0] = 0
+        #release[z_delta_array > 0] = 0
         # Check if i hit a release Cell, if so set it to zero and get again the indexes of release cells
-        %row_list, col_list = get_start_idx(dem, release)
+        #row_list, col_list = get_start_idx(dem, release)
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)
     #elh_multi[elh_multi == 1] = 0
