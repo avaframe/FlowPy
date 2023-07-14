@@ -581,10 +581,10 @@ def calculation_effect_small(args):
     dem = args[0]
     header = args[1]
     release = args[2]
-    alpha = args[3]
-    exp = args[4]
-    flux_threshold = args[5]
-    max_z_delta = args[6]
+    alpha = float(args[3])
+    exp = float(args[4])
+    flux_threshold = float(args[5])
+    max_z_delta = float(args[6])
 
     z_delta_array = np.zeros_like(dem)
     z_delta_sum = np.zeros_like(dem)
@@ -604,9 +604,9 @@ def calculation_effect_small(args):
     startcell_idx = 0
     while startcell_idx < len(row_list):
 
-        sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx + 1) + " of " + str(len(row_list)) + " = " + str(
-            round((startcell_idx + 1) / len(row_list) * 100, 2)) + "%" '\r')
-        sys.stdout.flush()
+        #sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx + 1) + " of " + str(len(row_list)) + " = " + str(
+        #    round((startcell_idx + 1) / len(row_list) * 100, 2)) + "%" '\r')
+        #sys.stdout.flush()
 
         cell_list = []
         row_idx = row_list[startcell_idx]
@@ -616,14 +616,19 @@ def calculation_effect_small(args):
             startcell_idx += 1
             continue
 
-        startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, None,
-                         alpha, exp, flux_threshold, max_z_delta, True)
+        #startcell = Cell(row_idx, col_idx, dem_ng, cellsize, 1, 0, None,
+        #                 alpha, exp, flux_threshold, max_z_delta, True)
+        startcell=Cell(row_idx, col_idx, cellsize, dem_ng, 1,0, 
+                       alpha, exp, flux_threshold, max_z_delta,
+                       is_start=True, parent = None, startcell = None)
+        
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)
 
         for idx, cell in enumerate(cell_list):
             row, col, flux, z_delta = cell.calc_distribution()
+            print(row,col,flux,z_delta)
 
             if len(flux) > 0:
                 z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
@@ -649,7 +654,10 @@ def calculation_effect_small(args):
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
                 cell_list.append(
-                    Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
+                    Cell(row_idx, col_idx, cellsize, dem_ng, flux[k], z_delta[k],
+                       alpha, exp, flux_threshold, max_z_delta,
+                       is_start=False, parent = cell, startcell = startcell)
+                       )
 
         for cell in cell_list:
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
@@ -664,5 +672,5 @@ def calculation_effect_small(args):
 
         startcell_idx += 1
     end = datetime.now().replace(microsecond=0)
-    print('\n Time needed: ' + str(end - start))
+    #print('\n Time needed: ' + str(end - start))
     return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array
