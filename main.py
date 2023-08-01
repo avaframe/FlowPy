@@ -610,6 +610,12 @@ def main(args, kwargs):
     logging.info('Calculation finished, getting results.')
     for i in range(len(z_delta_list)):
         z_delta = np.maximum(z_delta, z_delta_list[i])
+        ##########################################################################CH z_delta_list
+        #output_format = '.tif'
+        #io.output_raster(dem_path,
+        #         directory + res_dir + '_%s_'%(str(i).zfill(3)) + "z_delta_list{}".format(output_format),
+        #         z_delta_list[i])
+        ##########################################################################CH ende
         #JT
         travel_length = np.maximum(travel_length, travel_length_list[i])
         #ende
