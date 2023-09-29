@@ -31,6 +31,7 @@ of DEM, return arrays)
 
 import sys
 import numpy as np
+import matplotlib.pyplot as plt
 from datetime import datetime
 from flow_class import Cell
 
@@ -139,7 +140,305 @@ def split_release(release, header_release, pieces):
             breakpoint_x = i
 
     return release_list
+    
+def get_idx_max(energy):   
+    #new PAULA
+    row_max,col_max = np.where(energy == energy.max())
+    row_max = round(np.mean(row_max))
+    col_max = round(np.mean(col_max))    
+    return (col_max, row_max)
 
+def bresenham_line(start, end):
+    #new PAULA
+    """
+    Generate coordinates of the line between start and end using Bresenham's algorithm.
+    """
+    x0, y0 = start
+    x1, y1 = end
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx - dy
+    
+    line_coords = []
+    
+    while True:
+        line_coords.append((x0, y0))
+        if x0 == x1 and y0 == y1:
+            break
+        e2 = 2 * err
+        if e2 > -dy:
+            err -= dy
+            x0 += sx
+        if e2 < dx:
+            err += dx
+            y0 += sy
+                
+    return line_coords    
+    
+def get_2d_arrays(start, end, raster_3d):
+    #new PAULA
+    s = bresenham_line(start, end)
+    array_2d = [raster_3d[y, x] for x, y in s]
+    return s, array_2d
+
+def get_2d_arrays_coe(row_idx,col_idx,raster_3d):
+    return raster_3d[row_idx,col_idx]
+
+def get_coord_array(dem):
+    # NEW PAULA
+    num_rows, num_cols = dem.shape
+    # Initialize x and y as 2D arrays filled with zeros
+    row_idx = [[0 for _ in range(num_cols)] for _ in range(num_rows)]
+    col_idx = [[0 for _ in range(num_cols)] for _ in range(num_rows)]
+
+    for i in range(num_rows):
+        for j in range(num_cols):
+            row_idx[i][j] = i  # Row index
+            col_idx[i][j] = j  # Column index
+
+    return row_idx,col_idx
+    
+
+def plot_path(startcell_idx, row_idx_start, col_idx_start, dem, flux_array, z_delta_array, energy):
+    #new PAULA
+
+    fig, axs = plt.subplots(2,2) 
+
+    fig.set_figheight(10)
+    fig.tight_layout(pad=3.0)
+    fig.set_figwidth(20)
+    
+    axs[0,0].imshow(dem, cmap ='Greys', alpha=0.8)
+    f = axs[0,0].imshow(energy,  cmap = 'Blues', alpha = 0.6)
+    fig.colorbar(f, ax = axs[0,0])
+    axs[0,0].set(ylabel = 'y in [m]')
+    
+    axs[0,1].plot(dem[row_idx,:], label = 'topography, center line')
+    axs[0,1].plot(z_delta_array[row_idx,:] + dem[row_idx,:], label = f'Z_delta')
+    #axs[0,1].axhline(0)
+    axs[0,1].set(ylabel='altitude Z')
+    axs[0,1].legend()
+    
+    axs[1,1].plot(energy[row_idx,:], label='flow energy')
+    axs[1,1].set(ylabel='flow energy = flux * z_delta / 2')
+    
+    x = np.arange(len(dem[row_idx,:]))
+    axs[1,0].bar(x,flux_array[row_idx,:])
+    axs[1,0].set(ylabel='flux')
+    
+    i,j = axs.shape
+    for idx in np.arange(i):
+    	for jdx in np.arange(j):
+        	axs[idx,jdx].set(xlabel='x in [m]')
+   
+        	
+    fig.savefig(f'/home/paula/data/Flowpy_test/plane/output_1cell_PRA/plots/Z_delta_path_{startcell_idx}.png')
+
+def plot_path_s(startcell_idx, row_idx_start, col_idx_start, cellsize, dem, flux, z_delta, energy):
+    '''
+    Plot z_delta, flow_energy, flux with x-axis = s(x,y)
+    '''
+    #new PAULA
+    start = (col_idx_start, row_idx_start)
+    end = get_idx_max(energy)
+    s, dem_2d = get_2d_arrays(start, end, dem)
+    s, flux_2d = get_2d_arrays(start, end, flux)
+    s, z_delta_2d = get_2d_arrays(start, end, z_delta)
+    s, energy_2d = get_2d_arrays(start, end, energy)
+    fig, axs = plt.subplots(2,2) 
+
+    fig.set_figheight(10)
+    fig.tight_layout(pad=3.0)
+    fig.set_figwidth(20)
+    
+    axs[0,0].imshow(dem, cmap ='Greys', alpha=0.8)
+    f = axs[0,0].imshow(energy,  cmap = 'Blues', alpha = 0.6)
+    fig.colorbar(f, ax = axs[0,0])
+    axs[0,0].set(ylabel = 'y in [m]')
+    axs[0,0].legend()
+    
+    axs[0,1].plot(dem_2d, label = 'topography, center line')
+    axs[0,1].plot([d + z for d,z in zip(dem_2d, z_delta_2d)], label = f'Z_delta')
+    #axs[0,1].axhline(0)
+    axs[0,1].set(ylabel='altitude Z')
+    axs[0,1].legend()
+    
+    axs[1,1].plot(energy_2d, label='flow energy')
+    axs[1,1].set(ylabel='flow energy = flux * z_delta / 2')
+    
+    x = np.arange(len(dem_2d))
+    axs[1,0].bar(x,flux_2d)
+    axs[1,0].set(ylabel='flux')
+    
+
+    i,j = axs.shape
+    for idx in np.arange(i):
+    	for jdx in np.arange(j):    
+	        axs[idx,jdx].set(xlabel='iteration steps')
+
+    fig.savefig(f'/home/paula/data/Flowpy_test/plane/output_1cell_PRA/plots/PATH_S_{startcell_idx}.png')
+
+def plot_path_coE(startcell_idx, row_idx_start, col_idx_start, cellsize, dem, flux, z_delta, energy, coe_energy_avg_array, com_energy_avg_array, co_e,ds_3d, row_idx_coe, col_idx_coe, row_idx_com, col_idx_com,s_co, energy_it, flux_it, travel_length, coe_flux_avg_array, com_flux_avg_array):
+    '''
+    Plot z_delta, flow_energy, flux along center of energy
+    '''
+    #new PAULA
+    #row_idx_co, col_idx_co = np.where(co_e == 1)
+    row_idx_coe = row_idx_coe[:-1] # exclude last value of s = 0 
+    col_idx_coe = col_idx_coe[:-1]
+    row_idx_com = row_idx_com[:-1] # exclude last value of s = 0 
+    col_idx_com = col_idx_com[:-1]
+    energy_2d = get_2d_arrays_coe(row_idx_coe, col_idx_coe, energy)
+    flux_2d = get_2d_arrays_coe(row_idx_coe, col_idx_coe, flux)
+    dem_2d = get_2d_arrays_coe(row_idx_coe, col_idx_coe, dem)
+    z_delta_2d = get_2d_arrays_coe(row_idx_coe, col_idx_coe, z_delta)
+    coe_energy_avg = [0] + get_2d_arrays_coe(row_idx_coe, col_idx_coe, coe_energy_avg_array[startcell_idx,:,:])
+    com_energy_avg = [0] + get_2d_arrays_coe(row_idx_com, col_idx_com, com_energy_avg_array[startcell_idx,:,:])    
+    coe_flux_avg = [0] + get_2d_arrays_coe(row_idx_coe, col_idx_coe, coe_flux_avg_array[startcell_idx,:,:])
+    com_flux_avg = [0] + get_2d_arrays_coe(row_idx_com, col_idx_com, com_flux_avg_array[startcell_idx,:,:])    
+    ds = [0] + get_2d_arrays_coe(row_idx_coe, col_idx_coe, ds_3d[startcell_idx,:,:])
+    ds_co = [0] + get_2d_arrays_coe(row_idx_coe, col_idx_coe, s_co[startcell_idx,:,:])
+    #s = [sum(ds[:i+1]) for i in range(len(ds))]
+    s = get_2d_arrays_coe(row_idx_coe, col_idx_coe, travel_length)
+    s_m = get_2d_arrays_coe(row_idx_com, col_idx_com, travel_length)
+    s_co = [sum(ds_co[:i+1]) for i in range(len(ds_co))]
+    fig, axs = plt.subplots(4,2) 
+
+    fig.set_figheight(10)
+    fig.tight_layout(pad=3.0)
+    fig.set_figwidth(20)
+    
+    axs[0,0].imshow(dem, cmap ='Greys', alpha=0.8)
+    axs[0,0].contour(dem, levels = 10, colors ='k',linewidths=0.5)
+    f = axs[0,0].imshow(energy, cmap = 'Blues')#, alpha = 0.6)
+    #axs[0,0].plot(col_idx_co, row_idx_co, 'k--', label = 'center of energy')
+    axs[0,0].scatter(col_idx_coe[::10], row_idx_coe[::10], c = 'k', s = 0.3, label = 'center of energy')
+    axs[0,0].scatter(col_idx_com[::10], row_idx_com[::10], c = 'g', s = 0.3, label = 'center of mass')
+    #f = axs[0,0].imshow(co_energy_avg_array[0,:,:],  cmap = 'Blues')#, alpha = 0.6)
+    fig.colorbar(f, ax = axs[0,0], label = 'flow energy')
+    axs[0,0].set(ylabel = 'y in [m]')
+    #x_ticks = np.linspace(0, len(dem[0]), 6)  # Adjust the step size as needed
+    x_ticks = np.arange(0, len(dem[0]),200) # funktioniert bei datensatz mit 1000 gitterpunkten
+    x_tick_labels = [str(round(label * cellsize)) for label in x_ticks] 
+    axs[0,0].set_xticks(x_ticks)
+    axs[0,0].set_xticklabels(x_tick_labels)   
+    #y_ticks = np.linspace(0, len(dem[:,0]), 5)  # Adjust the step size as needed
+    y_ticks = np.arange(0, len(dem[:,0]),100) # funktioniert bei datensatz mit 400 gitterpunkten
+    y_tick_labels = [str(round(label * cellsize)) for label in y_ticks] 
+    axs[0,0].set_yticks(y_ticks)
+    axs[0,0].set_yticklabels(y_tick_labels) 
+    axs[0,0].legend()
+    
+    
+    axs[0,1].plot(s,dem_2d, label = 'topography, center line')
+    axs[0,1].plot(s,[d + z for d,z in zip(dem_2d, z_delta_2d)], label = f'Z_delta')
+    #axs[0,1].axhline(0)
+    axs[0,1].set(ylabel='altitude Z')
+    axs[0,1].legend()
+    
+    axs[1,1].plot(s,energy_2d, label='flow energy local')
+    axs[1,1].plot(s,coe_energy_avg, label='flow energy coE')
+    axs[1,1].plot(s_m, com_energy_avg, label='flow energy coM')
+    axs[1,1].set(ylabel='flow energy = flux * z_delta / 2')
+    axs[1,1].legend()
+    
+    x = np.arange(len(dem_2d))
+    x_e = np.arange(len(coe_flux_avg))
+    x_m = np.arange(len(com_flux_avg))
+    axs[1,0].bar(x,flux_2d, label = 'local')
+    axs[1,0].bar(x_e,coe_flux_avg, label = 'coE')
+    axs[1,0].bar(x_m,com_flux_avg, label = 'coM')
+    axs[1,0].set(ylabel='flux')
+    #x_ticks = np.linspace(0, len(dem[0]), 6)  # Adjust the step size as needed
+    x_ticks = np.arange(0, len(flux_2d),200) # funktioniert bei datensatz mit 1000 gitterpunkten
+    x_tick_labels = [str(round(label * cellsize)) for label in x_ticks] 
+    axs[1,0].set_xticks(x_ticks)
+    axs[1,0].set_xticklabels(x_tick_labels)   
+    axs[1,0].legend()
+    
+
+    i,j = axs.shape
+    for idx in np.arange(i):
+    	for jdx in np.arange(j):    
+	        axs[idx,jdx].set(xlabel ='s in [m]')
+    axs[0,0].set(xlabel = 'x in [m]')       
+
+    axs[2,0].plot(flux_it) 
+    axs[2,0].set(xlabel = 'iteration step')
+    axs[2,0].set(ylabel='flux')
+
+    axs[2,1].plot(energy_it) 
+    axs[2,1].set(xlabel = 'iteration step')
+    axs[2,1].set(ylabel='flow energy')
+
+    axs[3,0].plot([0,max(s)],[0,max(s)],'k--', label = 'y=x')
+    axs[3,0].scatter(s,s_co, s = 0.2, label = 'data')
+    axs[3,0].set(xlabel = 's (local at x and y)')
+    axs[3,0].set(ylabel = 's (weighted coE)')
+    axs[3,0].legend()
+
+    axs[3,1].plot([0,max(energy_2d)],[0,max(energy_2d)],'k--', label = 'y=x')
+    axs[3,1].scatter(energy_2d, coe_energy_avg, s = 0.2, label = 'data')
+    axs[3,1].set(xlabel = 'flow energy local (at x and y)')
+    axs[3,1].set(ylabel = 'flow energy (averaged coE)')
+    axs[3,1].legend()
+    
+    fig.savefig(f'/home/paula/data/Flowpy_test/plane/output_1cell_PRA/plots/path_coE_{startcell_idx}.png')
+
+def calc_thalweg_centerof(iteration_step, co_parameter_path, parameter_path):
+    # NEW PAULA    
+
+    parameter_it_sum = np.zeros(int(np.max(iteration_step))+1)
+    co_it_sum = np.zeros(int(np.max(iteration_step))+1)
+    parameter_coF = np.zeros(int(np.max(iteration_step))+1)
+    parameter = np.array(parameter_path)
+    co_param = np.array(co_parameter_path)
+
+    for i in np.arange(int(np.max(iteration_step)) + 1):
+        idx = np.where(iteration_step == i)
+
+        
+        parameter_it_sum[i] = np.sum(parameter[iteration_step == i])
+        co_it_sum[i] = np.sum(co_param[idx])
+
+        parameter_coF[i] = 1 / co_it_sum[i] * np.sum(parameter[idx] * co_param[idx])
+
+    return parameter_coF
+
+
+def plot_path_sept23(dem, iteration_step_path, row, col, flux_path, energy_path):
+
+
+    n_startcell = energy_path.shape[0]
+    fig, axs = plt.subplots(n_startcell+1,2) 
+
+    fig.set_figheight(10)
+    fig.tight_layout(pad=3.0)
+    fig.set_figwidth(20)
+    
+    for n in range(n_startcell): 
+        row_oF = calc_thalweg_centerof(iteration_step_path[n,:,:], row, flux_path[n,:,:])
+        col_oF = calc_thalweg_centerof(iteration_step_path[n,:,:], col, flux_path[n,:,:])
+        energy_coF = calc_thalweg_centerof(iteration_step_path[n,:,:], flux_path[n,:,:], flux_path[n,:,:])
+
+        #axs[n,0].imshow(dem, cmap ='Greys', alpha=0.8)
+        #axs[n,0].contour(dem, levels = 10, colors ='k',linewidths=0.5)
+        #f = axs[n,0].imshow(flux_path[n,:,:], cmap = 'Blues', alpha = 0.6)
+        #fig.colorbar(f, ax = axs[n,0], label = 'flow energy')
+        axs[n,0].scatter(col_oF, row_oF, c = 'r', s = 0.8, label = 'center of flux')
+
+        
+        #axs[n,1].set_ylim(0,1) 
+        axs[n,1].plot(energy_coF)
+        axs[n,1].set(ylabel = 'flow energy (coF)')
+        axs[n,1].set(xlabel = 'iteration step')   
+         
+        
+    fig.savefig(f'/home/paula/data/Flowpy_test/plane/output_1cell_PRA/plots/path_sept23.png')
+
+    	
     
 def calculation(args):
     """This is the core function where all the data handling and calculation is
@@ -186,6 +485,7 @@ def calculation(args):
     z_delta_array = np.zeros_like(dem)
     z_delta_sum = np.zeros_like(dem)
     flux_array = np.zeros_like(dem)
+    flow_energy_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
     fp_travelangle_array = np.zeros_like(dem)
@@ -262,6 +562,9 @@ def calculation(args):
             z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
             fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex], cell.max_gamma)
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex], cell.sl_gamma)
+            #PAULA
+            flow_energy_array[cell.rowindex, cell.colindex] = max(flow_energy_array[cell.rowindex, cell.colindex], cell.flow_energy)
+            #ende paula
             
         #Backcalculation
             if infra[cell.rowindex, cell.colindex] > 0:
@@ -283,8 +586,11 @@ def calculation(args):
     #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array
     #JT ENDE
     #ch alti
-    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array, altitude_diff_array
+    #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array, altitude_diff_array
     #ch alti
+    #PAULA
+    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array, altitude_diff_array,flow_energy_array
+    #ende Paula
     
 def calculation_effect(args):
     """This is the core function where all the data handling and calculation is
@@ -323,6 +629,7 @@ def calculation_effect(args):
     z_delta_array = np.zeros_like(dem)
     z_delta_sum = np.zeros_like(dem)
     flux_array = np.zeros_like(dem)
+    flow_energy_array = np.zeros_like(dem)
     count_array = np.zeros_like(dem)
     backcalc = np.zeros_like(dem)
     fp_travelangle_array = np.zeros_like(dem)  # fp = Flow Path
@@ -334,7 +641,23 @@ def calculation_effect(args):
     # Core
     start = datetime.now().replace(microsecond=0)
     row_list, col_list = get_start_idx(dem, release)
+    
+    #PAULA
+    flux_path = np.zeros((len(row_list), dem.shape[0],dem.shape[1]))
+    flow_energy_path = np.zeros((len(row_list), dem.shape[0],dem.shape[1]))
+    z_delta_path = np.zeros_like(flux_path)
+    travel_length_path = np.zeros_like(flux_path)
+    iteration_step_path = np.zeros_like(flux_path)
 
+    coe_energy_avg_array = np.zeros((len(row_list), dem.shape[0],dem.shape[1]))
+    com_energy_avg_array = np.zeros((len(row_list), dem.shape[0],dem.shape[1]))
+    coe_flux_avg_array = np.zeros_like(coe_energy_avg_array)
+    com_flux_avg_array = np.zeros_like(coe_energy_avg_array)
+    coe_s = np.zeros((len(row_list), dem.shape[0],dem.shape[1]))
+    s_coe = np.zeros_like(coe_s)
+    s_com = np.zeros_like(coe_s)
+    #ende paula
+    	
     startcell_idx = 0
     while startcell_idx < len(row_list):
         
@@ -345,20 +668,42 @@ def calculation_effect(args):
         cell_list = []
         row_idx = row_list[startcell_idx]
         col_idx = col_list[startcell_idx]
+        #PAULA
+        co_e = np.zeros_like(dem)
+        co_e[row_idx, col_idx] = 1
+        co_m = np.zeros_like(dem)
+        co_m[row_idx, col_idx] = 1
+        #ende paula
         dem_ng = dem[row_idx - 1:row_idx + 2, col_idx - 1:col_idx + 2]  # neighbourhood DEM
         if (nodata in dem_ng) or np.size(dem_ng) < 9:
             startcell_idx += 1
             continue
-
+        #startcell = Cell(row_idx, col_idx, dem_ng, forest[row_idx, col_idx], 
+        #                 cellsize, 1, 0, None,
+        #                 alpha, exp, flux_threshold, max_z_delta, True)
+        #PAULA
         startcell = Cell(row_idx, col_idx, dem_ng, forest[row_idx, col_idx], 
                          cellsize, 1, 0, None,
-                         alpha, exp, flux_threshold, max_z_delta, True)
+                         alpha, exp, flux_threshold, max_z_delta, True, co_e, co_m)
+        #ende paula
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
         cell_list.append(startcell)
+        #PAUÖA
+        row_idx_coe_list = [row_idx]
+        col_idx_coe_list = [col_idx]
+        row_idx_com_list = [row_idx]
+        col_idx_com_list = [col_idx]
+        energy_iteration_list = []
+        flux_iteration_list = []
+        #ende poaula
 
         for idx, cell in enumerate(cell_list):
-            row, col, flux, z_delta = cell.calc_distribution()
+            #row, col, flux, z_delta = cell.calc_distribution()
+            #PAULA
+            row, col, flux, z_delta, co_e, co_m   = cell.calc_distribution()
+            #row, col, flux, z_delta, row_flux_max, col_flux_max = cell.calc_distribution()
+            #ende paula
 
             if len(flux) > 0:
                 z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
@@ -378,18 +723,36 @@ def calculation_effect(args):
                         z_delta = np.delete(z_delta, k)
                     else:
                         k += 1
+                        
 
             for k in range(len(row)):
                 dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
                 if (nodata in dem_ng) or np.size(dem_ng) < 9:
                     continue
+                # cell_list.append(
+                #     Cell(row[k], col[k], dem_ng, forest[row[k], col[k]],
+                #          cellsize, flux[k], z_delta[k], cell, alpha, exp, 
+                #          flux_threshold, max_z_delta, startcell, co_e))
+                
+                #PAULA
                 cell_list.append(
                     Cell(row[k], col[k], dem_ng, forest[row[k], col[k]],
                          cellsize, flux[k], z_delta[k], cell, alpha, exp, 
-                         flux_threshold, max_z_delta, startcell))
+                         flux_threshold, max_z_delta, startcell, co_e, co_m))
+                #ende poaula
+
 
         for cell in cell_list:
-	    # ch PROGRAMMIERT CRAZY STUFF
+	    # ITERATION STEP PER PATH (CELL) - IMPORTANT RESULTS
+            '''
+            iteration_step_results(ITERATIONSTEPS,NUMBEROFINTERRESTING RESUTLS)
+            ALTITUDE_I_WEIGHTED = WEIGHTED AVERAGE (cell.flux, Z_FIELD)
+
+            cell.coE
+            '''    
+        
+        #PATH EBENE
+        # ch PROGRAMMIERT CRAZY STUFF
             #ch alti
             #altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.startcell.altitude - cell.altitude) 
             altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.altitutde_diff) 
@@ -397,6 +760,38 @@ def calculation_effect(args):
             travel_length_array[cell.rowindex, cell.colindex] = max(travel_length_array[cell.rowindex, cell.colindex], cell.min_distance)
 	    # CH ENDE
             z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
+            
+            #PAULA
+            flux_path[startcell_idx,cell.rowindex, cell.colindex] = max(flux_path[startcell_idx,cell.rowindex, cell.colindex],cell.flux)
+            flow_energy_path[startcell_idx,cell.rowindex, cell.colindex] = max(flux_path[startcell_idx,cell.rowindex, cell.colindex],cell.flow_energy)
+            z_delta_path[startcell_idx,cell.rowindex, cell.colindex] = max(z_delta_path[startcell_idx,cell.rowindex, cell.colindex],cell.z_delta)
+            travel_length_path[startcell_idx,cell.rowindex, cell.colindex] = max(travel_length_path[startcell_idx,cell.rowindex, cell.colindex],cell.min_distance)
+            iteration_step_path[startcell_idx,cell.rowindex, cell.colindex] = max(iteration_step_path[startcell_idx,cell.rowindex, cell.colindex],cell.iteration)
+
+            flow_energy_array[cell.rowindex, cell.colindex] = max(flow_energy_array[cell.rowindex, cell.colindex], cell.flow_energy)
+            cellsize = cell.cellsize
+            coe_energy_avg_array[startcell_idx,cell.rowindex, cell.colindex] = cell.coe_energy_avg
+            com_energy_avg_array[startcell_idx,cell.rowindex, cell.colindex] = cell.com_energy_avg
+            coe_flux_avg_array[startcell_idx,cell.rowindex, cell.colindex] = cell.coe_flux_avg
+            com_flux_avg_array[startcell_idx,cell.rowindex, cell.colindex] = cell.com_flux_avg
+            coe_s[startcell_idx,cell.rowindex, cell.colindex] = cell.coe_ds # Distance to next cell along center of ...
+            s_coe[startcell_idx,cell.rowindex, cell.colindex] = cell.s_coe #first calc s, than weight with energy/mass
+            s_com[startcell_idx,cell.rowindex, cell.colindex] = cell.s_com #first calc s, than weight with energy/mass
+
+
+
+            if cell.coe_energy_avg != 0:
+                row_idx_coe_list.append(cell.row_idx_coe)
+                col_idx_coe_list.append(cell.col_idx_coe)
+                energy_iteration_list.append(cell.flow_energy)
+                flux_iteration_list.append(cell.flux)
+            if cell.com_energy_avg != 0:
+                row_idx_com_list.append(cell.row_idx_com)
+                col_idx_com_list.append(cell.col_idx_com)
+                #energy_iteration_list.append(cell.flow_energy)
+                #flux_iteration_list.append(cell.flux)
+            #ENDE Paula
+            
             flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
                                                            cell.flux)
             count_array[cell.rowindex, cell.colindex] += 1
@@ -405,8 +800,20 @@ def calculation_effect(args):
                                                                      cell.max_gamma)
             sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
                                                                      cell.sl_gamma)
-
+            
+                                                                     
+	#PAULA
+        #plot_path(startcell_idx, row_idx, col_idx, dem, flux_array, z_delta_array, flow_energy_array)
+        plot_path_s(startcell_idx, row_idx, col_idx, cellsize, dem, flux_array, z_delta_array, flow_energy_array)   
+        plot_path_coE(startcell_idx, row_idx, col_idx, cellsize, dem, flux_array, z_delta_array, flow_energy_array, coe_energy_avg_array, com_energy_avg_array, co_e, coe_s, row_idx_coe_list, col_idx_coe_list, row_idx_com_list, col_idx_com_list, s_coe, energy_iteration_list, flux_iteration_list, travel_length_array, coe_flux_avg_array,com_flux_avg_array)     
+        #print(np.where(co_e==1))
+        #ende paula
         startcell_idx += 1
+
+    #PAULA
+    row_idx, col_idx = get_coord_array(dem)
+    plot_path_sept23(dem, iteration_step_path, row_idx, col_idx, flux_path, flow_energy_path)
+    #oaula ende
     end = datetime.now().replace(microsecond=0)        
     print('\n Time needed: ' + str(end - start))
     #CH 
@@ -414,7 +821,9 @@ def calculation_effect(args):
     #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array
     #CH ENDE
     #ch alti
-    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array, altitude_diff_array
+    #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array, altitude_diff_array, flux_path
     #ch alti
-    
+    #PAULA
+    return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array, travel_length_array, altitude_diff_array, flux_path, flow_energy_array,coe_energy_avg_array
+    #ende paula
     
