@@ -185,7 +185,6 @@ class Cell:
         self.calc_persistence()
         self.persistence *= self.no_flow
         self.calc_tanbeta()
-        #print(self.persistence)
 
         if not self.is_start:
             self.calc_fp_travelangle()
@@ -194,19 +193,7 @@ class Cell:
         threshold = self.flux_threshold
         if np.sum(self.r_t) > 0:
             self.dist = (self.persistence * self.r_t) / np.sum(self.persistence * self.r_t) * self.flux
-        # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
-        # flux.
-        # The flux of this cells will then spread equally to all neighbour cells
-        count = ((0 < self.dist) & (self.dist < threshold)).sum()
-        mass_to_distribute = np.sum(self.dist[self.dist < threshold])
-        '''Checking if flux is distributed to a field that isn't taking in account, when then distribute it equally to
-         the other fields'''
-        if mass_to_distribute > 0 and count > 0:
-            self.dist[self.dist > threshold] += mass_to_distribute / count
-            self.dist[self.dist < threshold] = 0
-        if np.sum(self.dist) < self.flux and count > 0:
-            self.dist[self.dist > threshold] += (self.flux - np.sum(self.dist))/count
 
         row_local, col_local = np.where(self.dist > threshold)
 
-        return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local]
+        return list(self.rowindex - 1 + row_local), list(self.colindex - 1 + col_local), list(self.dist[row_local, col_local]), list(self.z_delta_neighbour[row_local, col_local])
