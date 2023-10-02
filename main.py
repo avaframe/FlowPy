@@ -358,7 +358,8 @@ class Flow_Py_EXEC():
            
         for i in range(nTiles[0]+1):
             for j in range(nTiles[1]+1):
-                optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
+                optList.append((i, j, alpha, exp, cellsize, nodata, 
+                                flux_threshold, max_z, temp_dir, self.infra_bool))
 
         # Calculation
         self.calc_class = Sim.Simulation(optList, self.infra_bool)
@@ -410,13 +411,10 @@ class Flow_Py_EXEC():
         end = datetime.now().replace(microsecond=0)
         logging.info('Calculation needed: ' + str(end - self.start) + ' seconds')
 
-        # Handle GUI
-        #self.ui.progressBar.setValue(100)
         self.set_gui_bool(True)
 
 
-def main(args, kwargs):
-    
+def main(args, kwargs): 
 
     alpha = args[0]
     exp = args[1]
@@ -425,19 +423,16 @@ def main(args, kwargs):
     release_path = args[4]
     if 'infra' in kwargs:
         infra_path = kwargs.get('infra')
-        #print(infra_path)
     else:
         infra_path = None
         
     if 'flux' in kwargs:
         flux_threshold = float(kwargs.get('flux'))
-        #print(flux_threshold)
     else:
         flux_threshold = 3 * 10 ** -4
         
     if 'max_z' in kwargs:
         max_z = kwargs.get('max_z')
-        #print(max_z)
     else:
         max_z = 8848
         # Recomendet values:
@@ -545,18 +540,14 @@ def main(args, kwargs):
        
     for i in range(nTiles[0]+1):
         for j in range(nTiles[1]+1):
-            optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold, max_z, temp_dir))
+            optList.append((i, j, alpha, exp, cellsize, nodata, flux_threshold,
+                            max_z, temp_dir, infra_bool))
 
     # Calculation
     logging.info('Multiprocessing starts, used cores: {}'.format(cpu_count() - 1))
     print("{} Processes started and {} calculations to perform.".format(mp.cpu_count() - 1, len(optList)))
     pool = mp.Pool(mp.cpu_count() - 1)
-        
-    if infra_bool:
-        pool.map(fc.calculation, optList)
-    else:       
-        pool.map(fc.calculation_effect, optList)
-
+    pool.map(fc.calculation_effect, optList)
     pool.close()
     pool.join()
 
@@ -627,4 +618,4 @@ if __name__ == '__main__':
         main(args, kwargs)
     
 # example dam: python main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif
-# example dam: python3 main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.0003 max_z=270
+# example dam: python main.py 25 8 ./examples/dam/ ./examples/dam/dam_010m_standard_cr100_sw250_f2500.20.6_n0.asc ./examples/dam/release_dam.tif infra=./examples/dam/infra.tif flux=0.0003 max_z=270
