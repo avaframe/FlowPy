@@ -97,12 +97,11 @@ def calculation(optTuple):
         infra       Infrastrucutre array [0 = NoInfra, 1 or greater = Infrastructure]
         
     Output parameters:
-        z_delta     Array like DEM with the max. Energy Line Height for every 
-                    pixel
+        z_delta     Array like DEM with the max. z_delta for every pixel
         flux_array  Array with max. concentration factor saved
         count_array Array with the number of hits for every pixel
-        z_delta_sum Array with the sum of Energy Line Height
-        back_calc   Array with back calculation, still to do!!!
+        z_delta_sum Array with the sum of z_delta
+        back_calc   Array with back calculation
         fp_travelangle ...
         sl_travelangle ...
         """
@@ -122,6 +121,7 @@ def calculation(optTuple):
     flux_threshold = float(optTuple[6])
     max_z_delta = float(optTuple[7])
     
+    # Init arrays to save results
     z_delta_array = np.zeros_like(dem, dtype=np.float32)
     z_delta_sum = np.zeros_like(dem, dtype=np.float32)
     flux_array = np.zeros_like(dem, dtype=np.float32)
@@ -135,7 +135,7 @@ def calculation(optTuple):
     
     # Core
     start = datetime.now()
-    row_list, col_list = get_start_idx(dem, release)
+    row_list, col_list = get_start_idx(dem, release) # get idx of release cells
 
     startcell_idx = 0
     while startcell_idx < len(row_list):
@@ -163,14 +163,14 @@ def calculation(optTuple):
             for cell in cell_list:
                 row, col, flux, z_delta = cell.calc_distribution()
     
-                if len(row) > 1:
+                if len(row) > 1: # if there is more then 1 element in list, sort it by z_delta, lowest -> highest
                     z_delta, flux, row, col = zip(*sorted(zip(z_delta, flux, row, col), reverse=False)) # reverse = True == descending
                     row = list(row)
                     col = list(col)
                     flux = list(flux)
                     z_delta = list(z_delta)
                     
-                for i in range(len(cell_list)):  # Check if Cell already exists
+                for i in range(len(cell_list)):  # Check if Cell already exists in cell_list
                     k = 0
                     while k < len(row):
                         if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
@@ -186,7 +186,7 @@ def calculation(optTuple):
                         else:
                             k += 1
     
-                for i in range(len(child_list)):  # Check if Cell already exists
+                for i in range(len(child_list)):  # Check if Cell already exists in child_list
                     k = 0
                     while k < len(row):
                         if row[k] == child_list[i].rowindex and col[k] == child_list[i].colindex:
@@ -214,7 +214,7 @@ def calculation(optTuple):
                 gen_list.append(cell_list)
                 child_list = []
                 
-        for cell_list in gen_list:
+        for cell_list in gen_list: # Save results to arrays
             for cell in cell_list:
                 z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
                 flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],

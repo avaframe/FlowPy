@@ -43,20 +43,11 @@ class Simulation(QThread):
 
     def run(self):
 
-        # This part will is for Calculation of the top release cells and erasing the lower ones
-        #if __name__ != '__main__':  # needed that it runs on windows, but it doesnt!!! if __name__ == main: would it be.
-        if self.infra_bool:
-            print("{} Processes started.".format(mp.cpu_count() - 1))
-            pool = mp.Pool(mp.cpu_count() - 1)
-            pool.map(fc.calculation, self.optList)
-            pool.close()
-            pool.join()
-        else:
-            print("{} Processes started.".format(mp.cpu_count() - 1))
-            pool = mp.Pool(mp.cpu_count() - 1)
-            pool.map(fc.calculation_effect, self.optList)
-            pool.close()
-            pool.join()
+        print("{} Processes started.".format(mp.cpu_count() - 1))
+        pool = mp.Pool(mp.cpu_count() - 1)
+        pool.map(fc.calculation, self.optList)
+        pool.close()
+        pool.join()
 
         print("Processes finished")
         self.finished.emit()
