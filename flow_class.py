@@ -27,10 +27,8 @@ import math
 
 
 class Cell:
-    #def __init__(self, rowindex, colindex, dem_ng, forest, cellsize, flux, z_delta, parent, alpha, exp, flux_threshold, max_z_delta, startcell):
-    #PAULA
-    def __init__(self, rowindex, colindex, dem_ng, forest, cellsize, flux, z_delta, parent, alpha, exp, flux_threshold, max_z_delta, startcell, co_e, co_m):
-    #ende paula
+    def __init__(self, rowindex, colindex, dem_ng, forest, cellsize, flux, z_delta, parent, alpha, exp, flux_threshold, max_z_delta, startcell):
+    
         '''This class handles the spreading over the DEM!
         Depending on the process different alpha angles are used for energy dissipation.'''
         self.rowindex = rowindex
@@ -51,21 +49,6 @@ class Cell:
         #ende
         #PAULA
         self.flow_energy = 0
-        self.dist_energy = np.zeros_like(self.dem_ng)
-        self.coe_energy_avg = 0 # average value of flow energy, if cell is in center of line
-        self.com_energy_avg = 0
-        self.coe_flux_avg = 0 # average value of flux, if cell is in center of line
-        self.com_flux_avg = 0
-        self.co_e = co_e
-        self.co_m = co_m #size: dem, is 1 if cell is in center of
-        self.horizontal_diff = 0
-        self.coe_ds = 0 #size: dem, distance to next center of cell
-        self.row_idx_coe = 0 #row index of next center of cell
-        self.col_idx_coe = 0 #col index of next center of cell
-        self.row_idx_com = 0 #row index of next center of cell
-        self.col_idx_com = 0 #col index of next center of cell
-        self.s_com = 0 # s calculated weighted via center of mass
-        self.s_coe = 0
         self.generation = 0
         #ende paula
         self.alpha = float(alpha)
@@ -138,9 +121,6 @@ class Cell:
         dh = self.startcell.altitude - self.altitude
 
         ds = math.sqrt(dx ** 2 + dy ** 2) * self.cellsize
-        #PAULA
-        self.horizontal_diff = ds
-        #ende paula
         self.sl_gamma = np.rad2deg(np.arctan(dh / ds))
 
         
@@ -225,50 +205,6 @@ class Cell:
         if self.is_start == False:
             for parent in self.parent:
                 self.generation = parent.generation + 1
-
-    def calc_centerof(self, parameter):
-        #NEW PAULA
-        y = [[-1,-1,-1],[0,0,0],[1,1,1]]
-        x = [[-1,0,1],[-1,0,1],[-1,0,1]]
-        s = np.array([[np.sqrt(2), 1, np.sqrt(2)], [1, 0, 1], [np.sqrt(2), 1, np.sqrt(2)]]) * self.cellsize
-        if parameter == 'e':
-            distr = self.dist_energy
-            cell_value = self.flow_energy
-        elif parameter == 'm':
-            distr = self.dist
-            cell_value = self.flux
-
-        if cell_value > 0:
-            tot = cell_value
-        else: 
-            tot = sum(sum(distr))
-        x_co = 1/tot * sum(sum(x*distr))
-        y_co = 1/tot * sum(sum(y*distr))
-        row_idx_co = self.rowindex + round(y_co)
-        col_idx_co = self.colindex + round(x_co)
-        setattr(self,f's_co{parameter}', 1/tot * sum(sum(s*distr)))
-        setattr(self, f'row_idx_co{parameter}', row_idx_co)
-        setattr(self, f'col_idx_co{parameter}', col_idx_co)
-        # self.s_co = 1/tot * sum(sum(s*distr))
-        # self.row_idx_co = self.rowindex + round(y_co)
-        # self.col_idx_co = self.colindex + round(x_co)
-        try:
-            setattr(self,f'co{parameter}_energy_avg',1/np.count_nonzero(self.dist_energy) * sum(sum(self.dist_energy)))
-            #self.co_energy_avg = 1/np.count_nonzero(distr) * sum(sum(self.dist_energy))
-            setattr(self,f'co{parameter}_flux_avg',1/np.count_nonzero(self.dist) * sum(sum(self.dist)))
-        except: 
-            setattr(self,f'co{parameter}_energy_avg',0)
-            setattr(self,f'co{parameter}_flux_avg',0)
-        if parameter == 'e':
-            self.co_e[row_idx_co,col_idx_co] = 1
-        elif parameter == 'm':
-            self.co_m[row_idx_co,col_idx_co] = 1
-        
-        # Distance to next cell along center of ...
-        dx = abs(self.colindex - col_idx_co)
-        dy = abs(self.rowindex - row_idx_co)
-        #self.coe_ds = math.sqrt(dx ** 2 + dy ** 2) * self.cellsize
-        setattr(self, f'co{parameter}_ds', math.sqrt(dx ** 2 + dy ** 2) * self.cellsize)
         
 
     def calc_persistence(self):
@@ -394,17 +330,7 @@ class Cell:
 
         row_local, col_local = np.where(self.dist > threshold)
         #PAULA
-        if self.co_e[self.rowindex, self.colindex] == 1:
-            self.calc_centerof(parameter = 'e')
-            #print(self.colindex, self.rowindex, self.dist_energy)
-        if self.co_m[self.rowindex, self.colindex] == 1:
-            self.calc_centerof(parameter = 'm')
-            #print(self.colindex, self.rowindex, self.dist)
-
         if self.generation < 10:
             print(self.generation, self.rowindex - 1 + row_local, self.colindex - 1 + col_local)
-
-        return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local], self.co_e, self.co_m
-        #return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local], self.rowindex - 1 + row_max, self.colindex - 1 + col_max
          #ende Paula
-        #return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local]
+        return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local]
