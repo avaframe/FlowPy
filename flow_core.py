@@ -287,8 +287,9 @@ def calculation_effect(optTuple):
         child_list = []
 
         for cell_list in gen_list:
+            mass = 0
             for cell in cell_list:
-                
+                mass += cell.flux
                 row, col, flux, z_delta = cell.calc_distribution()
     
                 if len(row) > 1:
@@ -336,14 +337,12 @@ def calculation_effect(optTuple):
                         continue
                     child_list.append(
                         Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
-                    #print(len(child_list))
+
             if len(child_list) > 0:
                 cell_list = child_list               
                 gen_list.append(cell_list)
                 child_list = []
-                #print(len(gen_list))
-            
-        print("Saving arrays")            
+           
         for cell_list in gen_list:
             for cell in cell_list:
                 z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
@@ -359,7 +358,7 @@ def calculation_effect(optTuple):
         startcell_idx += 1
     
     # Save Calculated tiles
-    print("Saving Tiles...")
+    #print("Saving Tiles...")
     np.save(temp_dir + "./res_z_delta_{}_{}".format(optTuple[0], optTuple[1]), z_delta_array)
     np.save(temp_dir + "./res_z_delta_sum_{}_{}".format(optTuple[0], optTuple[1]), z_delta_sum)
     np.save(temp_dir + "./res_flux_{}_{}".format(optTuple[0], optTuple[1]), flux_array)    
