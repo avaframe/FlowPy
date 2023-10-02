@@ -66,7 +66,7 @@ class Cell:
         self.col_idx_com = 0 #col index of next center of cell
         self.s_com = 0 # s calculated weighted via center of mass
         self.s_coe = 0
-        self.iteration = 0
+        self.generation = 0
         #ende paula
         self.alpha = float(alpha)
         self.exp = int(exp)
@@ -220,11 +220,11 @@ class Cell:
         ##NEW PAULA
     	self.flow_energy = self.flux * self.z_delta / 2
 
-    def calc_iteration_step(self):
+    def calc_generation_step(self):
         #NEW PAULA
         if self.is_start == False:
             for parent in self.parent:
-                self.iteration = parent.iteration + 1
+                self.generation = parent.generation + 1
 
     def calc_centerof(self, parameter):
         #NEW PAULA
@@ -342,7 +342,7 @@ class Cell:
 
     def calc_distribution(self):
 
-        self.calc_iteration_step()
+        self.calc_generation_step()
         self.calc_z_delta()
         self.calc_persistence()
         self.persistence *= self.no_flow
@@ -375,15 +375,20 @@ class Cell:
         # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
         # flux.
         # The flux of this cells will then spread equally to all neighbour cells
-        count = ((0 < self.dist) & (self.dist < threshold)).sum()
-        mass_to_distribute = np.sum(self.dist[self.dist < threshold])
+        # ToDo: Bug in mass distribution!!!! MN
+        count = ((0 < self.dist) & (self.dist < threshold)).sum() # How many cells with flux > 0 and flux < treshhold
+        receiver = (self.dist > threshold).sum()
+        #print(receiver)
+        mass_to_distribute = np.sum(self.dist[self.dist < threshold]) # Mass of graveyard cells
         '''Checking if flux is distributed to a field that isn't taking in account, when then distribute it equally to
          the other fields'''
+        '''
         if mass_to_distribute > 0 and count > 0:
             self.dist[self.dist > threshold] += mass_to_distribute / count
             self.dist[self.dist < threshold] = 0
-        if np.sum(self.dist) < self.flux and count > 0:
-            self.dist[self.dist > threshold] += (self.flux - np.sum(self.dist))/count
+        '''
+        #if np.sum(self.dist) < self.flux and count > 0:
+        #    self.dist[self.dist > threshold] += (self.flux - np.sum(self.dist))/count
             
         self.dist_energy = self.dist * self.z_delta_neighbour / 2
 
@@ -395,6 +400,10 @@ class Cell:
         if self.co_m[self.rowindex, self.colindex] == 1:
             self.calc_centerof(parameter = 'm')
             #print(self.colindex, self.rowindex, self.dist)
+
+        if self.generation < 10:
+            print(self.generation, self.rowindex - 1 + row_local, self.colindex - 1 + col_local)
+
         return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local], self.co_e, self.co_m
         #return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local], self.rowindex - 1 + row_max, self.colindex - 1 + col_max
          #ende Paula
