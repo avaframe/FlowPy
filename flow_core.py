@@ -256,12 +256,11 @@ def calculation_effect(optTuple):
     z_delta_sum = np.zeros_like(dem, dtype=np.float32)
     flux_array = np.zeros_like(dem, dtype=np.float32)
     count_array = np.zeros_like(dem, dtype=np.int32)
-    #backcalc = np.zeros_like(dem, dtype=np.int32)
     fp_travelangle_array = np.zeros_like(dem, dtype=np.float32)  # fp = Flow Path
     sl_travelangle_array = np.ones_like(dem, dtype=np.float32) * 90  # sl = Straight Line
 
     # Core
-    start = datetime.now().replace(microsecond=0)
+    start = datetime.now()
     row_list, col_list = get_start_idx(dem, release)
 
     startcell_idx = 0
@@ -270,8 +269,8 @@ def calculation_effect(optTuple):
         sys.stdout.write('\r' "Calculating Startcell: " + str(startcell_idx + 1) + " of " + str(len(row_list)) + " = " + str(
             round((startcell_idx + 1) / len(row_list) * 100, 2)) + "%" '\r')
         sys.stdout.flush()
-
-        cell_list = []
+        # init lists
+      
         row_idx = row_list[startcell_idx]
         col_idx = col_list[startcell_idx]
         dem_ng = dem[row_idx - 1:row_idx + 2, col_idx - 1:col_idx + 2]  # neighbourhood DEM
@@ -283,51 +282,80 @@ def calculation_effect(optTuple):
                          alpha, exp, flux_threshold, max_z_delta, True)
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
-        cell_list.append(startcell)
+        cell_list = [startcell]
+        gen_list = [cell_list]
+        child_list = []
 
-        for idx, cell in enumerate(cell_list):
-            row, col, flux, z_delta = cell.calc_distribution()
-
-            if len(flux) > 0:
-                z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
-
-            for i in range(idx, len(cell_list)):  # Check if Cell already exists
-                k = 0
-                while k < len(row):
-                    if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
-                        cell_list[i].add_os(flux[k])
-                        cell_list[i].add_parent(cell)
-                        if z_delta[k] > cell_list[i].z_delta:
-                            cell_list[i].z_delta = z_delta[k]
-
-                        row = np.delete(row, k)
-                        col = np.delete(col, k)
-                        flux = np.delete(flux, k)
-                        z_delta = np.delete(z_delta, k)
-                    else:
-                        k += 1
-
-            for k in range(len(row)):
-                dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
-                if (nodata in dem_ng) or np.size(dem_ng) < 9:
-                    continue
-                cell_list.append(
-                    Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
-
-        for cell in cell_list:
-            z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
-            flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
-                                                           cell.flux)
-            count_array[cell.rowindex, cell.colindex] += 1
-            z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
-            fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex],
-                                                                     cell.max_gamma)
-            sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
-                                                                     cell.sl_gamma)
+        for cell_list in gen_list:
+            for cell in cell_list:
+                
+                row, col, flux, z_delta = cell.calc_distribution()
+    
+                if len(flux) > 0:
+                    z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
+    
+                for i in range(len(cell_list)):  # Check if Cell already exists
+                    k = 0
+                    while k < len(row):
+                        if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
+                            cell_list[i].add_os(flux[k])
+                            cell_list[i].add_parent(cell)
+                            if z_delta[k] > cell_list[i].z_delta:
+                                cell_list[i].z_delta = z_delta[k]
+    
+                            row = np.delete(row, k)
+                            col = np.delete(col, k)
+                            flux = np.delete(flux, k)
+                            z_delta = np.delete(z_delta, k)
+                        else:
+                            k += 1
+    
+                for i in range(len(child_list)):  # Check if Cell already exists
+                    k = 0
+                    while k < len(row):
+                        if row[k] == child_list[i].rowindex and col[k] == child_list[i].colindex:
+                            child_list[i].add_os(flux[k])
+                            child_list[i].add_parent(cell)
+                            if z_delta[k] > child_list[i].z_delta:
+                                child_list[i].z_delta = z_delta[k]
+    
+                            row = np.delete(row, k)
+                            col = np.delete(col, k)
+                            flux = np.delete(flux, k)
+                            z_delta = np.delete(z_delta, k)
+                        else:
+                            k += 1
+    
+                for k in range(len(row)):
+                    dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
+                    if (nodata in dem_ng) or np.size(dem_ng) < 9:
+                        continue
+                    child_list.append(
+                        Cell(row[k], col[k], dem_ng, cellsize, flux[k], z_delta[k], cell, alpha, exp, flux_threshold, max_z_delta, startcell))
+                    #print(len(child_list))
+            if len(child_list) > 0:
+                cell_list = child_list               
+                gen_list.append(cell_list)
+                child_list = []
+                #print(len(gen_list))
+            
+        print("Saving arrays")            
+        for cell_list in gen_list:
+            for cell in cell_list:
+                z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
+                flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
+                                                               cell.flux)
+                count_array[cell.rowindex, cell.colindex] += 1
+                z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
+                fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex],
+                                                                         cell.max_gamma)
+                sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
+                                                                         cell.sl_gamma)
 
         startcell_idx += 1
     
     # Save Calculated tiles
+    print("Saving Tiles...")
     np.save(temp_dir + "./res_z_delta_{}_{}".format(optTuple[0], optTuple[1]), z_delta_array)
     np.save(temp_dir + "./res_z_delta_sum_{}_{}".format(optTuple[0], optTuple[1]), z_delta_sum)
     np.save(temp_dir + "./res_flux_{}_{}".format(optTuple[0], optTuple[1]), flux_array)    
@@ -338,6 +366,6 @@ def calculation_effect(optTuple):
     logging.info("finished calculation {}_{}".format(optTuple[0], optTuple[1])) #ToDo!
     print("Finished calculation {}_{}".format(optTuple[0], optTuple[1]))
     
-    end = datetime.now().replace(microsecond=0)        
+    end = datetime.now()       
     print('\n Time needed: ' + str(end - start))
     #return z_delta_array, flux_array, count_array, z_delta_sum, backcalc, fp_travelangle_array, sl_travelangle_array
