@@ -308,7 +308,7 @@ class Cell:
             #self.dist = self.dist - self.detrainment # todo max needed to keep it always positive
             #todo make sure that I am only removing detrained mass once not every spatial iteration that includes a cell as a neighbor
             #print(self.detrainment, "detrainment" , self.dist, "mass")
-        # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
+        '''# This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
         # flux.
         # The flux of this cells will then spread equally to all neighbour cells
         # ToDo: Bug in mass distribution!!!! MN
@@ -316,7 +316,7 @@ class Cell:
         receiver = (self.dist > threshold).sum()
         #print(receiver)
         mass_to_distribute = np.sum(self.dist[self.dist < threshold]) # Mass of graveyard cells
-        '''Checking if flux is distributed to a field that isn't taking in account, when then distribute it equally to
+        Checking if flux is distributed to a field that isn't taking in account, when then distribute it equally to
          the other fields'''
         '''
         if mass_to_distribute > 0 and count > 0:
@@ -333,4 +333,7 @@ class Cell:
         if self.generation < 10:
             print(self.generation, self.rowindex - 1 + row_local, self.colindex - 1 + col_local)
          #ende Paula
-        return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local]
+        #return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local]
+        # MICHI generation
+        return list(self.rowindex - 1 + row_local), list(self.colindex - 1 + col_local), list(self.dist[row_local, col_local]), list(self.z_delta_neighbour[row_local, col_local])
+        #ende gener
