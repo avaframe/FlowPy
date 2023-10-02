@@ -291,9 +291,13 @@ def calculation_effect(optTuple):
                 
                 row, col, flux, z_delta = cell.calc_distribution()
     
-                if len(flux) > 0:
-                    z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
-    
+                if len(row) > 1:
+                    z_delta, flux, row, col = zip(*sorted(zip(z_delta, flux, row, col), reverse=False)) # reverse = True == descending
+                    row = list(row)
+                    col = list(col)
+                    flux = list(flux)
+                    z_delta = list(z_delta)
+                    
                 for i in range(len(cell_list)):  # Check if Cell already exists
                     k = 0
                     while k < len(row):
@@ -303,10 +307,10 @@ def calculation_effect(optTuple):
                             if z_delta[k] > cell_list[i].z_delta:
                                 cell_list[i].z_delta = z_delta[k]
     
-                            row = np.delete(row, k)
-                            col = np.delete(col, k)
-                            flux = np.delete(flux, k)
-                            z_delta = np.delete(z_delta, k)
+                            row.pop(k)
+                            col.pop(k)
+                            flux.pop(k)
+                            z_delta.pop(k)
                         else:
                             k += 1
     
@@ -319,10 +323,10 @@ def calculation_effect(optTuple):
                             if z_delta[k] > child_list[i].z_delta:
                                 child_list[i].z_delta = z_delta[k]
     
-                            row = np.delete(row, k)
-                            col = np.delete(col, k)
-                            flux = np.delete(flux, k)
-                            z_delta = np.delete(z_delta, k)
+                            row.pop(k)
+                            col.pop(k)
+                            flux.pop(k)
+                            z_delta.pop(k)
                         else:
                             k += 1
     
