@@ -392,13 +392,11 @@ def plot_path_sept23(dem,cellsize, generation_path, row, col, flux_path, energy,
         axs[0,1].set(xlabel = 'iteration step')  
         axs[0,1].legend()
  
-        axs[1,1].plot(flux_sumF, 'b', label = 'coF')
-        axs[1,1].plot(flux_sumE, 'r', label = 'coE')
+        axs[1,1].plot(flux_sumF)
         axs[1,1].set(ylabel = 'sum of flux')
         axs[1,1].set_ylim(0,1.1) 
 
-        axs[2,1].plot(energy_sumF, 'b', label = 'coF')
-        axs[2,1].plot(energy_sumE, 'r', label = 'coE')
+        axs[2,1].plot(energy_sumF)
         axs[2,1].set(ylabel = 'sum of flow energy')
 
         axs[3,1].plot(s_coF, 'b', label = 'coF')
@@ -412,7 +410,23 @@ def plot_path_sept23(dem,cellsize, generation_path, row, col, flux_path, energy,
         
     fig.savefig(f'/home/paula/data/Flowpy_test/plane/output_1cell_PRA/plots/path_analysis_startcell{n}.png')
 
-    	
+def generation_Plot(flux_sum_gen, energy_sum_gen):
+    # NEW Paula
+    #fig, axs = plt.subplots(4,2) 
+    fig, axs = plt.subplots(2) 
+    fig.set_figheight(10)
+    fig.tight_layout(pad=3.0)
+    fig.set_figwidth(20)
+
+    axs[0].plot(flux_sum_gen)
+    axs[0].set(ylabel = 'sum of flux')
+    axs[0].set_ylim(0,1.1) 
+
+    axs[1].plot(energy_sum_gen)
+    axs[1].set(ylabel = 'sum of flow energy')
+
+    fig.savefig(f'/home/paula/data/Flowpy_test/plane/output_1cell_PRA/plots/generation_list.png')
+
     
 def calculation(args):
     """This is the core function where all the data handling and calculation is
@@ -731,11 +745,18 @@ def calculation_effect(args):
                 gen_list.append(cell_list)
                 child_list = []
 
-            
-                    
+        #PAULA    
+        flux_sum_gen = np.zeros(len(gen_list))
+        energy_sum_gen = np.zeros_like(flux_sum_gen)
+        #ende paula
+
+
         
         #for cell in cell_list:
-        for cell_list in gen_list:
+        #for cell_list in gen_list:
+        #PAULA
+        for gen, cell_list in enumerate(gen_list):
+            #ende paula
             for cell in cell_list:
         #ende
 
@@ -763,6 +784,10 @@ def calculation_effect(args):
                 generation_path[startcell_idx,cell.rowindex, cell.colindex] = max(generation_path[startcell_idx,cell.rowindex, cell.colindex],cell.generation)
                 altitude_path[startcell_idx,cell.rowindex, cell.colindex] = max(altitude_path[startcell_idx,cell.rowindex, cell.colindex], cell.altitude) 
 
+                # arrays for path for every generation (1 dim)
+                flux_sum_gen[gen] += cell.flux
+                energy_sum_gen[gen] += cell.flow_energy
+
                 #ENDE Paula
                 
                 flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
@@ -773,9 +798,9 @@ def calculation_effect(args):
                                                                         cell.max_gamma)
                 sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
                                                                         cell.sl_gamma)
-        
-                                                                    
-	#PAULA
+      #PAULA  
+        generation_Plot(flux_sum_gen, energy_sum_gen)                                                    
+        print(flux_sum_gen)
         #plot_path(startcell_idx, row_idx, col_idx, dem, flux_array, z_delta_array, flow_energy_array)
         plot_path_s(startcell_idx, row_idx, col_idx, cellsize, dem, flux_array, z_delta_array, flow_energy_array)   
         #ende paula
