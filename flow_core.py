@@ -647,85 +647,132 @@ def calculation_effect(args):
         
         # If this is a startcell just give a Bool to startcell otherwise the object startcell
 
-        cell_list.append(startcell)
-        
+        # MICHI generation
+        #cell_list.append(startcell)
+        cell_list = [startcell]
+        gen_list = [cell_list]
+        child_list = []
+            
+        #for idx, cell in enumerate(cell_list):
+        for cell_list in gen_list:
+            mass = 0
+            for cell in cell_list:
+                mass += cell.flux
+        #ende gen
+          
+                row, col, flux, z_delta = cell.calc_distribution()
+
+                # MICHI gneration
+                #if len(flux) > 0:
+                if len(row) > 1:
+                    z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
+                    row = list(row)
+                    col = list(col)
+                    flux = list(flux)
+                    z_delta = list(z_delta)
+
+                #for i in range(idx, len(cell_list)):  # Check if Cell already exists
+                for i in range(len(cell_list)):
+                    #ende gen
+                    k = 0
+                    while k < len(row):
+                        if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
+                            cell_list[i].add_os(flux[k])
+                            cell_list[i].add_parent(cell)
+                            if z_delta[k] > cell_list[i].z_delta:
+                                cell_list[i].z_delta = z_delta[k]
+
+                            #row = np.delete(row, k)
+                            #col = np.delete(col, k)
+                            #flux = np.delete(flux, k)
+                            #z_delta = np.delete(z_delta, k)
+
+                            # MICHI generation
+                            row.pop(k)
+                            col.pop(k)
+                            flux.pop(k)
+                            z_delta.pop(k)
+                            #ende
+                        else:
+                            k += 1
+                
+                # MICHI generation
+                for i in range(len(child_list)):  # Check if Cell already exists
+                    k = 0
+                    while k < len(row):
+                        if row[k] == child_list[i].rowindex and col[k] == child_list[i].colindex:
+                            child_list[i].add_os(flux[k])
+                            child_list[i].add_parent(cell)
+                            if z_delta[k] > child_list[i].z_delta:
+                                child_list[i].z_delta = z_delta[k]
     
+                            row.pop(k)
+                            col.pop(k)
+                            flux.pop(k)
+                            z_delta.pop(k)
+                        else:
+                            k += 1
+                #ende
+                                
+
+                for k in range(len(row)):
+                    dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
+                    if (nodata in dem_ng) or np.size(dem_ng) < 9:
+                        continue
+                    # MICHI generation
+                    #cell_list.append(
+                    child_list.append(
+                        Cell(row[k], col[k], dem_ng, forest[row[k], col[k]],
+                            cellsize, flux[k], z_delta[k], cell, alpha, exp, 
+                            flux_threshold, max_z_delta, startcell))
+                    
+            if len(child_list) > 0:
+                cell_list = child_list               
+                gen_list.append(cell_list)
+                child_list = []
+
             
-        for idx, cell in enumerate(cell_list):
-          
-            row, col, flux, z_delta = cell.calc_distribution()
-
-            if len(flux) > 0:
-                z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
-            
-            for i in range(idx, len(cell_list)):  # Check if Cell already exists
-                k = 0
-                while k < len(row):
-                    if row[k] == cell_list[i].rowindex and col[k] == cell_list[i].colindex:
-                        cell_list[i].add_os(flux[k])
-                        cell_list[i].add_parent(cell)
-                        if z_delta[k] > cell_list[i].z_delta:
-                            cell_list[i].z_delta = z_delta[k]
-
-                        row = np.delete(row, k)
-                        col = np.delete(col, k)
-                        flux = np.delete(flux, k)
-                        z_delta = np.delete(z_delta, k)
-                    else:
-                        k += 1
-            
-          
-                            
-
-            for k in range(len(row)):
-                dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
-                if (nodata in dem_ng) or np.size(dem_ng) < 9:
-                    continue
-                cell_list.append(
-                     Cell(row[k], col[k], dem_ng, forest[row[k], col[k]],
-                          cellsize, flux[k], z_delta[k], cell, alpha, exp, 
-                          flux_threshold, max_z_delta, startcell))
-                
-                
-
-
-
+                    
         
-        for cell in cell_list:
-        # Write values for every cell in an array 
-        # For raster raster level: Overlay of all path-results (of all startcells) (2 dim)
-        # For path level: Write path results (for each startcells) in a dimension of the array (3 dim)
-        #PATH EBENE
-        # ch PROGRAMMIERT CRAZY STUFF
-            #ch alti
-            #altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.startcell.altitude - cell.altitude) 
-            altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.altitutde_diff) 
-            #ch alti
-            travel_length_array[cell.rowindex, cell.colindex] = max(travel_length_array[cell.rowindex, cell.colindex], cell.min_distance)
-        # CH ENDE
-            z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
-            
-            #PAULA
-            flow_energy_array[cell.rowindex, cell.colindex] = max(flow_energy_array[cell.rowindex, cell.colindex], cell.flow_energy)
+        #for cell in cell_list:
+        for cell_list in gen_list:
+            for cell in cell_list:
+        #ende
 
-            # arrays for path 
-            flux_path[startcell_idx,cell.rowindex, cell.colindex] = max(flux_path[startcell_idx,cell.rowindex, cell.colindex],cell.flux)
-            flow_energy_path[startcell_idx,cell.rowindex, cell.colindex] = max(flux_path[startcell_idx,cell.rowindex, cell.colindex],cell.flow_energy)
-            z_delta_path[startcell_idx,cell.rowindex, cell.colindex] = max(z_delta_path[startcell_idx,cell.rowindex, cell.colindex],cell.z_delta)
-            travel_length_path[startcell_idx,cell.rowindex, cell.colindex] = max(travel_length_path[startcell_idx,cell.rowindex, cell.colindex],cell.min_distance)
-            generation_path[startcell_idx,cell.rowindex, cell.colindex] = max(generation_path[startcell_idx,cell.rowindex, cell.colindex],cell.generation)
-            altitude_path[startcell_idx,cell.rowindex, cell.colindex] = max(altitude_path[startcell_idx,cell.rowindex, cell.colindex], cell.altitude) 
+            # Write values for every cell in an array 
+            # For raster raster level: Overlay of all path-results (of all startcells) (2 dim)
+            # For path level: Write path results (for each startcells) in a dimension of the array (3 dim)
+            #PATH EBENE
+            # ch PROGRAMMIERT CRAZY STUFF
+                #ch alti
+                #altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.startcell.altitude - cell.altitude) 
+                altitude_diff_array[cell.rowindex, cell.colindex] = max(altitude_diff_array[cell.rowindex, cell.colindex], cell.altitutde_diff) 
+                #ch alti
+                travel_length_array[cell.rowindex, cell.colindex] = max(travel_length_array[cell.rowindex, cell.colindex], cell.min_distance)
+            # CH ENDE
+                z_delta_array[cell.rowindex, cell.colindex] = max(z_delta_array[cell.rowindex, cell.colindex], cell.z_delta)
+                
+                #PAULA
+                flow_energy_array[cell.rowindex, cell.colindex] = max(flow_energy_array[cell.rowindex, cell.colindex], cell.flow_energy)
 
-            #ENDE Paula
-            
-            flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
-                                                        cell.flux)
-            count_array[cell.rowindex, cell.colindex] += 1
-            z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
-            fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex],
-                                                                    cell.max_gamma)
-            sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
-                                                                    cell.sl_gamma)
+                # arrays for path 
+                flux_path[startcell_idx,cell.rowindex, cell.colindex] = max(flux_path[startcell_idx,cell.rowindex, cell.colindex],cell.flux)
+                flow_energy_path[startcell_idx,cell.rowindex, cell.colindex] = max(flux_path[startcell_idx,cell.rowindex, cell.colindex],cell.flow_energy)
+                z_delta_path[startcell_idx,cell.rowindex, cell.colindex] = max(z_delta_path[startcell_idx,cell.rowindex, cell.colindex],cell.z_delta)
+                travel_length_path[startcell_idx,cell.rowindex, cell.colindex] = max(travel_length_path[startcell_idx,cell.rowindex, cell.colindex],cell.min_distance)
+                generation_path[startcell_idx,cell.rowindex, cell.colindex] = max(generation_path[startcell_idx,cell.rowindex, cell.colindex],cell.generation)
+                altitude_path[startcell_idx,cell.rowindex, cell.colindex] = max(altitude_path[startcell_idx,cell.rowindex, cell.colindex], cell.altitude) 
+
+                #ENDE Paula
+                
+                flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
+                                                            cell.flux)
+                count_array[cell.rowindex, cell.colindex] += 1
+                z_delta_sum[cell.rowindex, cell.colindex] += cell.z_delta
+                fp_travelangle_array[cell.rowindex, cell.colindex] = max(fp_travelangle_array[cell.rowindex, cell.colindex],
+                                                                        cell.max_gamma)
+                sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
+                                                                        cell.sl_gamma)
         
                                                                     
 	#PAULA
