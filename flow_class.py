@@ -198,14 +198,20 @@ class Cell:
             
     def calc_flow_energy(self):
         ##NEW PAULA
+        # calculate flow energy (corresponding to kinetic energy)
+        # analog to: kin_energy = mass * velocity² / 2  
     	self.flow_energy = self.flux * self.z_delta / 2
 
     def calc_generation_step(self):
         #NEW PAULA
+        # every child has the generation of its parent +1 
         if self.is_start == False:
-            for parent in self.parent:
-                self.generation = parent.generation + 1
-        
+            if len(self.parent) == 0:
+                #for parent in self.parent:
+                self.generation = self.parent.generation + 1
+            else: # if a cell has more parents, the oldest parent is to calculate the generation
+                self.generation = self.parent[0].generation + 1
+                    
 
     def calc_persistence(self):
         self.persistence = np.zeros_like(self.dem_ng)
@@ -330,8 +336,8 @@ class Cell:
 
         row_local, col_local = np.where(self.dist > threshold)
         #PAULA
-        if self.generation < 10:
-            print(self.generation, self.rowindex - 1 + row_local, self.colindex - 1 + col_local)
+        #if self.generation < 10:
+        #    print(self.generation, self.rowindex - 1 + row_local, self.colindex - 1 + col_local)
          #ende Paula
         #return self.rowindex - 1 + row_local, self.colindex - 1 + col_local, self.dist[row_local, col_local], self.z_delta_neighbour[row_local, col_local]
         # MICHI generation

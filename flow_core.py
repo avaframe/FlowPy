@@ -608,6 +608,7 @@ def calculation_effect(args):
     flux_threshold = args[6]
     max_z_delta = args[7]
 
+    # Init arrays to save results
     # CH PROGRAMMIERT CRAZY STUFF
     #ch alti
     altitude_diff_array = np.zeros_like(dem)
@@ -628,8 +629,8 @@ def calculation_effect(args):
 
     # Core
     start = datetime.now().replace(microsecond=0)
-    row_list, col_list = get_start_idx(dem, release)
-    
+    row_list, col_list = get_start_idx(dem, release) # get idx of release cells
+
     #PAULA
     flux_path = np.zeros((len(row_list), dem.shape[0],dem.shape[1]))
     flow_energy_path = np.zeros((len(row_list), dem.shape[0],dem.shape[1]))
@@ -669,23 +670,22 @@ def calculation_effect(args):
             
         #for idx, cell in enumerate(cell_list):
         for cell_list in gen_list:
-            mass = 0
             for cell in cell_list:
-                mass += cell.flux
         #ende gen
           
                 row, col, flux, z_delta = cell.calc_distribution()
-
-                # MICHI gneration
+                #if cell.generation < 7:
+                #    print(cell.rowindex, cell.colindex, cell.generation)
+                # MICHI generation
                 #if len(flux) > 0:
-                if len(row) > 1:
+                if len(row) > 1:  # if there is more then 1 element in list, sort it by z_delta, lowest -> highest
                     z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
                     row = list(row)
                     col = list(col)
                     flux = list(flux)
                     z_delta = list(z_delta)
 
-                #for i in range(idx, len(cell_list)):  # Check if Cell already exists
+                #for i in range(idx, len(cell_list)):  # Check if Cell already exists in cell_list
                 for i in range(len(cell_list)):
                     #ende gen
                     k = 0
@@ -711,7 +711,7 @@ def calculation_effect(args):
                             k += 1
                 
                 # MICHI generation
-                for i in range(len(child_list)):  # Check if Cell already exists
+                for i in range(len(child_list)):  # Check if Cell already exists in child_list
                     k = 0
                     while k < len(row):
                         if row[k] == child_list[i].rowindex and col[k] == child_list[i].colindex:
@@ -755,6 +755,7 @@ def calculation_effect(args):
         #for cell in cell_list:
         #for cell_list in gen_list:
         #PAULA
+        print('gen_list' + str(len(gen_list)))
         for gen, cell_list in enumerate(gen_list):
             #ende paula
             for cell in cell_list:
@@ -788,6 +789,8 @@ def calculation_effect(args):
                 flux_sum_gen[gen] += cell.flux
                 energy_sum_gen[gen] += cell.flow_energy
 
+                #if gen < 10:
+                #    print(gen, cell.generation, cell.rowindex, cell.colindex, cell.flux)
                 #ENDE Paula
                 
                 flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
@@ -799,8 +802,8 @@ def calculation_effect(args):
                 sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
                                                                         cell.sl_gamma)
       #PAULA  
-        generation_Plot(flux_sum_gen, energy_sum_gen)                                                    
         print(flux_sum_gen)
+        generation_Plot(flux_sum_gen, energy_sum_gen)                                                    
         #plot_path(startcell_idx, row_idx, col_idx, dem, flux_array, z_delta_array, flow_energy_array)
         plot_path_s(startcell_idx, row_idx, col_idx, cellsize, dem, flux_array, z_delta_array, flow_energy_array)   
         #ende paula
