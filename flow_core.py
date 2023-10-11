@@ -352,7 +352,7 @@ def plot_path_sept23(dem,cellsize, generation_path, row, col, flux_path, energy,
         z_delta_sumF, z_delta_coF = calc_thalweg_centerof(generation_path[n,:,:], flux_path[n,:,:], z_delta[n,:,:]) # of z_delta
         energy_sumF, energy_coF = calc_thalweg_centerof(generation_path[n,:,:], flux_path[n,:,:], energy[n,:,:]) # of z_delta
         '''
-
+        print('FLUX '+ str(flux_sumF))
         axs[0,0].imshow(dem, cmap ='Greys', alpha=0.8)
         axs[0,0].contour(dem, levels = 10, colors ='k',linewidths=0.5)
         axs[0,0].scatter(col_coF[::10], row_coF[::10], c = 'k', s = 0.4, label = 'center of flux')
@@ -417,6 +417,7 @@ def generation_Plot(flux_sum_gen, energy_sum_gen):
     fig.set_figheight(10)
     fig.tight_layout(pad=3.0)
     fig.set_figwidth(20)
+    print(flux_sum_gen)
 
     axs[0].plot(flux_sum_gen)
     axs[0].set(ylabel = 'sum of flux')
@@ -669,7 +670,13 @@ def calculation_effect(args):
         child_list = []
             
         #for idx, cell in enumerate(cell_list):
-        for cell_list in gen_list:
+
+        # PAULA
+        flux_sum_gen_array = []
+        flux_sum = 0
+        #for cell_list in gen_list:
+        for gen, cell_list in enumerate(gen_list):
+            flux_sum = 0
             for cell in cell_list:
         #ende gen
           
@@ -678,7 +685,7 @@ def calculation_effect(args):
                 #    print(cell.rowindex, cell.colindex, cell.generation)
                 # MICHI generation
                 #if len(flux) > 0:
-                if len(row) > 1:  # if there is more then 1 element in list, sort it by z_delta, lowest -> highest
+                if len(row) > 1:  # if there are more than 1 element in list, sort it by z_delta, lowest -> highest
                     z_delta, flux, row, col = list(zip(*sorted(zip(z_delta, flux, row, col), reverse=False)))  # reverse = True == descending
                     row = list(row)
                     col = list(col)
@@ -727,12 +734,18 @@ def calculation_effect(args):
                         else:
                             k += 1
                 #ende
-                                
+
+                #Paula
+                flux_sum += cell.flux
+                if cell.generation == 4:
+                    print(cell.flux)
+                #ende                
 
                 for k in range(len(row)):
                     dem_ng = dem[row[k] - 1:row[k] + 2, col[k] - 1:col[k] + 2]  # neighbourhood DEM
                     if (nodata in dem_ng) or np.size(dem_ng) < 9:
                         continue
+
                     # MICHI generation
                     #cell_list.append(
                     child_list.append(
@@ -740,10 +753,17 @@ def calculation_effect(args):
                             cellsize, flux[k], z_delta[k], cell, alpha, exp, 
                             flux_threshold, max_z_delta, startcell))
                     
+            #PAULA
+            # write raster while iteration
+            flux_sum_gen_array.append(flux_sum)
+            
             if len(child_list) > 0:
                 cell_list = child_list               
                 gen_list.append(cell_list)
                 child_list = []
+
+
+
 
         #PAULA    
         flux_sum_gen = np.zeros(len(gen_list))
@@ -755,7 +775,6 @@ def calculation_effect(args):
         #for cell in cell_list:
         #for cell_list in gen_list:
         #PAULA
-        print('gen_list' + str(len(gen_list)))
         for gen, cell_list in enumerate(gen_list):
             #ende paula
             for cell in cell_list:
@@ -788,9 +807,12 @@ def calculation_effect(args):
                 # arrays for path for every generation (1 dim)
                 flux_sum_gen[gen] += cell.flux
                 energy_sum_gen[gen] += cell.flow_energy
-
-                #if gen < 10:
+                #if gen == 4:
                 #    print(gen, cell.generation, cell.rowindex, cell.colindex, cell.flux)
+                #if gen == 4:
+                #    print(gen, cell.generation, cell.rowindex, cell.colindex, np.sum(cell.dist), cell.dist)
+                    
+                
                 #ENDE Paula
                 
                 flux_array[cell.rowindex, cell.colindex] = max(flux_array[cell.rowindex, cell.colindex],
@@ -802,8 +824,8 @@ def calculation_effect(args):
                 sl_travelangle_array[cell.rowindex, cell.colindex] = max(sl_travelangle_array[cell.rowindex, cell.colindex],
                                                                         cell.sl_gamma)
       #PAULA  
-        print(flux_sum_gen)
-        generation_Plot(flux_sum_gen, energy_sum_gen)                                                    
+        generation_Plot(flux_sum_gen_array, energy_sum_gen) 
+        print('generatoin list: ' + str(flux_sum_gen))                                                   
         #plot_path(startcell_idx, row_idx, col_idx, dem, flux_array, z_delta_array, flow_energy_array)
         plot_path_s(startcell_idx, row_idx, col_idx, cellsize, dem, flux_array, z_delta_array, flow_energy_array)   
         #ende paula
