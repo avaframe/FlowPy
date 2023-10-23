@@ -194,6 +194,29 @@ class Cell:
         if np.sum(self.r_t) > 0:
             self.dist = (self.persistence * self.r_t) / np.sum(self.persistence * self.r_t) * self.flux
 
+        # This lines handle if a distribution to a neighbour cell is lower then the threshold, so we don´t lose
+        # flux.
+        # The flux of this cells will then spread equally to all neighbour cells
+        
+        count = ((0 < self.dist) & (self.dist < threshold)).sum() # amount of cells, which do not get flux
+        count_alive = (self.dist > threshold).sum()
+        mass_to_distribute = np.sum(self.dist[self.dist < threshold]) # sum of flux of these cells
+        '''Checking if flux is distributed to a field that isn't taking in account, when then distribute it equally to
+         the other fields'''
+        
+        if mass_to_distribute > 0 and count_alive > 0:
+            #self.dist[self.dist > threshold] += mass_to_distribute / count
+            #PAULA
+            self.dist[self.dist > threshold] += mass_to_distribute / count_alive
+            #ende paula
+            self.dist[self.dist < threshold] = 0
+            
+        if np.sum(self.dist) < self.flux and count_alive > 0:
+            #self.dist[self.dist > threshold] += (self.flux - np.sum(self.dist))/count
+            #PAULA
+            self.dist[self.dist > threshold] += (self.flux - np.sum(self.dist)) / count_alive
+            #ende paula
+
         row_local, col_local = np.where(self.dist > threshold)
 
         return list(self.rowindex - 1 + row_local), list(self.colindex - 1 + col_local), list(self.dist[row_local, col_local]), list(self.z_delta_neighbour[row_local, col_local])
